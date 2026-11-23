@@ -35,6 +35,13 @@ carry over the login cookie. Safari’s local reading positions are not copied.
 Sync your place before installing if you want to resume it in the app.
 [WebKit’s installation notes](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/#login-cookies).
 
+## Browse a series
+
+Select a series name beneath a book title to see its volumes in reading order.
+Books without a volume number follow the numbered entries. Search and shelf
+filters can narrow the series. **Clear series** returns to the broader shelf.
+The **Recently read** view keeps its own order by saved reading time.
+
 ## Controls
 
 Both readers share the same controls.
