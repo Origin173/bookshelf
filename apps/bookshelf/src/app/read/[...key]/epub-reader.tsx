@@ -542,7 +542,7 @@ export function EpubReader({
           </button>
         )}
       </section>
-      <div className="flex items-center justify-between gap-1.5 px-3 pb-3 pt-1 max-[420px]:flex-wrap sm:gap-3 sm:px-6">
+      <div className="flex items-center justify-between gap-1.5 px-3 pb-3 pt-1 max-[440px]:flex-wrap sm:gap-3 sm:px-6">
         <button
           type="button"
           onClick={() => turn("prev")}
