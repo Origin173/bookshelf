@@ -37,7 +37,7 @@ export function EpubContents({
         type="button"
         aria-label={t.jump}
         aria-haspopup="dialog"
-        className={`${SELECT} flex min-w-0 flex-1 items-center justify-between gap-1 max-[360px]:order-first max-[360px]:basis-full`}
+        className={`${SELECT} flex min-w-0 flex-1 items-center justify-between gap-1 max-sm:px-2 max-[360px]:order-first max-[360px]:basis-full`}
         onClick={() => {
           dialog.current?.showModal();
           current.current?.scrollIntoView({ block: "nearest" });
