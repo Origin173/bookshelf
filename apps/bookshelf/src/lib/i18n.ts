@@ -211,9 +211,10 @@ const en = {
   allBooks: "All books",
   recentReading: "Recently read",
   noRecent: "Books appear here when you save a reading position.",
-  search: "Search books",
+  search: "Search books or ISBN",
   searching: "Searching…",
   noMatches: "No matching books.",
+  noIsbnMatches: "No books match this ISBN in the current view.",
   noProfile: "Reading positions are temporarily unavailable.",
   shelfError: "Your shelf could not be loaded. Try again in a moment.",
 };
@@ -416,9 +417,10 @@ const zh: typeof en = {
   allBooks: "全部图书",
   recentReading: "最近阅读",
   noRecent: "阅读进度保存后，就能在这里找到读过的书。",
-  search: "搜索图书",
+  search: "搜索图书或 ISBN",
   searching: "正在搜索…",
   noMatches: "没有符合条件的图书。",
+  noIsbnMatches: "当前视图中没有匹配此 ISBN 的图书。",
   noProfile: "暂时无法读取阅读进度。",
   shelfError: "书架暂时无法加载，请稍后重试。",
 };

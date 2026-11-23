@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FilterInput } from "@/app/filter-input";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
-import { searchBooks } from "@/lib/book-search";
+import { searchBookText } from "@/lib/book-search";
 import { subjectAddition } from "@/lib/catalog-names";
 import type { messages } from "@/lib/i18n";
 
@@ -58,7 +58,7 @@ export function BulkSubjectForm({
     return <p className="mt-8 text-secondary">{t.noBulkSubjects}</p>;
   const rows = preview
     ? books.filter((book) => ids.has(book.id))
-    : searchBooks(books, query);
+    : searchBookText(books, query);
   const additions = preview
     ? rows.map((book) => subjectAddition(book.subjects, subject))
     : [];

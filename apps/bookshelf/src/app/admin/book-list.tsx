@@ -6,7 +6,7 @@ import { useState } from "react";
 import { adminHref, type CatalogView } from "@/app/admin/catalog-link";
 import { FilterInput } from "@/app/filter-input";
 import { BUTTON, BUTTON_PRIMARY } from "@/app/ui";
-import { searchBooks } from "@/lib/book-search";
+import { searchBookText } from "@/lib/book-search";
 
 export function AdminBookList({
   books,
@@ -39,7 +39,7 @@ export function AdminBookList({
         adminHref({ missing: view.missing, q: query }),
       );
   }
-  const rows = searchBooks(books, query);
+  const rows = searchBookText(books, query);
   return (
     <>
       <nav aria-label={t.manage} className="mt-6 flex flex-wrap gap-2">

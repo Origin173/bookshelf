@@ -10,7 +10,7 @@ import { ReadingFormats } from "@/app/reading-formats";
 import { SearchInput } from "@/app/search-input";
 import { State } from "@/app/state";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
-import { searchBooks } from "@/lib/book-search";
+import { isbnQuery, searchBooks } from "@/lib/book-search";
 import { sortByCatalogDate } from "@/lib/catalog-date";
 import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
@@ -459,7 +459,9 @@ export default async function Home(props: PageProps<"/">) {
                     !selectedStatus &&
                     !favoritesOnly
                   ? t.noRecent
-                  : t.noMatches}
+                  : isbnQuery(query)
+                    ? t.noIsbnMatches
+                    : t.noMatches}
             </p>
           ) : (
             <ul className="mt-10 divide-y divide-separator">

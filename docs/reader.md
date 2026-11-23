@@ -35,6 +35,12 @@ carry over the login cookie. Safari’s local reading positions are not copied.
 Sync your place before installing if you want to resume it in the app.
 [WebKit’s installation notes](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/#login-cookies).
 
+## Search by ISBN
+
+Enter a complete ISBN-10 or ISBN-13 in the shelf search box to find every
+book with that recorded number. Spaces and hyphens are optional. Your shelf
+filters still apply. Other queries search titles, authors and publishers.
+
 ## Choose a reading format
 
 Use **Format** on the shelf to show books available as EPUB or PDF. A book

@@ -40,7 +40,8 @@ If none of your books record subjects, there's no **By subject** to open onto
 nothing. The same goes for series.
 
 **Searching** — add `?q=` to any book feed. That's the same parameter the
-shelf's search box uses, so you can paste a URL from one into the other.
+shelf's search box uses. A complete ISBN finds books with that exact number
+within the feed, including when the query contains spaces or hyphens.
 
 **Paging** — fifty books to a page, `?page=2` onwards.
 
