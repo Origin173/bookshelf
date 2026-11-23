@@ -37,6 +37,9 @@ Sync your place before installing if you want to resume it in the app.
 
 ## Choose a reading format
 
+Use **Format** on the shelf to show books available as EPUB or PDF. A book
+with both appears once in either view. **All formats** clears this filter.
+
 When a book has both formats, the shelf and reader offer **Read PDF** or
 **Read EPUB** to open the other file. **Continue** still follows the last
 saved position. Opening the other format leaves that position in place
