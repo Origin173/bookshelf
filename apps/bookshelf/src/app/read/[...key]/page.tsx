@@ -37,7 +37,7 @@ export async function generateMetadata(
 
   // The catalog is memoised per request, so the page's own lookup is free.
   const { catalog } = await getServices();
-  const book = await catalog.find(id);
+  const book = await catalog.display(id);
   if (!book) return { robots: { index: false, follow: false } };
 
   const authors = book.authors.join(", ");
@@ -82,7 +82,7 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
 
   // Undefined is a library that could not be read, which is not the same as a
   // book that is not in it — one is worth coming back for and the other is not.
-  const book = await ifAvailable(() => catalog.find(id));
+  const book = await ifAvailable(() => catalog.display(id));
   if (book === undefined) return <Unreachable />;
   if (!book?.formats.some((f) => f.file === file)) {
     notFound();
