@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HomeScreenHelp } from "@/app/home-screen-help";
 import { LanguageSwitch } from "@/app/language-switch";
+import { PersonalEntry } from "@/app/personal-shelf/entry";
 import { ProfileMenu } from "@/app/profile-menu";
 import { SearchInput } from "@/app/search-input";
 import { State } from "@/app/state";
@@ -13,7 +14,7 @@ import { placeholder, tint } from "@/lib/media";
 import { bySubject, named } from "@/lib/opds/browse";
 import { OPDS_ALTERNATE } from "@/lib/opds/feed";
 import { requirePageAccount } from "@/services/account-page";
-import { isAdmin } from "@/services/auth";
+import { accountProfile, isAdmin } from "@/services/auth";
 import {
   type Book,
   bookKey,
@@ -22,6 +23,11 @@ import {
 } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
+import {
+  isReadingStatus,
+  personalShelf,
+  readingStatuses,
+} from "@/services/personal-shelf";
 import { activeProfile } from "@/services/session";
 
 const COVER_CLASS = "h-15 w-10 shrink-0 rounded ring-1 ring-separator";
@@ -84,14 +90,20 @@ function Cover({ book }: { book: Book }) {
 
 export default async function Home(props: PageProps<"/">) {
   const account = await requirePageAccount();
-  const { q, subject } = await props.searchParams;
+  const { q, subject, status, favorite, shelfNotice } =
+    await props.searchParams;
+  const selectedStatus = account && isReadingStatus(status) ? status : "";
+  const favoritesOnly = !!account && favorite === "1";
   const selected = typeof subject === "string" ? subject : "";
   const t = await messages();
   const query = typeof q === "string" ? q : "";
 
   const params = new URLSearchParams();
-  if (query) params.set("q", query);
   if (selected) params.set("subject", selected);
+  if (selectedStatus) params.set("status", selectedStatus);
+  if (favoritesOnly) params.set("favorite", "1");
+  const filters = params.toString();
+  if (query) params.set("q", query);
   const here = params.size ? `/?${params}` : "/";
   const { catalog, profiles, progress, storage } = await getServices();
 
@@ -102,9 +114,12 @@ export default async function Home(props: PageProps<"/">) {
    * better answer than no shelf.
    */
   const profile = await ifAvailable(() => activeProfile());
-  const [everyone, positions] = await Promise.all([
+  const [everyone, positions, personal] = await Promise.all([
     account ? undefined : ifAvailable(() => profiles.list()),
     profile ? ifAvailable(() => progress.all(profile.id)) : undefined,
+    account
+      ? ifAvailable(() => personalShelf(storage, accountProfile(account).id))
+      : undefined,
   ]);
 
   // The catalog is the shelf, so this is the one read the page cannot do
@@ -115,7 +130,13 @@ export default async function Home(props: PageProps<"/">) {
     const groups = bySubject(books);
     const filtered = selected ? (named(groups, selected)?.books ?? []) : books;
     return {
-      matching: searchBooks(filtered, query),
+      matching: searchBooks(filtered, query).filter((book) => {
+        const entry = personal?.books.get(book.id);
+        return (
+          (!selectedStatus || entry?.status === selectedStatus) &&
+          (!favoritesOnly || entry?.favorite)
+        );
+      }),
       total: books.length,
       groups,
     };
@@ -176,41 +197,87 @@ export default async function Home(props: PageProps<"/">) {
       ) : (
         <>
           <SearchInput
-            key={selected}
+            key={filters}
             query={query}
-            subject={selected}
+            filters={filters}
             label={t.search}
             searching={t.searching}
           />
-          {(shelf.groups.length > 0 || selected) && (
+          {(personal || shelf.groups.length > 0 || selected) && (
             <form action="/" className="mt-3 flex flex-wrap items-center gap-2">
               {query && <input type="hidden" name="q" value={query} />}
-              <label htmlFor="subject" className="text-sm text-secondary">
-                {t.subjects}
-              </label>
-              <select
-                key={selected}
-                id="subject"
-                name="subject"
-                defaultValue={selected}
-                className={`${SELECT} min-w-0 max-w-full`}
-              >
-                <option value="">{t.allSubjects}</option>
-                {selected && !named(shelf.groups, selected) && (
-                  <option>{selected}</option>
-                )}
-                {shelf.groups.map((g) => (
-                  <option key={g.name} value={g.name}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
+              {(shelf.groups.length > 0 || selected) && (
+                <>
+                  <label htmlFor="subject" className="text-sm text-secondary">
+                    {t.subjects}
+                  </label>
+                  <select
+                    key={selected}
+                    id="subject"
+                    name="subject"
+                    defaultValue={selected}
+                    className={`${SELECT} min-w-0 max-w-full`}
+                  >
+                    <option value="">{t.allSubjects}</option>
+                    {selected && !named(shelf.groups, selected) && (
+                      <option>{selected}</option>
+                    )}
+                    {shelf.groups.map((g) => (
+                      <option key={g.name} value={g.name}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+              {personal && (
+                <>
+                  <label htmlFor="status" className="text-sm text-secondary">
+                    {t.readingStatus}
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    defaultValue={selectedStatus}
+                    className={SELECT}
+                  >
+                    <option value="">{t.allStatuses}</option>
+                    {readingStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {t[s]}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-center gap-2 text-sm text-secondary">
+                    <input
+                      type="checkbox"
+                      name="favorite"
+                      value="1"
+                      defaultChecked={favoritesOnly}
+                    />
+                    {t.favoritesOnly}
+                  </label>
+                </>
+              )}
               <button className={BUTTON} type="submit">
                 {t.filter}
               </button>
             </form>
           )}
 
+          {account &&
+            (!personal ||
+              shelfNotice === "unavailable" ||
+              shelfNotice === "changed" ||
+              shelfNotice === "saved") && (
+              <p role="status" className="mt-4 text-sm text-secondary">
+                {!personal || shelfNotice === "unavailable"
+                  ? t.personalUnavailable
+                  : shelfNotice === "changed"
+                    ? t.personalChanged
+                    : t.personalSaved}
+              </p>
+            )}
           {!profile && (
             <p className="mt-6 rounded-xl bg-fill px-4 py-3 text-sm text-secondary">
               {t.noProfile}
@@ -255,7 +322,18 @@ export default async function Home(props: PageProps<"/">) {
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex max-w-full flex-wrap items-start gap-2">
+                      {account && personal && (
+                        <PersonalEntry
+                          account={account}
+                          bookId={book.id}
+                          entry={personal.books.get(book.id)}
+                          revision={personal.etag}
+                          filters={params.toString()}
+                          writable={!!storage.writeIfMatch}
+                          t={t}
+                        />
+                      )}
                       {readable && (
                         <Link
                           href={`/read/${encodeKey(bookKey(book.id, readable.file))}`}

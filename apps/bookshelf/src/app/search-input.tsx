@@ -13,12 +13,12 @@ const DEBOUNCE_MS = 300;
  */
 export function SearchInput({
   query,
-  subject,
+  filters,
   label,
   searching,
 }: {
   query: string;
-  subject: string;
+  filters: string;
   label: string;
   searching: string;
 }) {
@@ -34,9 +34,8 @@ export function SearchInput({
     const timer = setTimeout(() => {
       const trimmed = value.trim();
       startTransition(() => {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(filters);
         if (trimmed) params.set("q", trimmed);
-        if (subject) params.set("subject", subject);
         router.replace(params.size ? `/?${params}` : "/", {
           scroll: false,
         });
@@ -44,12 +43,14 @@ export function SearchInput({
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [value, query, subject, router]);
+  }, [value, query, filters, router]);
 
   return (
     <search className="mt-8 block">
       <form action="/" onSubmit={(event) => event.preventDefault()}>
-        {subject && <input type="hidden" name="subject" value={subject} />}
+        {Array.from(new URLSearchParams(filters), ([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
         <div className="relative">
           <Search
             aria-hidden="true"
