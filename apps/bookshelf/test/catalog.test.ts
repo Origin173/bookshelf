@@ -7,6 +7,7 @@ import {
   resetCatalogMemo,
 } from "../src/services/catalog.ts";
 import { LibraryUnavailableError } from "../src/services/errors.ts";
+import { bookIdentity } from "../src/services/subjects.ts";
 import {
   brokenCache,
   memoryStorage,
@@ -262,4 +263,33 @@ test("a broken cache costs a read, never the answer", async () => {
   // Both halves throw: the lookup and the write that would fill it.
   assert.equal((await catalog.all()).length, 1);
   assert.equal(reads.length, 1);
+});
+
+test("a warm shelf follows subject edits without changing the published catalog", async () => {
+  const original = book("One", { subjects: ["Fiction"] });
+  const memory = memoryStorage(library([original]));
+  const catalog = new CatalogService(memory.storage, nullCache());
+  assert.deepEqual((await catalog.browse()).books[0].subjects, ["Fiction"]);
+  memory.put(
+    ".bookshelf/subjects.json",
+    JSON.stringify({
+      version: 1,
+      books: {
+        one: { identity: bookIdentity(original), subjects: ["Poetry"] },
+      },
+    }),
+  );
+  const edited = await catalog.browse();
+  assert.deepEqual(edited.books[0].subjects, ["Poetry"]);
+  assert.ok(edited.revision);
+  assert.deepEqual((await catalog.all())[0].subjects, ["Fiction"]);
+  memory.fail("read");
+  assert.deepEqual((await catalog.browse()).books, edited.books);
+  memory.heal();
+  resetCatalogMemo();
+  memory.put(
+    "catalog.json",
+    library([{ ...original, authors: ["Another author"] }])["catalog.json"],
+  );
+  assert.deepEqual((await catalog.browse()).books[0].subjects, ["Fiction"]);
 });
