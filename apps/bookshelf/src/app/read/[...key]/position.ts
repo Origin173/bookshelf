@@ -221,7 +221,11 @@ export function useReadingPosition({
     };
   }, [sync]);
 
-  const current = useCallback(() => readLocal(storageKey), [storageKey]);
+  // Older server positions can have a usable page or CFI but no local timestamp.
+  const current = useCallback(
+    () => readLocal(storageKey) ?? saved,
+    [storageKey, saved],
+  );
 
   const record = useCallback(
     (position: ReadingPosition) => {

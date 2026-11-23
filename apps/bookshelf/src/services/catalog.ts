@@ -1,6 +1,7 @@
 import {
   type Book,
   type BookFormat,
+  type BookProgress,
   CATALOG_FILE,
   type Catalog,
   isUploadId,
@@ -267,4 +268,37 @@ export function readableFormat(book: Book): BookFormat | undefined {
     book.formats.find((f) => f.format === "pdf") ??
     book.formats[0]
   );
+}
+
+/** A book can have both formats, but its one saved position belongs to only one. */
+export function resumeFormat(
+  book: Book,
+  position?: BookProgress,
+): BookFormat | undefined {
+  if (!position) return;
+  const pdf = Number.isSafeInteger(position.page) && (position.page ?? 0) > 0;
+  const epub =
+    typeof position.cfi === "string" &&
+    position.cfi.startsWith("epubcfi(/") &&
+    position.cfi.endsWith(")");
+  if (pdf === epub) return;
+  return book.formats.find((f) => f.format === (pdf ? "pdf" : "epub"));
+}
+
+export function recentBooks(
+  books: Book[],
+  positions: Record<string, BookProgress>,
+) {
+  const byId = new Map(books.map((book) => [book.id, book]));
+  const recent = [];
+  for (const [id, position] of Object.entries(positions)) {
+    const book = byId.get(id);
+    if (!book || !resumeFormat(book, position)) continue;
+    if (typeof position.updatedAt !== "string") continue;
+    const time = Date.parse(position.updatedAt);
+    if (Number.isFinite(time)) recent.push({ book, time });
+  }
+  return recent
+    .sort((a, b) => b.time - a.time || a.book.id.localeCompare(b.book.id))
+    .map((entry) => entry.book);
 }

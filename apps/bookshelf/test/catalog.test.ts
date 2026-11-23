@@ -4,7 +4,9 @@ import {
   type Book,
   CatalogService,
   readableFormat,
+  recentBooks,
   resetCatalogMemo,
+  resumeFormat,
 } from "../src/services/catalog.ts";
 import { bookIdentity, editedBook } from "../src/services/catalog-edits.ts";
 import { LibraryUnavailableError } from "../src/services/errors.ts";
@@ -205,6 +207,35 @@ test("the reader opens the format that renders best", () => {
   // no way to open it at all.
   assert.equal(readableFormat(formats("cbz"))?.format, "cbz");
   assert.equal(readableFormat({ ...book("Empty"), formats: [] }), undefined);
+});
+
+test("recent reading orders saved positions and opens the matching format", () => {
+  const atlas = book("Atlas", {
+    formats: [
+      { format: "epub", file: "atlas.epub", size: 1 },
+      { format: "pdf", file: "atlas.pdf", size: 1 },
+    ],
+  });
+  const harbor = book("Harbor");
+  const old = book("Old");
+  const unread = book("Unread");
+  const books = [atlas, harbor, old, unread];
+  const cfi = "epubcfi(/6/4!/4/2)";
+  const positions = {
+    atlas: { page: 8, updatedAt: "2026-01-01T03:00:00+03:00" },
+    harbor: { cfi, updatedAt: "2026-01-01T01:00:00Z" },
+    old: { cfi, updatedAt: "" },
+    unread: { href: "chapter.xhtml", updatedAt: "2026-01-03T00:00:00Z" },
+    removed: { cfi, updatedAt: "2026-01-04T00:00:00Z" },
+  };
+  assert.deepEqual(recentBooks(books, positions), [harbor, atlas]);
+  assert.deepEqual(recentBooks(books, {}), []);
+  assert.equal(resumeFormat(atlas, positions.atlas)?.file, "atlas.pdf");
+  assert.equal(resumeFormat(atlas, positions.harbor)?.file, "atlas.epub");
+  assert.equal(resumeFormat(old, positions.old)?.file, "b.epub");
+  assert.equal(resumeFormat(harbor, positions.atlas), undefined);
+  assert.equal(resumeFormat(atlas, { ...positions.atlas, cfi }), undefined);
+  assert.equal(resumeFormat(atlas, { ...positions.atlas, page: 0 }), undefined);
 });
 
 test("an unreachable library is not an empty one", async () => {
