@@ -629,7 +629,7 @@ export function PdfReader({
         >
           {doc && status === "ready" ? (
             <div
-              className="flex min-h-full w-full items-start justify-center"
+              className="flex min-h-full w-max min-w-full items-start justify-center"
               style={{ padding: MARGIN }}
             >
               <div
