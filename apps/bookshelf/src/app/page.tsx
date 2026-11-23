@@ -11,6 +11,7 @@ import { SearchInput } from "@/app/search-input";
 import { State } from "@/app/state";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
 import { searchBooks } from "@/lib/book-search";
+import { sortByCatalogDate } from "@/lib/catalog-date";
 import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
 import { placeholder, tint } from "@/lib/media";
@@ -111,12 +112,14 @@ export default async function Home(props: PageProps<"/">) {
     series,
     author,
     format,
+    sort,
     status,
     favorite,
     view,
     shelfNotice,
   } = await props.searchParams;
   const selectedFormat = format === "epub" || format === "pdf" ? format : "";
+  const dateOrder = sort === "newest" || sort === "oldest" ? sort : "";
   const seriesName = typeof series === "string" ? series.trim() : "";
   const authorName = typeof author === "string" ? author.trim() : "";
   const recent = !!account && view === "recent";
@@ -129,6 +132,7 @@ export default async function Home(props: PageProps<"/">) {
   const params = new URLSearchParams();
   if (authorName) params.set("author", authorName);
   if (selectedFormat) params.set("format", selectedFormat);
+  if (dateOrder) params.set("sort", dateOrder);
   const seriesFilters = new URLSearchParams(params);
   if (selected) params.set("subject", selected);
   if (seriesName) params.set("series", seriesName);
@@ -169,20 +173,24 @@ export default async function Home(props: PageProps<"/">) {
     const inSeries = seriesName
       ? (named(bySeries(filtered), seriesName)?.books ?? [])
       : filtered;
+    const matching = searchBooks(
+      recent ? recentBooks(inSeries, positions ?? {}) : inSeries,
+      query,
+    ).filter((book) => {
+      const entry = personal?.books.get(book.id);
+      return (
+        (!authorName || authorNames(book).includes(authorName)) &&
+        (!selectedFormat ||
+          book.formats.some((f) => f.format === selectedFormat)) &&
+        (!selectedStatus || entry?.status === selectedStatus) &&
+        (!favoritesOnly || entry?.favorite)
+      );
+    });
     return {
-      matching: searchBooks(
-        recent ? recentBooks(inSeries, positions ?? {}) : inSeries,
-        query,
-      ).filter((book) => {
-        const entry = personal?.books.get(book.id);
-        return (
-          (!authorName || authorNames(book).includes(authorName)) &&
-          (!selectedFormat ||
-            book.formats.some((f) => f.format === selectedFormat)) &&
-          (!selectedStatus || entry?.status === selectedStatus) &&
-          (!favoritesOnly || entry?.favorite)
-        );
-      }),
+      matching:
+        !recent && dateOrder
+          ? sortByCatalogDate(matching, dateOrder)
+          : matching,
       total: books.length,
       groups,
     };
@@ -386,10 +394,37 @@ export default async function Home(props: PageProps<"/">) {
                   </label>
                 </>
               )}
+              {recent ? (
+                dateOrder && (
+                  <input type="hidden" name="sort" value={dateOrder} />
+                )
+              ) : (
+                <label className="flex max-w-full items-center gap-2 text-sm text-secondary">
+                  {t.sortBy}
+                  <select
+                    key={dateOrder}
+                    name="sort"
+                    defaultValue={dateOrder}
+                    aria-describedby={
+                      dateOrder ? "catalog-date-help" : undefined
+                    }
+                    className={`${SELECT} min-w-0`}
+                  >
+                    <option value="">{t.defaultOrder}</option>
+                    <option value="newest">{t.newestCatalogDate}</option>
+                    <option value="oldest">{t.oldestCatalogDate}</option>
+                  </select>
+                </label>
+              )}
               <button className={BUTTON} type="submit">
                 {t.filter}
               </button>
             </form>
+          )}
+          {!recent && dateOrder && (
+            <p id="catalog-date-help" className="mt-2 text-sm text-secondary">
+              {t.catalogDateHelp}
+            </p>
           )}
 
           {account &&
@@ -487,7 +522,7 @@ export default async function Home(props: PageProps<"/">) {
                         )}
                         <p className="mt-0.5 truncate text-xs text-tertiary">
                           {[
-                            book.published?.slice(0, 4),
+                            book.published,
                             book.publisher,
                             book.formats
                               .map(
