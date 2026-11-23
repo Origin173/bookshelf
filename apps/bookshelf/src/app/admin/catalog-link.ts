@@ -1,17 +1,19 @@
 export type CatalogView = {
-  missing?: "cover" | "date";
+  missing?: "cover" | "date" | "isbn";
   q?: string;
 };
 
-export function catalogView(
-  cover: unknown,
-  date: unknown,
-  q: unknown,
-): CatalogView {
+export function catalogView(params: {
+  cover?: unknown;
+  date?: unknown;
+  isbn?: unknown;
+  q?: unknown;
+}): CatalogView {
   return {
-    missing:
-      date === "missing" ? "date" : cover === "missing" ? "cover" : undefined,
-    q: typeof q === "string" ? q : undefined,
+    missing: (["date", "cover", "isbn"] as const).find(
+      (field) => params[field] === "missing",
+    ),
+    q: typeof params.q === "string" ? params.q : undefined,
   };
 }
 

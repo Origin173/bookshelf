@@ -26,11 +26,12 @@ export async function POST(request: Request) {
   const back = (result: string, id = target ?? undefined) => {
     if (request.headers.get("accept") === "application/json")
       return Response.json({ result, book: id }, { headers });
-    const view = catalogView(
-      params.get("cover"),
-      params.get("date"),
-      params.get("q"),
-    );
+    const view = catalogView({
+      cover: params.get("cover"),
+      date: params.get("date"),
+      isbn: params.get("isbn"),
+      q: params.get("q"),
+    });
     return new Response(null, {
       status: 303,
       headers: {

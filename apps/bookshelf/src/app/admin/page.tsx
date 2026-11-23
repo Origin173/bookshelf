@@ -36,9 +36,10 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   if (!isAdmin(await requirePageAccount())) notFound();
   const { storage, catalog } = await getServices();
   if (!storage.writeIfMatch) notFound();
-  const { book: id, result, cover, date, q, bulk } = await props.searchParams;
+  const params = await props.searchParams;
+  const { book: id, result, bulk } = params;
   const bulkSubjects = !id && bulk === "subjects";
-  const view = catalogView(cover, date, q);
+  const view = catalogView(params);
   const listHref = adminHref(view);
   const t = await messages();
   const data = await ifAvailable(async () => {
@@ -104,7 +105,9 @@ export default async function AdminPage(props: PageProps<"/admin">) {
       {view.missing && (
         <input
           type="hidden"
-          name={view.missing === "cover" ? "from" : "date"}
+          name={
+            { cover: "from", date: "date", isbn: "missingIsbn" }[view.missing]
+          }
           value="missing"
         />
       )}
@@ -460,11 +463,11 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           key={JSON.stringify([view.missing, view.q])}
           view={view}
           books={data.books
-            .filter((b) =>
-              view.missing === "date"
-                ? !b.published?.trim()
-                : view.missing !== "cover" || !b.cover,
-            )
+            .filter((book) => {
+              if (view.missing === "isbn") return !book.isbn;
+              if (view.missing === "date") return !book.published?.trim();
+              return view.missing !== "cover" || !book.cover;
+            })
             .map(({ id, title, authors }) => ({ id, title, authors }))}
           t={{
             manage: t.manage,
@@ -473,6 +476,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             noMissingCovers: t.noMissingCovers,
             missingDates: t.missingDates,
             noMissingDates: t.noMissingDates,
+            missingIsbns: t.missingIsbns,
+            noMissingIsbns: t.noMissingIsbns,
             bulkSubject: t.bulkSubject,
             searchCatalog: t.searchCatalog,
             clearSearch: t.clearSearch,

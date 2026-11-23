@@ -74,7 +74,10 @@ Renaming a book keeps its ID, file links and reading positions. Saving an
 empty list clears the subjects. **Use published subjects** follows the
 metadata from sync again.
 
-If a book has no ISBN, enter its ISBN-10 or ISBN-13 and choose **Add ISBN**.
+In **Manage books**, select **Missing ISBN** to find books without a recorded
+number. You can narrow the list by title or author. Open a book, enter its
+ISBN-10 or ISBN-13 and choose **Add ISBN**. When you return to the list,
+your search is preserved and the corrected book is gone from the results.
 Spaces and hyphens are optional. The saved number is searchable on the shelf and
 in both OPDS feeds. Books with an ISBN show the number as read-only. If a later
 publication supplies its own ISBN, the catalog uses the published number.

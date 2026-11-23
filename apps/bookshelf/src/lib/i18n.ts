@@ -150,6 +150,8 @@ const en = {
   missingCovers: "Missing covers",
   missingDates: "Missing catalog dates",
   noMissingDates: "Every book has a catalog date.",
+  missingIsbns: "Missing ISBN",
+  noMissingIsbns: "Every book has an ISBN.",
   addCover: "Add cover",
   coverImage: "Cover image",
   coverHelp:
@@ -364,6 +366,8 @@ const zh: typeof en = {
   missingCovers: "缺少封面",
   missingDates: "缺少书目日期",
   noMissingDates: "所有书目都已登记日期。",
+  missingIsbns: "缺少 ISBN",
+  noMissingIsbns: "所有书目都已登记 ISBN。",
   addCover: "添加封面",
   coverImage: "封面图片",
   coverHelp: "选择不超过 8 MiB 的本地 PNG 或 JPEG 图片。仅上传缩略图。",

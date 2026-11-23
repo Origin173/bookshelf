@@ -62,7 +62,12 @@ export async function updateBook(
   const id = form.get("id");
   if (typeof id !== "string") return reject(400);
   const back = (result: string) => {
-    const view = catalogView(form.get("from"), form.get("date"), form.get("q"));
+    const view = catalogView({
+      cover: form.get("from"),
+      date: form.get("date"),
+      isbn: form.get("missingIsbn"),
+      q: form.get("q"),
+    });
     return new Response(null, {
       status: 303,
       headers: {
