@@ -120,6 +120,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             append={append}
             t={{
               addFormat: t.addFormat,
+              addFormatHelp: t.addFormatHelp,
               formatExists: t.formatExists,
               missing: t.missing,
               title: t.title,

@@ -23,6 +23,7 @@ type Labels = Pick<
   Awaited<ReturnType<typeof messages>>,
   | UploadError
   | "addFormat"
+  | "addFormatHelp"
   | "subjects"
   | "subjectHelp"
   | "uploading"
@@ -197,15 +198,21 @@ export function UploadForm({
           />
         </label>
         <p id="upload-help" className="text-sm text-secondary">
-          {t.uploadHelp}{" "}
-          <a
-            href="https://github.com/Origin173/bookshelf/blob/main/docs/publishing.md#publish-your-books"
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium text-accent hover:underline"
-          >
-            {t.publishLarger}
-          </a>
+          {append ? (
+            t.addFormatHelp
+          ) : (
+            <>
+              {t.uploadHelp}{" "}
+              <a
+                href="https://github.com/Origin173/bookshelf/blob/main/docs/publishing.md#publish-your-books"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-accent hover:underline"
+              >
+                {t.publishLarger}
+              </a>
+            </>
+          )}
         </p>
         {notice && (
           <p role="status" className="text-sm text-secondary">
