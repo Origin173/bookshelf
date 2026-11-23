@@ -62,7 +62,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   const missingFormat = book && missingUploadFormat(book);
   const append =
     book && missingFormat
-      ? { book: book.id, format: missingFormat }
+      ? ({ book: book.id, format: missingFormat } as const)
       : undefined;
   const notice =
     result === "bulkSaved" ||
