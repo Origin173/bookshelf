@@ -156,8 +156,10 @@ its chapter. Select a result to open the passage. In browsers with CSS
 Custom Highlights, the matched text stays highlighted while it is in view,
 including when you change the text size. Choose **Back to passage** to
 return. Open **Search in this book** again to continue with the same
-query, results and last selected match. Closing the dialog pauses an
-unfinished search. Clearing the query, leaving the reader or signing out
+query, results and last selected match. Use **Previous match** or **Next
+match** in the reader to move through the results already found. **Back to
+passage** still returns to where that series of jumps started. Closing the
+dialog pauses an unfinished search. Reopen it to find more matches. Clearing the query, leaving the reader or signing out
 clears the search from memory.
 
 ## PDFs

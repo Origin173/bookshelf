@@ -1,6 +1,6 @@
 import type { Book } from "epubjs";
 import type Section from "epubjs/types/section";
-import { Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -62,6 +62,8 @@ export function EpubSearch({
   bookKey,
   entries,
   t,
+  selected,
+  jump,
   onGo,
   onReset,
 }: {
@@ -69,7 +71,9 @@ export function EpubSearch({
   bookKey: string;
   entries: TocEntry[];
   t: ReaderText;
-  onGo: (passage: Passage) => void;
+  selected?: string;
+  jump: "idle" | "moving" | "failed";
+  onGo: (passage: Passage, keepReturn: boolean) => void;
   onReset: () => void;
 }) {
   const title = useId();
@@ -78,7 +82,6 @@ export function EpubSearch({
   const scrollTop = useRef(0);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string>();
   const [result, setResult] = useState<Scan>();
   // The cursor can move without producing any new rows.
   const checkpoint = useRef<Scan>(undefined);
@@ -96,7 +99,6 @@ export function EpubSearch({
       active.current?.abort();
       checkpoint.current = undefined;
       scrollTop.current = 0;
-      setSelected(undefined);
       setResult(undefined);
       setQuery(value);
       onReset();
@@ -214,6 +216,27 @@ export function EpubSearch({
             ? t.results(result.hits.length)
             : t.noMatches(query.trim());
 
+  const hits = result?.hits ?? [];
+  const index = hits.findIndex((hit) => hit.cfi === selected);
+  const previous = index > 0 ? hits[index - 1] : undefined;
+  const next = hits[index + 1];
+  const moving = jump === "moving";
+  const matchStatus =
+    index < 0
+      ? t.results(hits.length)
+      : t.matchPosition(index + 1, hits.length);
+  const matchNotice = moving
+    ? t.openingMatch
+    : jump === "failed"
+      ? t.matchUnavailable
+      : !result?.complete
+        ? t.searchPaused
+        : result.truncated
+          ? t.moreResults(t.results(hits.length))
+          : result.incomplete
+            ? t.searchIncomplete
+            : undefined;
+
   return (
     <>
       <button
@@ -221,7 +244,7 @@ export function EpubSearch({
         aria-label={t.search}
         title={t.search}
         aria-haspopup="dialog"
-        disabled={!book}
+        disabled={!book || moving}
         className={BUTTON_ROUND}
         onClick={() => {
           dialog.current?.showModal();
@@ -276,9 +299,8 @@ export function EpubSearch({
                   type="button"
                   aria-current={hit.cfi === selected ? "location" : undefined}
                   onClick={() => {
-                    setSelected(hit.cfi);
                     close();
-                    onGo(hit);
+                    onGo(hit, false);
                   }}
                   className="w-full break-words rounded-lg px-2 py-2 text-left text-sm hover:bg-fill aria-[current=location]:bg-accent/10"
                 >
@@ -299,6 +321,40 @@ export function EpubSearch({
           </ul>
         )}
       </dialog>
+      {query.trim() && (
+        <nav
+          aria-label={t.searchMatches}
+          className="order-last flex basis-full items-center gap-2 border-t border-separator pt-1.5"
+        >
+          <button
+            type="button"
+            className={`${BUTTON_ROUND} shrink-0`}
+            aria-label={t.previousMatch}
+            title={t.previousMatch}
+            disabled={!book || !previous || moving}
+            onClick={() => previous && onGo(previous, true)}
+          >
+            <ChevronUp aria-hidden="true" className="size-4" />
+          </button>
+          <p
+            role="status"
+            className="min-w-0 flex-1 text-center text-xs text-secondary"
+          >
+            <span className="tabular-nums">{matchStatus}</span>
+            {matchNotice && <span className="block">{matchNotice}</span>}
+          </p>
+          <button
+            type="button"
+            className={`${BUTTON_ROUND} shrink-0`}
+            aria-label={t.nextMatch}
+            title={t.nextMatch}
+            disabled={!book || !next || moving}
+            onClick={() => next && onGo(next, true)}
+          >
+            <ChevronDown aria-hidden="true" className="size-4" />
+          </button>
+        </nav>
+      )}
     </>
   );
 }
