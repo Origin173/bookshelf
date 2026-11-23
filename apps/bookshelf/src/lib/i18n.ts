@@ -12,6 +12,11 @@ const en = {
   loginInvalid: "Incorrect username or password.",
   loginHelp:
     "Use the same account when adding this OPDS library to your reading app.",
+  notFound: "Not found",
+  notOnShelf: "Not on this shelf",
+  missingLinkHelp:
+    "There is nothing at this address. If you followed a link to a book, it may have been taken out of the library.",
+  backToShelf: "Back to the shelf",
   shelf: "Shelf",
   manage: "Manage books",
   subjects: "Subjects",
@@ -48,6 +53,11 @@ const zh: typeof en = {
   loginLimited: "登录尝试过多，请稍后重试。",
   loginInvalid: "用户名或密码不正确。",
   loginHelp: "在阅读器中添加 OPDS 书库时，使用此处的用户名和密码。",
+  notFound: "未找到页面",
+  notOnShelf: "书架上没有这一项",
+  missingLinkHelp:
+    "这个地址没有内容。如果你打开的是图书链接，这本书可能已经下架。",
+  backToShelf: "返回书架",
   shelf: "书架",
   manage: "管理书目",
   subjects: "主题",
