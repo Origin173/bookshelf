@@ -54,7 +54,11 @@ function readLocal(key: string): LocalPosition | null {
 }
 
 function writeLocal(key: string, progress: LocalPosition): void {
-  writeStored(key, JSON.stringify(progress));
+  // An undated server position can still be read and sorts behind any dated turn.
+  writeStored(
+    key,
+    JSON.stringify({ ...progress, updatedAt: progress.updatedAt ?? "" }),
+  );
 }
 
 export type Position = {

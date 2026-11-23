@@ -19,6 +19,8 @@ import {
   type Book,
   bookKey,
   readableFormat,
+  recentBooks,
+  resumeFormat,
   searchBooks,
 } from "@/services/catalog";
 import { getServices } from "@/services/container";
@@ -90,8 +92,9 @@ function Cover({ book }: { book: Book }) {
 
 export default async function Home(props: PageProps<"/">) {
   const account = await requirePageAccount();
-  const { q, subject, status, favorite, shelfNotice } =
+  const { q, subject, status, favorite, view, shelfNotice } =
     await props.searchParams;
+  const recent = !!account && view === "recent";
   const selectedStatus = account && isReadingStatus(status) ? status : "";
   const favoritesOnly = !!account && favorite === "1";
   const selected = typeof subject === "string" ? subject : "";
@@ -102,9 +105,14 @@ export default async function Home(props: PageProps<"/">) {
   if (selected) params.set("subject", selected);
   if (selectedStatus) params.set("status", selectedStatus);
   if (favoritesOnly) params.set("favorite", "1");
+  if (recent) params.set("view", "recent");
   const filters = params.toString();
   if (query) params.set("q", query);
   const here = params.size ? `/?${params}` : "/";
+  const otherView = new URLSearchParams(params);
+  if (recent) otherView.delete("view");
+  else otherView.set("view", "recent");
+  const switchView = otherView.size ? `/?${otherView}` : "/";
   const { catalog, profiles, progress, storage } = await getServices();
 
   /*
@@ -130,7 +138,10 @@ export default async function Home(props: PageProps<"/">) {
     const groups = bySubject(books);
     const filtered = selected ? (named(groups, selected)?.books ?? []) : books;
     return {
-      matching: searchBooks(filtered, query).filter((book) => {
+      matching: searchBooks(
+        recent ? recentBooks(filtered, positions ?? {}) : filtered,
+        query,
+      ).filter((book) => {
         const entry = personal?.books.get(book.id);
         return (
           (!selectedStatus || entry?.status === selectedStatus) &&
@@ -206,6 +217,26 @@ export default async function Home(props: PageProps<"/">) {
         </div>
       ) : (
         <>
+          {account && (
+            <nav aria-label={t.shelfView} className="mt-6 flex flex-wrap gap-2">
+              <Link
+                href={recent ? switchView : here}
+                prefetch={false}
+                aria-current={recent ? undefined : "page"}
+                className={recent ? BUTTON : BUTTON_PRIMARY}
+              >
+                {t.allBooks}
+              </Link>
+              <Link
+                href={recent ? here : switchView}
+                prefetch={false}
+                aria-current={recent ? "page" : undefined}
+                className={recent ? BUTTON_PRIMARY : BUTTON}
+              >
+                {t.recentReading}
+              </Link>
+            </nav>
+          )}
           <SearchInput
             key={filters}
             query={query}
@@ -215,6 +246,7 @@ export default async function Home(props: PageProps<"/">) {
           />
           {(personal || shelf.groups.length > 0 || selected) && (
             <form action="/" className="mt-3 flex flex-wrap items-center gap-2">
+              {recent && <input type="hidden" name="view" value="recent" />}
               {query && <input type="hidden" name="q" value={query} />}
               {(shelf.groups.length > 0 || selected) && (
                 <>
@@ -296,12 +328,21 @@ export default async function Home(props: PageProps<"/">) {
 
           {shelf.matching.length === 0 ? (
             <p className="mt-10 text-secondary">
-              {shelf.total === 0 ? t.empty : t.noMatches}
+              {shelf.total === 0
+                ? t.empty
+                : recent &&
+                    !query &&
+                    !selected &&
+                    !selectedStatus &&
+                    !favoritesOnly
+                  ? t.noRecent
+                  : t.noMatches}
             </p>
           ) : (
             <ul className="mt-10 divide-y divide-separator">
               {shelf.matching.map((book) => {
-                const readable = readableFormat(book);
+                const resume = resumeFormat(book, positions?.[book.id]);
+                const readable = resume ?? readableFormat(book);
 
                 return (
                   <li
@@ -346,10 +387,11 @@ export default async function Home(props: PageProps<"/">) {
                       )}
                       {readable && (
                         <Link
+                          prefetch={false}
                           href={`/read/${encodeKey(bookKey(book.id, readable.file))}`}
                           className={BUTTON_PRIMARY}
                         >
-                          {positions?.[book.id] ? t.resume : t.read}
+                          {resume ? t.resume : t.read}
                         </Link>
                       )}
                       {book.formats.map((format) => (

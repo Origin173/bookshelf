@@ -15,7 +15,11 @@ Screen**, enable **Open as Web App** if offered, then tap **Add**. Browsers
 that support installation also offer it in their menus.
 
 Open the Bookshelf icon and sign in with your usual shelf account if prompted.
-Choose **Continue** beside a book to return to your saved place. Both readers
+On the signed-in shelf, choose **Recently read** to see books ordered by their
+last synced position. Search and filters also work in this view. Choose
+**Continue** to return to the saved PDF page or EPUB passage, including when
+a book has both formats. A usable older position without a timestamp can
+still be reopened from **All books**. Both readers
 have a **Shelf** link at the top. Opening books and syncing progress require a
 connection. A disconnected launch shows a link to reopen the shelf after you
 reconnect. The service worker stores no pages, book files or account data.
