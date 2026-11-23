@@ -100,6 +100,12 @@ saved position. With no saved position, **Read** uses the usual default.
 **Export list as Markdown** downloads the list name and its visible titles,
 authors and formats in the saved order. An empty list exports its heading.
 
+With two or more lists, choose **Move to another list** beside a book, select
+a destination and confirm. **Cancel** leaves both lists as they are. A move
+saves both lists together and appends the book to its destination, or keeps
+its place there if it already belongs. If another session changed your lists,
+reload them before retrying.
+
 A book can belong to several lists. Renaming
 a list keeps its link. Removing a book or deleting a list leaves the book,
 its reading status and its position on the shelf. Lists are private to each
