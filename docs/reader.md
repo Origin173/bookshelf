@@ -51,7 +51,8 @@ Both readers share the same controls.
 | Home, End | the start or end of the book |
 
 In continuous scroll the arrows scroll instead of turning. On a touchscreen,
-swipe to turn.
+swipe to turn when the pages fit the screen horizontally. When zoomed in, drag
+to pan across the page and use the arrow buttons to turn.
 
 ## PDFs
 

@@ -530,6 +530,9 @@ export function PdfReader({
       const from = touch.current;
       touch.current = null;
       if (!from || layout === "scroll") return;
+      // A page wider than its viewport needs the horizontal gesture for panning.
+      if (event.currentTarget.scrollWidth > event.currentTarget.clientWidth)
+        return;
 
       const point = event.changedTouches[0];
       if (!point) return;
