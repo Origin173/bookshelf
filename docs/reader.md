@@ -55,6 +55,14 @@ In continuous scroll the arrows scroll instead of turning. On a touchscreen,
 swipe to turn when the pages fit the screen horizontally. When zoomed in, drag
 to pan across the page and use the arrow buttons to turn.
 
+## Your place in an EPUB
+
+Above the toolbar, the reader shows the current chapter title or the section
+number in the EPUB spine when no matching title is available. In paginated
+text it also shows the first visible page and the page count for that section.
+These numbers follow the current screen and type size. The saved location is
+the passage itself. Continuous scroll and fixed layouts show the section alone.
+
 ## EPUB appearance
 
 In a reflowable EPUB, open **Reading appearance** to change text size from
