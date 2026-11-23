@@ -51,9 +51,17 @@ export async function readPdf(file: string): Promise<ReadBook> {
   // matter: a form whose XMP title is `stellenbeschreibung_2018.pdf` has its
   // real title sitting in the older dictionary, and taking XMP's word for it
   // would throw that away in favour of a file name.
-  const title = [...from("dc:title"), info.Title]
-    .filter(Boolean)
-    .find((candidate) => !isJunkTitle(candidate, { fileName, tools }));
+  const candidates = [...from("dc:title"), info.Title];
+  const context = { fileName, tools };
+  const title = candidates.find(
+    (candidate) => !isJunkTitle(candidate, context),
+  );
+  // Earlier releases compared ASCII letters and digits only. They may have
+  // picked a later candidate, or the filename, for the same PDF.
+  const legacyTitle =
+    candidates.find(
+      (candidate) => !isJunkTitle(candidate, context, /[^a-z0-9]+/g),
+    ) ?? fileName;
 
   // XMP gives authors as a list. The information dictionary gives one string
   // holding all of them, which has to be taken apart.
@@ -80,6 +88,7 @@ export async function readPdf(file: string): Promise<ReadBook> {
   ]);
 
   return {
+    legacyTitle: title && title !== legacyTitle ? legacyTitle : undefined,
     metadata: {
       // Left unset when every candidate was rejected, so the caller applies the
       // same fall-back it uses for a PDF that recorded nothing at all.

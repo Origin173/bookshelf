@@ -34,6 +34,10 @@ Only the title is required. A book that doesn't record a publisher or a date is
 normal, not broken. For how each format stores this and how far it's trusted,
 see [publishing](publishing.md#what-ends-up-on-your-shelf).
 
+When an older sync would have skipped a PDF's embedded title, `legacyTitle`
+records the title it would have used. Republish normally to show the embedded
+title while keeping the same folder, reader links and existing web edits.
+
 ## catalog.json
 
 Generated from every `metadata.json` in the library. Delete it and the next

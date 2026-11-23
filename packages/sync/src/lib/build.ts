@@ -111,7 +111,7 @@ async function publishBook(
 
   // A slug from the title reads well when browsing the bucket directly, which
   // is much of the point of keeping the library as plain files.
-  let id = slugify(title);
+  let id = slugify(read?.legacyTitle ?? title);
   if (ids.has(id)) {
     let n = 2;
     while (ids.has(`${id}-${n}`)) n++;
@@ -182,6 +182,7 @@ async function publishBook(
   const book: Book = {
     id,
     title,
+    legacyTitle: read?.legacyTitle,
     authors: metadata.authors ?? [],
     publisher: metadata.publisher,
     published: metadata.published,

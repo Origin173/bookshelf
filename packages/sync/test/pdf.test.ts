@@ -8,6 +8,7 @@ import {
   classicPdf,
   literal,
   objectStreamPdf,
+  utf16,
   xmpPacket,
 } from "@bookshelf/fixtures";
 import {
@@ -83,6 +84,27 @@ test("rejects a title that is really a file name or a program", () => {
   // Ugly, but it is what the document says it is called.
   assert.equal(isJunkTitle("acme-brochure-v1.3-web"), false);
   assert.equal(isJunkTitle("Signal and Silt", { fileName }), false);
+});
+
+test("keeps Unicode PDF titles and the title used to publish older catalogs", async () => {
+  const title = "潮汐观测图册";
+  const cases = [
+    [classicPdf({ info: `/Title ${utf16(title)}` }), title, "coastal-atlas"],
+    [
+      classicPdf({
+        xmp: xmpPacket(`<dc:title>${title}</dc:title>`),
+        info: "/Title (Tidal Notes)",
+      }),
+      title,
+      "Tidal Notes",
+    ],
+    [classicPdf(), undefined, undefined],
+  ] as const;
+  for (const [bytes, expected, legacy] of cases) {
+    const book = await readPdf(await fixture("coastal-atlas.pdf", bytes));
+    assert.equal(book.metadata.title, expected);
+    assert.equal(book.legacyTitle, legacy);
+  }
 });
 
 test("only reports an ISBN whose check digit is right", () => {

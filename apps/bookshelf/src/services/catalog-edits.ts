@@ -23,15 +23,10 @@ export function parseSubjects(text: string): string[] | null {
 }
 
 // A later publish can reuse a title slug. Apply an edit only to the book it was made for.
-export function bookIdentity(book: Book): string {
+export function bookIdentity(book: Book, title = book.title): string {
   return createHash("sha256")
     .update(
-      JSON.stringify([
-        book.id,
-        book.title,
-        book.authors,
-        book.identifier ?? null,
-      ]),
+      JSON.stringify([book.id, title, book.authors, book.identifier ?? null]),
     )
     .digest("hex");
 }
@@ -100,11 +95,12 @@ export function editedBook(book: Book, { edits, titles }: EditSnapshot): Book {
   const title = Object.hasOwn(titles, book.id) && titles[book.id];
   if (!subject && !title) return book;
   const identity = bookIdentity(book);
+  const legacy = book.legacyTitle && bookIdentity(book, book.legacyTitle);
+  const matches = (saved: string) => saved === identity || saved === legacy;
   return {
     ...book,
-    ...(subject &&
-      subject.identity === identity && { subjects: subject.subjects }),
-    ...(title && title.identity === identity && { title: title.title }),
+    ...(subject && matches(subject.identity) && { subjects: subject.subjects }),
+    ...(title && matches(title.identity) && { title: title.title }),
   };
 }
 
