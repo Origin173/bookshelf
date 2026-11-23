@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LanguageSwitch } from "@/app/language-switch";
 import { editList } from "@/app/lists/actions";
+import { ReadingFormats } from "@/app/reading-formats";
 import {
   BUTTON,
   BUTTON_PRIMARY,
@@ -11,12 +12,11 @@ import {
   INPUT,
   SELECT,
 } from "@/app/ui";
-import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile } from "@/services/auth";
 import { bookLists } from "@/services/book-lists";
-import { bookKey, readableFormat } from "@/services/catalog";
+import { readableFormat, resumeFormat } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
 
@@ -25,10 +25,11 @@ export default async function Lists(props: PageProps<"/lists">) {
   if (!account) notFound();
   const t = await messages();
   const { list, book, notice } = await props.searchParams;
-  const { storage, catalog } = await getServices();
+  const { storage, catalog, progress } = await getServices();
+  const profileId = accountProfile(account).id;
   const data = await ifAvailable(async () => {
     const [saved, shelf] = await Promise.all([
-      bookLists(storage, accountProfile(account).id),
+      bookLists(storage, profileId),
       catalog.browse(),
     ]);
     return { ...saved, books: shelf.books };
@@ -46,6 +47,7 @@ export default async function Lists(props: PageProps<"/lists">) {
   const available = data?.books.filter((b) => !memberIds.has(b.id)) ?? [];
   const byId = new Map(data?.books.map((b) => [b.id, b]));
   const members = selected?.books.flatMap((id) => byId.get(id) ?? []) ?? [];
+  const positions = members.length ? await progress.all(profileId) : undefined;
   const feedback =
     !data || notice === "unavailable"
       ? t.unavailable
@@ -181,7 +183,8 @@ export default async function Lists(props: PageProps<"/lists">) {
               )}
               <ul className="mt-4 divide-y divide-separator">
                 {members.map((b, index) => {
-                  const fmt = readableFormat(b);
+                  const resume = resumeFormat(b, positions?.[b.id]);
+                  const readable = resume ?? readableFormat(b);
                   return (
                     <li
                       key={b.id}
@@ -195,13 +198,13 @@ export default async function Lists(props: PageProps<"/lists">) {
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-1">
-                        {fmt && (
-                          <Link
-                            href={`/read/${encodeKey(bookKey(b.id, fmt.file))}`}
-                            className={BUTTON}
-                          >
-                            {t.read}
-                          </Link>
+                        {readable && (
+                          <ReadingFormats
+                            book={b}
+                            current={readable}
+                            action={resume ? t.resume : t.read}
+                            read={t.read}
+                          />
                         )}
                         {writable && (
                           <form
