@@ -40,7 +40,7 @@ function chapterBody(source: string): HTMLElement | null {
   const template = chapter.createElement("template");
   template.innerHTML = original.innerHTML;
   chapter.body.id = original.id;
-  chapter.body.append(template.content);
+  chapter.body.appendChild(template.content);
   return chapter.body;
 }
 
