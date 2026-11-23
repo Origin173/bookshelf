@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BookSearchInput } from "@/app/admin/book-search-input";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
+import { searchBooks } from "@/lib/book-search";
 import { subjectAddition } from "@/lib/catalog-names";
 import type { messages } from "@/lib/i18n";
 
 type Labels = Pick<
   Awaited<ReturnType<typeof messages>>,
+  | "searchCatalog"
+  | "clearSearch"
+  | "noMatches"
+  | "selectedBooks"
   | "chooseSubject"
   | "noBulkSubjects"
   | "previewSubject"
@@ -36,6 +42,7 @@ export function BulkSubjectForm({
   t: Labels;
 }) {
   const [subject, setSubject] = useState("");
+  const [query, setQuery] = useState("");
   const [ids, setIds] = useState(new Set<string>());
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,7 +53,9 @@ export function BulkSubjectForm({
   const [issue, setIssue] = useState<keyof Labels | null>(null);
   if (!subjects.length)
     return <p className="mt-8 text-secondary">{t.noBulkSubjects}</p>;
-  const rows = preview ? books.filter((book) => ids.has(book.id)) : books;
+  const rows = preview
+    ? books.filter((book) => ids.has(book.id))
+    : searchBooks(books, query);
   const additions = preview
     ? rows.map((book) => subjectAddition(book.subjects, subject))
     : [];
@@ -123,6 +132,18 @@ export function BulkSubjectForm({
           </select>
         </label>
       )}
+      {!preview && (
+        <BookSearchInput
+          value={query}
+          onChange={setQuery}
+          label={t.searchCatalog}
+          clear={t.clearSearch}
+        />
+      )}
+      <p aria-live="polite" className="mt-3 text-sm font-medium">
+        {t.selectedBooks} · {ids.size}
+      </p>
+      {!rows.length && <p className="my-4 text-secondary">{t.noMatches}</p>}
       <ul className="my-4 divide-y divide-separator">
         {rows.map((book, i) => {
           const info = (

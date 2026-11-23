@@ -191,8 +191,9 @@ book available under those subjects on the shelf and in OPDS. Books without
 a cover use the usual placeholder.
 
 In **Manage books → Add a subject to books**, choose an existing subject and
-check the books that should receive it. **Preview changes** shows which books
-will gain the subject and which already have it. **Confirm and add** saves the
+search by title or author to find books. Checked books stay selected when you
+change or clear the search. **Preview changes** lists every selected book,
+including those that already have the subject. **Confirm and add** saves the
 selection together and keeps each book’s other subjects. If a book is at the
 20-subject limit, change the selection before confirming.
 

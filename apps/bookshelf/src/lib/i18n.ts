@@ -108,6 +108,9 @@ const en = {
   personalUnavailable: "Your personal shelf is unavailable. Try again shortly.",
 
   manage: "Manage books",
+  searchCatalog: "Search by title or author",
+  clearSearch: "Clear search",
+  selectedBooks: "Books selected",
   bulkSubject: "Add a subject to books",
   chooseSubject: "Choose an existing subject",
   noBulkSubjects:
@@ -284,6 +287,9 @@ const zh: typeof en = {
   personalUnavailable: "暂时无法读取你的个人书架，请稍后重试。",
 
   manage: "管理书目",
+  searchCatalog: "搜索书名或作者",
+  clearSearch: "清空搜索",
+  selectedBooks: "已选图书",
   bulkSubject: "批量追加主题",
   chooseSubject: "选择已有主题",
   noBulkSubjects: "请先在一本书中添加主题，之后即可在这里选用。",
