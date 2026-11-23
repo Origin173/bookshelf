@@ -17,6 +17,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import {
   type ByteRange,
+  bookmarkPrefix,
   clampRange,
   contentTypeFor,
   isStateKey,
@@ -104,6 +105,17 @@ async function statFile(file: string): Promise<Stats | null> {
 
 class FsStorage implements WritableStorage {
   constructor(private readonly root: string) {}
+
+  async listBookmarkFiles(profileId: string, limit: number, cursor?: string) {
+    const directory = path.join(this.root, bookmarkPrefix(profileId));
+    const keys = await walk(directory);
+    const remaining = cursor ? keys.filter((key) => key > cursor) : keys;
+    const files = remaining.slice(0, limit);
+    return {
+      files,
+      cursor: remaining.length > limit ? files.at(-1) : undefined,
+    };
+  }
 
   async head(key: string): Promise<StoredObject | null> {
     const file = resolveKey(this.root, key);

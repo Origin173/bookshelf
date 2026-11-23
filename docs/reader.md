@@ -155,3 +155,9 @@ Which file it's saved to depends on [which profile](profiles.md) is reading. On
 a library the app can't write to, positions stay in your browser only.
 
 Layout, zoom and tint are remembered per device rather than per profile.
+
+From the shelf, open **My notes** to see your annotated bookmarks grouped by
+book. Select a location to open the PDF page or EPUB passage. The list also
+works in a read-only library. It pages through the signed-in account’s existing
+bookmark files and shows formats still in the catalog. The links contain a
+bookmark identifier and keep the note text and the EPUB location out of the URL.

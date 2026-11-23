@@ -1,5 +1,6 @@
 import {
   type ByteRange,
+  bookmarkPrefix,
   clampRange,
   normaliseEtag,
   type StoredContent,
@@ -32,6 +33,11 @@ export type R2PutOptionsLike = {
 };
 
 export type R2BucketLike = {
+  list(options: { prefix: string; limit: number; cursor?: string }): Promise<{
+    objects: { key: string }[];
+    truncated: boolean;
+    cursor?: string;
+  }>;
   head(key: string): Promise<R2ObjectLike | null>;
   get(
     key: string,
@@ -63,6 +69,15 @@ function describe(object: R2ObjectLike): StoredObject {
 
 class R2Storage implements WritableStorage {
   constructor(private readonly bucket: R2BucketLike) {}
+
+  async listBookmarkFiles(profileId: string, limit: number, cursor?: string) {
+    const prefix = bookmarkPrefix(profileId);
+    const page = await this.bucket.list({ prefix, limit, cursor });
+    return {
+      files: page.objects.map(({ key }) => key.slice(prefix.length)),
+      cursor: page.truncated ? page.cursor : undefined,
+    };
+  }
 
   async head(key: string): Promise<StoredObject | null> {
     const object = await this.bucket.head(key);

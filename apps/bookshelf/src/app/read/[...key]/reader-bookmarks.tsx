@@ -10,6 +10,7 @@ import {
   type BookmarkAction,
   type BookmarkChange,
   type BookmarkResult,
+  bookmarkLabel,
 } from "@/lib/bookmarks";
 import type { ReaderText } from "@/lib/reader-text";
 
@@ -59,12 +60,6 @@ export function ReaderBookmarks({
     } finally {
       if (version === sequence.current) setBusy(false);
     }
-  }
-  function label(mark: Bookmark) {
-    if (typeof mark.position === "number") return t.pageNumber(mark.position);
-    return [mark.chapter, mark.chapterPage && t.pageNumber(mark.chapterPage)]
-      .filter(Boolean)
-      .join(" · ");
   }
   async function jump(mark: Bookmark) {
     try {
@@ -210,7 +205,7 @@ export function ReaderBookmarks({
                             id={editorId}
                             className={`${INPUT} mt-1 w-full`}
                             type="text"
-                            placeholder={label(mark)}
+                            placeholder={bookmarkLabel(mark, t)}
                             maxLength={BOOKMARK_NAME_LIMIT}
                             disabled={busy}
                             value={editing.value}
@@ -250,10 +245,10 @@ export function ReaderBookmarks({
                             disabled={busy}
                             onClick={() => void jump(mark)}
                           >
-                            {mark.name || label(mark)}
+                            {mark.name || bookmarkLabel(mark, t)}
                             {mark.name && (
                               <span className="block text-xs text-secondary">
-                                {label(mark)}
+                                {bookmarkLabel(mark, t)}
                               </span>
                             )}
                           </button>
@@ -262,7 +257,7 @@ export function ReaderBookmarks({
                               <button
                                 type="button"
                                 className={BUTTON_ROUND}
-                                aria-label={`${t.renameBookmark} · ${mark.name || label(mark)}`}
+                                aria-label={`${t.renameBookmark} · ${mark.name || bookmarkLabel(mark, t)}`}
                                 title={t.renameBookmark}
                                 disabled={busy}
                                 onClick={() =>
@@ -278,7 +273,7 @@ export function ReaderBookmarks({
                               <button
                                 type="button"
                                 className={BUTTON_ROUND}
-                                aria-label={`${mark.note ? t.editNote : t.addNote} · ${mark.name || label(mark)}`}
+                                aria-label={`${mark.note ? t.editNote : t.addNote} · ${mark.name || bookmarkLabel(mark, t)}`}
                                 title={mark.note ? t.editNote : t.addNote}
                                 disabled={busy}
                                 onClick={() =>
@@ -297,7 +292,7 @@ export function ReaderBookmarks({
                               <button
                                 type="button"
                                 className={`${BUTTON_QUIET} shrink-0`}
-                                aria-label={`${t.removeBookmark} · ${mark.name || label(mark)}`}
+                                aria-label={`${t.removeBookmark} · ${mark.name || bookmarkLabel(mark, t)}`}
                                 disabled={busy}
                                 onClick={() =>
                                   void load({ intent: "remove", mark })

@@ -104,6 +104,7 @@ export function EpubReader({
   bookKey,
   bookId,
   profileId,
+  start,
   saved,
   canSync,
   bookmarks,
@@ -116,6 +117,7 @@ export function EpubReader({
   profileId: string;
   /** This profile's position as the library has it, from any device. */
   saved: BookProgress | null;
+  start?: string;
   /** False against a library the app cannot write to. */
   canSync: boolean;
   bookmarks?: BookmarkAction;
@@ -126,6 +128,7 @@ export function EpubReader({
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
+  const openingCfi = useRef(start);
   const targetCfi = useRef<string | undefined>(undefined);
   const restoringCfi = useRef<string | undefined>(undefined);
   const requestedEntry = useRef<TocEntry | undefined>(undefined);
@@ -363,7 +366,8 @@ export function EpubReader({
           entries = bookContents(opened, opened.navigation?.toc ?? [], opfUrl);
           setToc(entries);
           requestedEntry.current = undefined;
-          targetCfi.current = current()?.cfi;
+          targetCfi.current = openingCfi.current ?? current()?.cfi;
+          openingCfi.current = undefined;
           restoringCfi.current = targetCfi.current;
           await view.display(targetCfi.current ?? firstReadableHref(opened));
           if (!cancelled)

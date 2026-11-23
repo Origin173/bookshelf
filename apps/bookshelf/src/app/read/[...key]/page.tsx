@@ -14,10 +14,11 @@ import { extension } from "@/lib/media";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
 import { OG_BASE } from "@/lib/site";
 import { requirePageAccount } from "@/services/account-page";
-import { publicDemo } from "@/services/auth";
+import { accountProfile, publicDemo } from "@/services/auth";
 import { bookKey } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
+import { noteId } from "@/services/reading-notes";
 import { activeProfile } from "@/services/session";
 
 /**
@@ -82,7 +83,7 @@ export async function generateMetadata(
 export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   const { key } = await props.params;
   const fileKey = key.join("/");
-  await requirePageAccount(fileKey);
+  const account = await requirePageAccount(fileKey);
   const target = parseBookKey(fileKey);
   if (!target) notFound();
   const { id, file } = target;
@@ -97,6 +98,20 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   if (book === undefined) return <Unreachable />;
   if (!book?.formats.some((f) => f.file === file)) {
     notFound();
+  }
+
+  const { mark } = await props.searchParams;
+  let start: number | string | undefined;
+  if (mark !== undefined) {
+    if (!account || typeof mark !== "string" || !/^[a-f0-9]{32}$/.test(mark))
+      notFound();
+    const profileId = accountProfile(account).id;
+    const result = await readerBookmarks(profileId, fileKey);
+    if ("error" in result) return <Unreachable />;
+    start = result.items.find(
+      (item) => item.note && noteId(profileId, fileKey, item.position) === mark,
+    )?.position;
+    if (start === undefined) notFound();
   }
 
   return (
@@ -125,9 +140,19 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
       </header>
 
       {extension(fileKey) === "epub" ? (
-        <EpubBody fileKey={fileKey} bookId={book.id} locale={locale} />
+        <EpubBody
+          start={typeof start === "string" ? start : undefined}
+          fileKey={fileKey}
+          bookId={book.id}
+          locale={locale}
+        />
       ) : extension(fileKey) === "pdf" ? (
-        <PdfBody fileKey={fileKey} bookId={book.id} locale={locale} />
+        <PdfBody
+          start={typeof start === "number" ? start : undefined}
+          fileKey={fileKey}
+          bookId={book.id}
+          locale={locale}
+        />
       ) : (
         // Anything else is handed to the browser's own viewer, which for a
         // format this app has no reader for is better than nothing. The inline
@@ -150,10 +175,12 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
 }
 
 async function EpubBody({
+  start,
   fileKey,
   bookId,
   locale,
 }: {
+  start?: string;
   locale: ReaderLocale;
   fileKey: string;
   bookId: string;
@@ -181,7 +208,8 @@ async function EpubBody({
 
   return (
     <EpubReader
-      key={JSON.stringify([profile?.id, bookId])}
+      key={JSON.stringify([profile?.id, bookId, start])}
+      start={start}
       opfUrl={`/book/${encodeKey(fileKey)}/${encodeKey(opfPath)}`}
       bookKey={fileKey}
       locale={locale}
@@ -208,10 +236,12 @@ async function EpubBody({
  * place the page would have been.
  */
 async function PdfBody({
+  start,
   fileKey,
   bookId,
   locale,
 }: {
+  start?: number;
   locale: ReaderLocale;
   fileKey: string;
   bookId: string;
@@ -225,7 +255,8 @@ async function PdfBody({
 
   return (
     <PdfReader
-      key={JSON.stringify([profile?.id, bookId])}
+      key={JSON.stringify([profile?.id, bookId, start])}
+      start={start}
       url={`/download/${encodeKey(fileKey)}`}
       locale={locale}
       bookId={bookId}
