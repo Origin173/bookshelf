@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
-import { isbnQuery } from "../src/lib/book-search.ts";
+import { isbnQuery, isbnToAdd } from "../src/lib/isbn.ts";
 import {
   type Book,
   CatalogService,
@@ -221,6 +221,13 @@ test("books come back sorted by title, whatever order they were published in", a
     (await catalog.all()).map((b) => b.title),
     ["apple", "Mango", "Zebra"],
   );
+});
+
+test("a missing ISBN can be filled with a book number", () => {
+  assert.equal(isbnToAdd("0‑8044 2957‑x"), "080442957X");
+  assert.equal(isbnToAdd("978 0-306-40615-7"), "9780306406157");
+  assert.equal(isbnToAdd("9780306406158"), undefined);
+  assert.equal(isbnToAdd("4006381333931"), undefined);
 });
 
 test("only a complete ISBN selects exact shelf search", async () => {

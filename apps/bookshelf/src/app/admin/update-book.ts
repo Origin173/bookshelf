@@ -1,7 +1,7 @@
-import { findIsbn } from "@bookshelf/core";
 import { adminHref, catalogView } from "@/app/admin/catalog-link";
 import { validCatalogDate } from "@/lib/catalog-date";
 import { parseAuthors, parseSubjects } from "@/lib/catalog-names";
+import { isbnToAdd } from "@/lib/isbn";
 import { readBody, readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
@@ -18,7 +18,14 @@ import { storeThumbnail, validThumbnail } from "@/services/thumbnails";
 
 export async function updateBook(
   request: Request,
-  field: "subjects" | "title" | "cover" | "authors" | "details" | "date",
+  field:
+    | "subjects"
+    | "title"
+    | "cover"
+    | "authors"
+    | "details"
+    | "date"
+    | "isbn",
 ) {
   const reject = (status: number) =>
     new Response(null, {
@@ -111,13 +118,9 @@ export async function updateBook(
     }
     if (selected("isbn")) {
       if (editedBook(book, snapshot).isbn) return back("conflict");
-      const isbn = form.get("isbn");
-      if (
-        typeof isbn !== "string" ||
-        isbn.length > 13 ||
-        findIsbn([isbn]) !== isbn
-      )
-        return back("invalidIsbn");
+      const raw = form.get("isbn");
+      const isbn = typeof raw === "string" ? isbnToAdd(raw) : undefined;
+      if (!isbn) return back("invalidBookIsbn");
       change.isbn = isbn;
     }
     if (selected("cover")) {
@@ -134,6 +137,7 @@ export async function updateBook(
     if (!Object.keys(change).length) return back("selectDetails");
     const saved = await saveBookEdit(storage, snapshot, book, change);
     const notice = {
+      isbn: "isbnSaved",
       date: "dateSaved",
       title: "titleSaved",
       authors: "authorsSaved",
