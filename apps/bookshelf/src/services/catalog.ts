@@ -3,15 +3,18 @@ import {
   type BookFormat,
   CATALOG_FILE,
   type Catalog,
+  isUploadId,
   type Storage,
 } from "@bookshelf/core";
+import {
+  applyEdits,
+  catalogEdits,
+  type EditSnapshot,
+  editedBook,
+} from "@/services/catalog-edits";
 import { isUnavailable, optional, reading } from "@/services/errors";
 import type { ResponseCache } from "@/services/ports/cache";
-import {
-  applySubjects,
-  type SubjectSnapshot,
-  subjectEdits,
-} from "@/services/subjects";
+import { addUploads, uploadIndex } from "@/services/uploads";
 
 /**
  * What a published library looks like is a contract with the sync tool, so it
@@ -46,7 +49,12 @@ const STALE_SECONDS = 10;
  * Optional because a catalog published before the field existed does not carry
  * one, and an empty shelf has no date at all.
  */
-export type Shelf = { books: Book[]; generatedAt?: string; revision?: string };
+export type Shelf = {
+  books: Book[];
+  generatedAt?: string;
+  revision?: string;
+  uploadRevision?: string;
+};
 
 /**
  * The suffix names the shape, not the contents. A cached entry outlives the
@@ -63,13 +71,15 @@ const CACHE_KEY = "https://bookshelf.internal/catalog/shelf";
  * best answer available when a refresh fails: the books in it are real, and a
  * shelf a minute out of date beats an error page.
  */
-let previousSubjects: SubjectSnapshot | undefined;
+let previousUploads: Awaited<ReturnType<typeof uploadIndex>> | undefined;
+let previousEdits: EditSnapshot | undefined;
 let memo: { shelf: Shelf; expiresAt: number } | null = null;
 
 /** Discards the memo. Exists so tests are not order-dependent. */
 export function resetCatalogMemo(): void {
   memo = null;
-  previousSubjects = undefined;
+  previousEdits = undefined;
+  previousUploads = undefined;
 }
 
 export class CatalogService {
@@ -117,17 +127,54 @@ export class CatalogService {
 
   /** Catalog views check the edit index. Byte and position routes only need the published shelf. */
   async browse(): Promise<Shelf> {
-    const base = await this.shelf();
+    const [published, uploads] = await Promise.all([
+      this.shelf(),
+      this.uploads(),
+    ]);
+    const base = addUploads(published, uploads);
     if (!base.books.length) return base;
-    try {
-      previousSubjects = await subjectEdits(this.storage, previousSubjects);
-    } catch (error) {
-      if (!isUnavailable(error) || !previousSubjects) throw error;
-    }
-    return applySubjects(base, previousSubjects);
+    return applyEdits(base, await this.edits());
   }
 
-  /** Every book in the library. */
+  private async edits() {
+    try {
+      previousEdits = await catalogEdits(this.storage, previousEdits);
+    } catch (error) {
+      if (!isUnavailable(error) || !previousEdits) throw error;
+    }
+    return previousEdits;
+  }
+
+  async display(id: string): Promise<Book | null> {
+    const book = await this.find(id);
+    if (!book) return null;
+    try {
+      return editedBook(book, await this.edits());
+    } catch (error) {
+      if (!isUnavailable(error)) throw error;
+      return book;
+    }
+  }
+
+  private async uploads() {
+    try {
+      previousUploads = await uploadIndex(this.storage, previousUploads);
+    } catch (error) {
+      if (!isUnavailable(error) || !previousUploads) throw error;
+    }
+    return previousUploads;
+  }
+
+  /** Read the current sources before an administrator opens or submits a form. */
+  async editable(): Promise<Shelf> {
+    const [published, uploads] = await Promise.all([
+      this.published(),
+      uploadIndex(this.storage),
+    ]);
+    return addUploads(published, uploads);
+  }
+
+  /** Every book in the published catalog. */
   async all(): Promise<Book[]> {
     return (await this.shelf()).books;
   }
@@ -183,7 +230,10 @@ export class CatalogService {
   }
 
   async find(id: string): Promise<Book | null> {
-    return (await this.all()).find((book) => book.id === id) ?? null;
+    const books = isUploadId(id)
+      ? (await this.uploads()).books
+      : await this.all();
+    return books.find((book) => book.id === id) ?? null;
   }
 
   async search(query: string): Promise<Book[]> {
