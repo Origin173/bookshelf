@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile } from "@/services/auth";
-import { bookLists, saveLists } from "@/services/book-lists";
+import { bookLists, saveLists, swapListNeighbors } from "@/services/book-lists";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
 
@@ -31,6 +31,7 @@ export async function editList(
     const intent = form.get("intent");
     const list = lists.find((l) => l.id === listId);
     const name = form.get("name");
+    const neighbor = form.get("swapWith");
     const book = form.get("book") ?? "";
     if (typeof book !== "string") return { id: listId, notice: "missing" };
     let selected = listId;
@@ -63,6 +64,17 @@ export async function editList(
       if (!list.books.includes(book)) list.books.push(book);
     } else if (intent === "remove" && book) {
       list.books = list.books.filter((id) => id !== book);
+    } else if (typeof neighbor === "string" && neighbor) {
+      const shelf = await catalog.editable();
+      if (
+        !swapListNeighbors(
+          list.books,
+          book,
+          neighbor,
+          new Set(shelf.books.map((b) => b.id)),
+        )
+      )
+        return { id: listId, notice: "changed" };
     } else return { id: listId, notice: "missing" };
     return (await saveLists(storage, profileId, lists, etag))
       ? { id: selected, notice: "saved" }

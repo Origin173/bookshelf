@@ -32,6 +32,28 @@ export async function bookLists(storage: Storage, profileId: string) {
   });
 }
 
+// Only swap the two visible neighbors. An unpublished member keeps its slot
+// in the saved order and returns there if it is published again.
+export function swapListNeighbors(
+  books: string[],
+  book: string,
+  neighbor: string,
+  available: ReadonlySet<string>,
+) {
+  const visible = books.filter((id) => available.has(id));
+  const index = visible.indexOf(book);
+  if (
+    index < 0 ||
+    (visible[index - 1] !== neighbor && visible[index + 1] !== neighbor)
+  )
+    return false;
+  const from = books.indexOf(book);
+  const to = books.indexOf(neighbor);
+  books[from] = neighbor;
+  books[to] = book;
+  return true;
+}
+
 export async function saveLists(
   storage: Storage,
   profileId: string,
