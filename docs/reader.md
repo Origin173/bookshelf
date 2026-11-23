@@ -92,7 +92,10 @@ to pan across the page and use the arrow buttons to turn.
 ## Your place in an EPUB
 
 Choose a heading in **Contents** to jump to it, including nested headings in
-the same file. A check mark follows the current heading as you read.
+the same file. Use **Find a chapter** to filter headings by title. Matches
+show their parent headings so you can distinguish sections with the same name.
+Clear the search to see the full outline at the current heading. Your reading
+position changes when you choose a heading.
 
 Above the toolbar, the reader shows the current heading or the section
 number in the EPUB spine when no matching title is available. In paginated

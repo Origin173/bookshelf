@@ -11,6 +11,7 @@ import {
   original,
   readAppearance,
 } from "@/app/read/[...key]/epub-appearance";
+import { EpubContents } from "@/app/read/[...key]/epub-contents";
 import {
   bookContents,
   sectionTargets,
@@ -483,37 +484,17 @@ export function EpubReader({
           />
         )}
         {toc.length > 0 ? (
-          <select
-            aria-label={t.jump}
-            value=""
-            onChange={(event) => {
-              if (event.target.value) {
-                requestedEntry.current = toc.find(
-                  (entry) => entry.href === event.target.value,
-                );
-                restoringCfi.current = undefined;
-                targetCfi.current = undefined;
-                rendition.current?.display(event.target.value);
-              }
+          <EpubContents
+            entries={toc}
+            active={place?.active}
+            t={t}
+            onGo={(entry) => {
+              requestedEntry.current = entry;
+              restoringCfi.current = undefined;
+              targetCfi.current = undefined;
+              rendition.current?.display(entry.href);
             }}
-            className={`${SELECT} min-w-0 flex-1 truncate max-[360px]:order-first max-[360px]:basis-full`}
-          >
-            <option value="" hidden>
-              {t.contents}
-            </option>
-            {toc.map((entry) => (
-              <option
-                key={entry.href}
-                value={entry.href}
-                aria-current={place?.active === entry ? "location" : undefined}
-                className={
-                  place?.active === entry ? "font-semibold" : undefined
-                }
-              >
-                {`${"\u00a0\u00a0".repeat(entry.depth)}${place?.active === entry ? "✓ " : ""}${entry.label}`}
-              </option>
-            ))}
-          </select>
+          />
         ) : null}
 
         <select

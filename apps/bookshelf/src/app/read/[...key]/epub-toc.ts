@@ -3,7 +3,8 @@ import type { Book, Contents, NavItem } from "epubjs";
 export type TocEntry = {
   href: string;
   label: string;
-  depth: number;
+  id: number;
+  parents: string[];
   section: number;
   fragment: string;
 };
@@ -23,8 +24,9 @@ export function bookContents(
     sections.set(new URL(section.href, opf).href, section);
   });
   const entries: TocEntry[] = [];
-  function visit(items: NavItem[], depth: number) {
+  function visit(items: NavItem[], parents: string[]) {
     for (const item of items) {
+      const label = item.label.trim();
       if (item.href) {
         try {
           const url = new URL(item.href, nav);
@@ -34,8 +36,9 @@ export function bookContents(
           if (section)
             entries.push({
               href: section.href + (fragment ? `#${fragment}` : ""),
-              label: item.label.trim(),
-              depth,
+              id: entries.length,
+              label,
+              parents,
               section: section.index,
               fragment,
             });
@@ -43,10 +46,11 @@ export function bookContents(
           // Skip an unreadable link, but keep its nested entries.
         }
       }
-      if (item.subitems?.length) visit(item.subitems, depth + 1);
+      if (item.subitems?.length)
+        visit(item.subitems, label ? [...parents, label] : parents);
     }
   }
-  visit(items, 0);
+  visit(items, []);
   return entries;
 }
 
