@@ -3,6 +3,10 @@ import { cache } from "react";
 
 export const LOCALE_COOKIE = "bookshelf_language";
 const en = {
+  addFormat: "Add format",
+  addFormatHelp: "Up to 8 MiB. Keeps this book’s details and cover.",
+  formatAdded: "Format added to this book.",
+  formatExists: "This book already has that format.",
   upload: "Upload a book",
   import: "Add to shelf",
   uploading: "Adding to the shelf…",
@@ -129,6 +133,10 @@ const en = {
 };
 
 const zh: typeof en = {
+  addFormat: "追加格式",
+  addFormatHelp: "最大 8 MiB。保留这本书的书目信息和封面。",
+  formatAdded: "已将格式添加到这本书。",
+  formatExists: "这本书已有该格式。",
   upload: "上传图书",
   import: "加入书架",
   uploading: "正在加入书架…",

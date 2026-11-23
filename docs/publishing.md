@@ -215,3 +215,16 @@ original book identifies it. Retrying the same
 file completes an interrupted import or finds the existing book with its saved metadata and cover. A conflicting
 catalog update asks you to retry. Both normal and forced CLI publishing leave
 this directory in place.
+
+To add the other format to a web upload, open **Manage books**, select the
+book and choose **Add format**. Select the missing EPUB or PDF (up to 8 MiB).
+The original book ID, cover, catalog edits and personal reading data are
+preserved. Repeating the same submission is safe. A different file cannot
+replace a format already on the book.
+
+Each added file has an immutable name derived from its SHA-256. The web
+catalog publishes the link after the bytes are stored, using a conditional
+write. An interrupted or competing request can leave an unlisted file in
+the upload directory. Retrying the same file reuses those bytes.
+The version 1 upload index keeps the original format in place. Older readers
+can still open it and preserve the additional format when importing another book.
