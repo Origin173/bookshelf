@@ -47,7 +47,7 @@ async function serve(request: Request, ctx: RouteContext<"/opds/[[...path]]">) {
   if (limited) return limited;
 
   const [origin, shelf] = await Promise.all([
-    siteOrigin(),
+    siteOrigin(request),
     reading("the catalog", () => catalog.browse()),
   ]);
 

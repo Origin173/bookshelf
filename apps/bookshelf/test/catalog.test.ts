@@ -6,8 +6,8 @@ import {
   readableFormat,
   resetCatalogMemo,
 } from "../src/services/catalog.ts";
+import { bookIdentity } from "../src/services/catalog-edits.ts";
 import { LibraryUnavailableError } from "../src/services/errors.ts";
-import { bookIdentity } from "../src/services/subjects.ts";
 import {
   brokenCache,
   memoryStorage,
@@ -292,4 +292,31 @@ test("a warm shelf follows subject edits without changing the published catalog"
     library([{ ...original, authors: ["Another author"] }])["catalog.json"],
   );
   assert.deepEqual((await catalog.browse()).books[0].subjects, ["Fiction"]);
+});
+test("display title overrides keep published IDs, formats and book identity", async () => {
+  const first = book("One");
+  const other = book("Two");
+  const memory = memoryStorage(library([first, other]));
+  const catalog = new CatalogService(memory.storage, nullCache());
+  memory.put(
+    ".bookshelf/subjects.json",
+    JSON.stringify({
+      version: 1,
+      books: {},
+      titles: { one: { identity: bookIdentity(first), title: "Zed" } },
+    }),
+  );
+  const edited = await catalog.display(first.id);
+  assert.deepEqual(edited, { ...first, title: "Zed" });
+  assert.deepEqual(
+    (await catalog.browse()).books.map((b) => b.title),
+    ["Two", "Zed"],
+  );
+  assert.equal((await catalog.find(first.id))?.title, "One");
+  memory.put(
+    "catalog.json",
+    library([{ ...first, identifier: "replacement" }])["catalog.json"],
+  );
+  resetCatalogMemo();
+  assert.equal((await catalog.display(first.id))?.title, "One");
 });
