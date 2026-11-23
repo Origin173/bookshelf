@@ -97,6 +97,12 @@ show their parent headings so you can distinguish sections with the same name.
 Clear the search to see the full outline at the current heading. Your reading
 position changes when you choose a heading.
 
+Choose **Previous section** or **Next section** in Contents to move through
+the full outline, even during a search. Repeated links to a heading count
+once, at their first appearance. At either end the corresponding button is
+disabled. If your passage has no matching outline entry, choose a heading
+to start.
+
 After jumping to another passage from **Contents**, choose **Back to passage**
 to return to the text you just left. Turning pages, changing the text size,
 and rotating the screen keep that return point. Another contents jump updates

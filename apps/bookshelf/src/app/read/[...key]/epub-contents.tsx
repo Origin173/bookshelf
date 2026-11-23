@@ -1,8 +1,8 @@
 import { Check, ChevronDown, X } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { FilterInput } from "@/app/filter-input";
 import type { TocEntry } from "@/app/read/[...key]/epub-toc";
-import { BUTTON_ROUND, SELECT } from "@/app/ui";
+import { BUTTON, BUTTON_ROUND, SELECT } from "@/app/ui";
 import type { ReaderText } from "@/lib/reader-text";
 
 export function EpubContents({
@@ -24,6 +24,23 @@ export function EpubContents({
   const rows = needle
     ? entries.filter((entry) => entry.label.toLowerCase().includes(needle))
     : entries;
+
+  const sections = useMemo(() => {
+    const seen = new Set<string>();
+    return entries.filter(({ href }) => {
+      if (seen.has(href)) return false;
+      seen.add(href);
+      return true;
+    });
+  }, [entries]);
+  const index = sections.findIndex((entry) => entry.href === active?.href);
+  const previous = sections[index - 1];
+  const next = index >= 0 ? sections[index + 1] : undefined;
+
+  function go(entry: TocEntry) {
+    dialog.current?.close();
+    onGo(entry);
+  }
 
   useEffect(() => {
     if (!needle && dialog.current?.open) {
@@ -87,10 +104,7 @@ export function EpubContents({
                           paddingLeft: `${0.5 + 0.75 * Math.min(entry.parents.length, 4)}rem`,
                         }
                   }
-                  onClick={() => {
-                    dialog.current?.close();
-                    onGo(entry);
-                  }}
+                  onClick={() => go(entry)}
                 >
                   <span className="min-w-0 flex-1 break-words">
                     {entry.label}
@@ -112,6 +126,23 @@ export function EpubContents({
             {t.noChapterMatches}
           </p>
         )}
+        <div className="mt-3 flex shrink-0 items-center justify-between gap-2 border-t border-separator pt-3">
+          {[
+            { label: t.previousSection, entry: previous },
+            { label: t.nextSection, entry: next },
+          ].map(({ label, entry }) => (
+            <button
+              key={label}
+              type="button"
+              disabled={!entry}
+              title={entry?.label}
+              className={`${BUTTON} disabled:opacity-40`}
+              onClick={() => entry && go(entry)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </dialog>
     </>
   );
