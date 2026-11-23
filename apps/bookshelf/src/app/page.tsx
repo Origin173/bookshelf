@@ -129,7 +129,6 @@ export default async function Home(props: PageProps<"/">) {
   const t = await messages();
   const query = typeof q === "string" ? q : "";
 
-  const isbn = isbnQuery(query);
   const params = new URLSearchParams();
   if (authorName) params.set("author", authorName);
   if (selectedFormat) params.set("format", selectedFormat);
@@ -174,13 +173,10 @@ export default async function Home(props: PageProps<"/">) {
     const inSeries = seriesName
       ? (named(bySeries(filtered), seriesName)?.books ?? [])
       : filtered;
-    const candidates = recent
-      ? recentBooks(inSeries, positions ?? {})
-      : inSeries;
-    const found = isbn
-      ? candidates.filter((book) => book.isbn === isbn)
-      : searchBooks(candidates, query);
-    const matching = found.filter((book) => {
+    const matching = searchBooks(
+      recent ? recentBooks(inSeries, positions ?? {}) : inSeries,
+      query,
+    ).filter((book) => {
       const entry = personal?.books.get(book.id);
       return (
         (!authorName || authorNames(book).includes(authorName)) &&
@@ -463,7 +459,7 @@ export default async function Home(props: PageProps<"/">) {
                     !selectedStatus &&
                     !favoritesOnly
                   ? t.noRecent
-                  : isbn
+                  : isbnQuery(query)
                     ? t.noIsbnMatches
                     : t.noMatches}
             </p>

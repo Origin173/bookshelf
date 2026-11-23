@@ -223,12 +223,22 @@ test("books come back sorted by title, whatever order they were published in", a
   );
 });
 
-test("only a complete ISBN selects exact shelf search", () => {
+test("only a complete ISBN selects exact shelf search", async () => {
   assert.equal(isbnQuery("0‑8044 2957‑x"), "080442957X");
   assert.equal(isbnQuery("978　0-306 40615–7"), "9780306406157");
   assert.equal(isbnQuery("Field notes 9780306406157"), undefined);
   assert.equal(isbnQuery("9780306406158"), undefined);
   assert.equal(isbnQuery("1984"), undefined);
+
+  const isbn = "080442957X";
+  const { storage } = memoryStorage(
+    library([book("A", { isbn }), book("B", { isbn }), book(`Notes ${isbn}`)]),
+  );
+  const catalog = new CatalogService(storage, nullCache());
+  assert.deepEqual(
+    (await catalog.search("0‑8044 2957‑x")).map((b) => b.title),
+    ["A", "B"],
+  );
 });
 
 test("search looks at title, authors and publisher", async () => {
