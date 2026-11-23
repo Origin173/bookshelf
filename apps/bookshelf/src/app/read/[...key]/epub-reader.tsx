@@ -1,7 +1,7 @@
 "use client";
 
 import type { BookProgress } from "@bookshelf/core";
-import type { Book, NavItem, Rendition } from "epubjs";
+import type { Book, Contents, NavItem, Rendition } from "epubjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReadingPosition } from "@/app/read/[...key]/position";
@@ -57,6 +57,43 @@ function firstReadableHref(book: Book): string | undefined {
   return spineItems(book).find(
     (item) => item.linear !== "no" && !/cover/i.test(item.href),
   )?.href;
+}
+
+/** Chapters live in their own documents. A swipe there never reaches the toolbar. */
+function enableSwipe(view: Rendition, { document: doc }: Contents) {
+  let start: PointerEvent | null = null;
+  doc.documentElement.style.touchAction = "pan-y pinch-zoom";
+  doc.addEventListener("pointerdown", (event) => {
+    const target = event.target as Element | null;
+    start =
+      event.pointerType === "touch" &&
+      event.isPrimary &&
+      !target?.closest?.(
+        "a, button, input, select, textarea, [contenteditable=true]",
+      )
+        ? event
+        : null;
+  });
+  doc.addEventListener("pointercancel", () => {
+    start = null;
+  });
+  doc.addEventListener("pointerup", (event) => {
+    const from = start;
+    start = null;
+    if (
+      !from ||
+      event.pointerId !== from.pointerId ||
+      doc.getSelection()?.isCollapsed === false
+    )
+      return;
+    const dx = event.clientX - from.clientX;
+    const dy = event.clientY - from.clientY;
+    if (Math.abs(dx) < 60 || Math.abs(dy) >= Math.abs(dx)) return;
+    const rtl =
+      "direction" in view.settings && view.settings.direction === "rtl";
+    if (rtl ? dx > 0 : dx < 0) void view.next();
+    else void view.prev();
+  });
 }
 
 export function EpubReader({
@@ -183,6 +220,11 @@ export function EpubReader({
           allowScriptedContent: false,
         });
         rendition.current = view;
+        if (mode !== "scroll") {
+          view.hooks.content.register((contents: Contents) =>
+            enableSwipe(view, contents),
+          );
+        }
 
         // Fires for every move — buttons, keyboard and contents jumps alike —
         // so position and label stay in step however the reader got there.
