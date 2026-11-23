@@ -8,7 +8,9 @@ import { PdfReader } from "@/app/read/[...key]/pdf-reader";
 import { State, StatePage } from "@/app/state";
 import { BUTTON_PRIMARY } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
+import { language } from "@/lib/i18n";
 import { extension } from "@/lib/media";
+import { type ReaderLocale, readerText } from "@/lib/reader-text";
 import { OG_BASE } from "@/lib/site";
 import { requirePageAccount } from "@/services/account-page";
 import { bookKey } from "@/services/catalog";
@@ -83,6 +85,8 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   // Undefined is a library that could not be read, which is not the same as a
   // book that is not in it — one is worth coming back for and the other is not.
   const book = await ifAvailable(() => catalog.display(id));
+  const locale = await language();
+  const t = readerText[locale];
   if (book === undefined) return <Unreachable />;
   if (!book?.formats.some((f) => f.file === file)) {
     notFound();
@@ -100,7 +104,7 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
           className="inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-secondary transition-colors hover:text-foreground"
         >
           <ChevronLeft aria-hidden="true" className="size-4" />
-          Shelf
+          {t.shelf}
         </Link>
         <h1 className="min-w-0 truncate text-sm font-medium">{book.title}</h1>
         <a
@@ -109,14 +113,14 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
           className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-secondary transition-colors hover:text-foreground"
         >
           <ArrowDownToLine aria-hidden="true" className="size-4" />
-          Download
+          {t.download}
         </a>
       </header>
 
       {extension(fileKey) === "epub" ? (
-        <EpubBody fileKey={fileKey} bookId={book.id} />
+        <EpubBody fileKey={fileKey} bookId={book.id} locale={locale} />
       ) : extension(fileKey) === "pdf" ? (
-        <PdfBody fileKey={fileKey} bookId={book.id} />
+        <PdfBody fileKey={fileKey} bookId={book.id} locale={locale} />
       ) : (
         // Anything else is handed to the browser's own viewer, which for a
         // format this app has no reader for is better than nothing. The inline
@@ -141,7 +145,9 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
 async function EpubBody({
   fileKey,
   bookId,
+  locale,
 }: {
+  locale: ReaderLocale;
   fileKey: string;
   bookId: string;
 }) {
@@ -170,6 +176,7 @@ async function EpubBody({
     <EpubReader
       opfUrl={`/book/${encodeKey(fileKey)}/${encodeKey(opfPath)}`}
       bookKey={fileKey}
+      locale={locale}
       bookId={bookId}
       profileId={profile?.id ?? DEFAULT_PROFILE_ID}
       saved={saved}
@@ -190,7 +197,9 @@ async function EpubBody({
 async function PdfBody({
   fileKey,
   bookId,
+  locale,
 }: {
+  locale: ReaderLocale;
   fileKey: string;
   bookId: string;
 }) {
@@ -204,6 +213,7 @@ async function PdfBody({
   return (
     <PdfReader
       url={`/download/${encodeKey(fileKey)}`}
+      locale={locale}
       bookId={bookId}
       profileId={profile?.id ?? DEFAULT_PROFILE_ID}
       saved={saved}
@@ -213,22 +223,20 @@ async function PdfBody({
 }
 
 /** Shown in place of the reader when the book cannot be reached. */
-function Unreachable() {
+async function Unreachable() {
+  const t = readerText[await language()];
   return (
     <StatePage>
       <State
         icon={CloudOff}
-        title="This book is out of reach"
+        title={t.unavailable}
         actions={
           <Link href="/" className={BUTTON_PRIMARY}>
-            Back to the shelf
+            {t.back}
           </Link>
         }
       >
-        <p>
-          The library cannot be read at the moment, so this book will not open.
-          Your place in it is safe — nothing has been written.
-        </p>
+        <p>{t.tryLater}</p>
       </State>
     </StatePage>
   );

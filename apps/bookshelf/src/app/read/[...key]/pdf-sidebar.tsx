@@ -5,6 +5,7 @@ import { useId, useMemo } from "react";
 import type { OutlineEntry } from "@/app/read/[...key]/pdf-document";
 import type { Search } from "@/app/read/[...key]/pdf-search";
 import { INPUT } from "@/app/ui";
+import type { ReaderText } from "@/lib/reader-text";
 
 export type Panel = "contents" | "search";
 
@@ -18,6 +19,7 @@ export type Panel = "contents" | "search";
  */
 export function PdfSidebar({
   panel,
+  t,
   outline,
   page,
   search,
@@ -25,6 +27,7 @@ export function PdfSidebar({
   onClose,
 }: {
   panel: Panel;
+  t: ReaderText;
   outline: OutlineEntry[];
   /** The page being read, so the contents can say where that is. */
   page: number;
@@ -52,13 +55,13 @@ export function PdfSidebar({
 
   return (
     <aside
-      aria-label={panel === "contents" ? "Contents" : "Search in this book"}
-      className="flex w-72 shrink-0 flex-col border-r border-separator bg-background"
+      aria-label={panel === "contents" ? t.contents : t.search}
+      className="flex max-h-[45dvh] w-full shrink-0 flex-col border-b border-separator bg-background sm:max-h-none sm:w-72 sm:border-r sm:border-b-0"
     >
       {panel === "search" ? (
         <div className="border-b border-separator p-3">
           <label htmlFor={field} className="sr-only">
-            Search in this book
+            {t.search}
           </label>
           <div className="relative">
             <SearchIcon
@@ -70,7 +73,7 @@ export function PdfSidebar({
               type="search"
               value={search.query}
               onChange={(event) => search.setQuery(event.target.value)}
-              placeholder="Search in this book"
+              placeholder={t.search}
               // The reader's own shortcuts would otherwise turn the page from
               // inside the search box.
               onKeyDown={(event) => event.stopPropagation()}
@@ -78,7 +81,7 @@ export function PdfSidebar({
             />
           </div>
           <p className="mt-2 min-h-4 px-0.5 text-xs text-tertiary">
-            <SearchStatus search={search} />
+            <SearchStatus t={t} search={search} />
           </p>
         </div>
       ) : null}
@@ -86,10 +89,7 @@ export function PdfSidebar({
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
         {panel === "contents" ? (
           outline.length === 0 ? (
-            <Empty>
-              This PDF carries no bookmarks, so there is no contents to show.
-              The page box in the toolbar goes anywhere in it.
-            </Empty>
+            <Empty>{t.noContents}</Empty>
           ) : (
             <ul>
               {outline.map((entry) => (
@@ -118,9 +118,9 @@ export function PdfSidebar({
             </ul>
           )
         ) : search.needle === "" ? (
-          <Empty>Type at least two letters to search the whole book.</Empty>
+          <Empty>{t.searchHint}</Empty>
         ) : search.hits.length === 0 && !search.running ? (
-          <Empty>Nothing in this book matches “{search.query.trim()}”.</Empty>
+          <Empty>{t.noMatches(search.query.trim())}</Empty>
         ) : (
           <ul>
             {search.hits.map((hit) => (
@@ -131,7 +131,7 @@ export function PdfSidebar({
                   className="w-full px-3 py-2 text-left transition-colors hover:bg-fill"
                 >
                   <span className="mb-0.5 block text-xs tabular-nums text-tertiary">
-                    Page {hit.page}
+                    {t.pageNumber(hit.page)}
                   </span>
                   <span className="block text-[13px] leading-snug text-secondary">
                     {hit.before}
@@ -153,7 +153,7 @@ export function PdfSidebar({
         className="flex items-center justify-center gap-1.5 border-t border-separator px-3 py-2 text-xs font-medium text-secondary transition-colors hover:bg-fill hover:text-foreground"
       >
         <X aria-hidden="true" className="size-3.5" />
-        Hide
+        {t.hide}
       </button>
     </aside>
   );
@@ -167,14 +167,10 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SearchStatus({ search }: { search: Search }) {
+function SearchStatus({ search, t }: { search: Search; t: ReaderText }) {
   if (search.needle === "") return null;
-
-  const count = search.hits.length;
-  const found = `${count} ${count === 1 ? "result" : "results"}`;
-
-  if (search.truncated) return `${found} — more than shown, so narrow it down`;
-  if (search.running)
-    return `${found} so far, searching page ${search.scanned}`;
+  const found = t.results(search.hits.length);
+  if (search.truncated) return t.moreResults(found);
+  if (search.running) return t.searching(found, search.scanned);
   return found;
 }
