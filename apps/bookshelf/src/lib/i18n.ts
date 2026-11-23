@@ -98,6 +98,12 @@ const en = {
 
   manage: "Manage books",
   missingCovers: "Missing covers",
+  addCover: "Add cover",
+  coverImage: "Cover image",
+  coverHelp:
+    "Choose a local PNG or JPEG up to 8 MiB. Only the thumbnail is sent.",
+  invalidLocalCover: "Choose a readable PNG or JPEG up to 8 MiB.",
+  coverSaved: "Cover added.",
   noMissingCovers: "Every book has a cover listed.",
   subjects: "Subjects",
   allSubjects: "All subjects",
@@ -230,6 +236,11 @@ const zh: typeof en = {
 
   manage: "管理书目",
   missingCovers: "缺少封面",
+  addCover: "添加封面",
+  coverImage: "封面图片",
+  coverHelp: "选择不超过 8 MiB 的本地 PNG 或 JPEG 图片。仅上传缩略图。",
+  invalidLocalCover: "请选择可读取且不超过 8 MiB 的 PNG 或 JPEG 图片。",
+  coverSaved: "已添加封面。",
   noMissingCovers: "所有书目都已登记封面。",
   subjects: "主题",
   allSubjects: "全部主题",

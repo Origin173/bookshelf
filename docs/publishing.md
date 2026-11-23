@@ -194,6 +194,12 @@ In **Manage books**, choose **Missing covers** to find published and
 web-imported books whose catalog entry has no cover. Choose **All books** to
 return to the full list.
 
+Open a book in **Missing covers**, choose a local PNG or JPEG (up to 8 MiB),
+review the thumbnail and select **Add cover**. The browser sends a PNG of at
+most 240 pixels per side and 256 KiB. The edit uses the same book ID and
+survives a normal or forced CLI publish. If a later publication includes
+its own cover, the shelf uses that cover.
+
 The form accepts one file up to **8 MiB**, an optional PNG thumbnail up to
 **240 × 240 pixels and 256 KiB**, and 16 KiB for the remaining multipart data.
 The Worker checks the request size as it arrives. Use the CLI for larger

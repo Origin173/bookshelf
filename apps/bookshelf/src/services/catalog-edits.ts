@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { type Book, STATE_PREFIX, type Storage } from "@bookshelf/core";
+import {
+  type Book,
+  isAddedCover,
+  STATE_PREFIX,
+  type Storage,
+} from "@bookshelf/core";
 import type { Shelf } from "@/services/catalog";
 import { reading, writing } from "@/services/errors";
 
@@ -36,7 +41,9 @@ type Edits = Record<string, SubjectEdit>;
 
 type TitleEdit = { identity: string; title: string };
 type Titles = Record<string, TitleEdit>;
+type Covers = Record<string, { identity: string; file: string }>;
 export type EditSnapshot = {
+  covers: Covers;
   edits: Edits;
   titles: Titles;
   etag: string | null;
@@ -51,12 +58,13 @@ export async function catalogEdits(
       FILE,
       previous?.etag ? { ifNoneMatch: previous.etag } : undefined,
     );
-    if (!object) return { edits: {}, titles: {}, etag: null };
+    if (!object) return { edits: {}, titles: {}, covers: {}, etag: null };
     if (!object.body && previous?.etag === object.object.etag) return previous;
     const data = (await new Response(object.body).json()) as {
       version?: number;
       books?: Edits;
       titles?: Titles;
+      covers?: Covers;
     } | null;
     if (
       data?.version !== 1 ||
@@ -86,19 +94,38 @@ export async function catalogEdits(
       )
     )
       throw new Error("Invalid title index");
-    return { edits: data.books, titles, etag: object.object.etag };
+    const covers = data.covers ?? {};
+    if (
+      typeof covers !== "object" ||
+      Array.isArray(covers) ||
+      !Object.values(covers).every(
+        (entry) =>
+          entry &&
+          typeof entry.identity === "string" &&
+          typeof entry.file === "string" &&
+          isAddedCover(entry.file),
+      )
+    )
+      throw new Error("Invalid cover index");
+    return { edits: data.books, titles, covers, etag: object.object.etag };
   });
 }
 
-export function editedBook(book: Book, { edits, titles }: EditSnapshot): Book {
+export function editedBook(
+  book: Book,
+  { edits, titles, covers }: EditSnapshot,
+): Book {
   const subject = Object.hasOwn(edits, book.id) && edits[book.id];
   const title = Object.hasOwn(titles, book.id) && titles[book.id];
-  if (!subject && !title) return book;
+  const cover =
+    !book.cover && Object.hasOwn(covers, book.id) && covers[book.id];
+  if (!subject && !title && !cover) return book;
   const identity = bookIdentity(book);
   const legacy = book.legacyTitle && bookIdentity(book, book.legacyTitle);
   const matches = (saved: string) => saved === identity || saved === legacy;
   return {
     ...book,
+    ...(cover && matches(cover.identity) && { cover: cover.file }),
     ...(subject && matches(subject.identity) && { subjects: subject.subjects }),
     ...(title && matches(title.identity) && { title: title.title }),
   };
@@ -116,20 +143,25 @@ export async function saveBookEdit(
   storage: Storage,
   snapshot: EditSnapshot,
   book: Book,
-  change: { title: string | null } | { subjects: string[] | null },
+  change:
+    | { title: string | null }
+    | { subjects: string[] | null }
+    | { cover: string },
 ) {
   if (!storage.writeIfMatch) return false;
   const edits: Edits = Object.assign(Object.create(null), snapshot.edits);
   const titles: Titles = Object.assign(Object.create(null), snapshot.titles);
+  const covers: Covers = Object.assign(Object.create(null), snapshot.covers);
   const identity = bookIdentity(book);
-  if ("title" in change) {
+  if ("cover" in change) covers[book.id] = { identity, file: change.cover };
+  else if ("title" in change) {
     if (change.title === null || change.title === book.title)
       delete titles[book.id];
     else titles[book.id] = { identity, title: change.title };
   } else if (change.subjects === null) delete edits[book.id];
   else edits[book.id] = { identity, subjects: change.subjects };
   const bytes = new TextEncoder().encode(
-    JSON.stringify({ version: 1, books: edits, titles }),
+    JSON.stringify({ version: 1, books: edits, titles, covers }),
   );
   const write = storage.writeIfMatch.bind(storage);
   return writing("the catalog edits", () =>

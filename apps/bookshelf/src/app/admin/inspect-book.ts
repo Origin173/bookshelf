@@ -4,8 +4,8 @@ import {
   readZipDirectory,
   readZipEntry,
 } from "@bookshelf/core";
+import { canvasFor, imageThumbnail, png } from "@/app/admin/thumbnail";
 import { openPdf } from "@/app/read/[...key]/pdf-document";
-import { COVER_EDGE } from "@/lib/upload-limits";
 
 export type Candidate = {
   title: string;
@@ -13,20 +13,6 @@ export type Candidate = {
   isbn: string;
   cover: Blob | null;
 };
-
-function canvasFor(width: number, height: number) {
-  const scale = Math.min(1, COVER_EDGE / Math.max(width, height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width * scale));
-  canvas.height = Math.max(1, Math.round(height * scale));
-  return canvas;
-}
-
-function png(canvas: HTMLCanvasElement) {
-  return new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/png"),
-  );
-}
 
 async function epub(file: File): Promise<Candidate> {
   const { default: Packaging } = await import("epubjs/lib/packaging.js");
@@ -77,17 +63,7 @@ async function epub(file: File): Promise<Candidate> {
     if (relative.origin !== base.origin) return candidate;
     const bytes = await read(decodeURIComponent(relative.pathname.slice(1)));
     if (bytes) {
-      const bitmap = await createImageBitmap(new Blob([bytes]));
-      try {
-        const canvas = canvasFor(bitmap.width, bitmap.height);
-        const context = canvas.getContext("2d");
-        if (context) {
-          context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-          candidate.cover = await png(canvas);
-        }
-      } finally {
-        bitmap.close();
-      }
+      candidate.cover = await imageThumbnail(new Blob([bytes]));
     }
   } catch {
     /* The metadata still applies if the image cannot be decoded. */

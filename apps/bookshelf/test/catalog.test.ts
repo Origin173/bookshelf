@@ -32,16 +32,23 @@ test("PDF title corrections retain edits made against the earlier publication", 
     legacyTitle: original.title,
   };
   const identity = bookIdentity(original);
+  const file = `_cover-${"1".repeat(64)}.png`;
   const snapshot = {
     edits: { atlas: { identity, subjects: ["Ocean"] } },
     titles: { atlas: { identity, title: "Field notes" } },
+    covers: { atlas: { identity, file } },
     etag: "v1",
   };
   assert.deepEqual(editedBook(corrected, snapshot), {
     ...corrected,
+    cover: file,
     subjects: ["Ocean"],
     title: "Field notes",
   });
+  assert.equal(
+    editedBook({ ...corrected, cover: "published.webp" }, snapshot).cover,
+    "published.webp",
+  );
   const replacement = { ...corrected, authors: ["Another author"] };
   assert.deepEqual(editedBook(replacement, snapshot), replacement);
 });
