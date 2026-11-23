@@ -8,7 +8,7 @@ import { PdfReader } from "@/app/read/[...key]/pdf-reader";
 import { State, StatePage } from "@/app/state";
 import { BUTTON_PRIMARY } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
-import { language } from "@/lib/i18n";
+import { language, messages } from "@/lib/i18n";
 import { extension } from "@/lib/media";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
 import { OG_BASE } from "@/lib/site";
@@ -35,12 +35,17 @@ export async function generateMetadata(
   await requirePageAccount();
   const { key } = await props.params;
   const fileKey = key.join("/");
-  const [id] = fileKey.split("/");
+  const target = parseBookKey(fileKey);
 
   // The catalog is memoised per request, so the page's own lookup is free.
   const { catalog } = await getServices();
-  const book = await catalog.display(id);
-  if (!book) return { robots: { index: false, follow: false } };
+  const book = target ? await catalog.display(target.id) : null;
+  if (!book?.formats.some((f) => f.file === target?.file)) {
+    return {
+      title: (await messages()).notFound,
+      robots: { index: false, follow: false },
+    };
+  }
 
   const authors = book.authors.join(", ");
   const cover = book.cover
