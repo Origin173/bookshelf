@@ -15,11 +15,14 @@ type UploadError =
   | "tooLarge"
   | "uploadConflict"
   | "unavailable"
+  | "formatExists"
+  | "missing"
   | "duplicate";
 
 type Labels = Pick<
   Awaited<ReturnType<typeof messages>>,
   | UploadError
+  | "addFormat"
   | "subjects"
   | "subjectHelp"
   | "uploading"
@@ -44,7 +47,13 @@ type Labels = Pick<
 type Fields = Pick<Candidate, "title" | "author" | "isbn">;
 const empty = { title: "", author: "", isbn: "" };
 
-export function UploadForm({ t }: { t: Labels }) {
+export function UploadForm({
+  t,
+  append,
+}: {
+  t: Labels;
+  append?: { book: string; format: "epub" | "pdf" };
+}) {
   const [submitting, setSubmitting] = useState(false);
   const [issue, setIssue] = useState<{ message: string; book?: string } | null>(
     null,
@@ -57,6 +66,7 @@ export function UploadForm({ t }: { t: Labels }) {
   const [useCover, setUseCover] = useState(true);
   const [notice, setNotice] = useState<
     | "analyzing"
+    | "formatExists"
     | "tooLarge"
     | "invalidFile"
     | "reviewDetails"
@@ -67,7 +77,10 @@ export function UploadForm({ t }: { t: Labels }) {
   >(null);
 
   const fileBlocked =
-    notice === "analyzing" || notice === "tooLarge" || notice === "invalidFile";
+    notice === "analyzing" ||
+    notice === "formatExists" ||
+    notice === "tooLarge" ||
+    notice === "invalidFile";
 
   useEffect(() => {
     if (!cover) {
@@ -99,9 +112,9 @@ export function UploadForm({ t }: { t: Labels }) {
         });
       } else {
         const outcome = (await response.json()) as
-          | { result: "uploaded"; book: string }
+          | { result: "uploaded" | "formatAdded"; book: string }
           | { result: UploadError; book?: string };
-        if (outcome.result === "uploaded") {
+        if (outcome.result === "uploaded" || outcome.result === "formatAdded") {
           window.location.assign(`/admin?${new URLSearchParams(outcome)}`);
           return;
         }
@@ -137,6 +150,11 @@ export function UploadForm({ t }: { t: Labels }) {
       setNotice("invalidFile");
       return;
     }
+    if (append) {
+      if (!file.name.toLowerCase().endsWith(`.${append.format}`))
+        setNotice("formatExists");
+      return;
+    }
     setNotice("analyzing");
     try {
       const { inspectBook } = await import("@/app/admin/inspect-book");
@@ -160,7 +178,7 @@ export function UploadForm({ t }: { t: Labels }) {
     <form
       onSubmit={submit}
       aria-busy={submitting}
-      action="/admin/upload"
+      action={append ? `/admin/upload?book=${append.book}` : "/admin/upload"}
       encType="multipart/form-data"
       method="post"
       className="mt-4 max-w-lg"
@@ -171,7 +189,7 @@ export function UploadForm({ t }: { t: Labels }) {
           <input
             type="file"
             name="file"
-            accept=".epub,.pdf"
+            accept={append ? `.${append.format}` : ".epub,.pdf"}
             required
             aria-describedby="upload-help"
             className={`${INPUT} min-w-0 max-w-full`}
@@ -194,65 +212,73 @@ export function UploadForm({ t }: { t: Labels }) {
             {t[notice]}
           </p>
         )}
-        {(["title", "author", "isbn"] as const).map((key) => (
-          <label key={key} className="grid gap-1 text-sm">
-            {t[key]}
-            <input
-              name={key}
-              required={key === "title"}
-              maxLength={key === "isbn" ? 24 : 200}
-              value={fields[key]}
-              className={INPUT}
-              onChange={(event) => {
-                manual.current.add(key);
-                const value = event.target.value;
-                setFields((current) => ({ ...current, [key]: value }));
-              }}
-            />
-          </label>
-        ))}
-        <label className="grid gap-1 text-sm">
-          {t.subjects}
-          <textarea
-            name="subjects"
-            rows={2}
-            aria-describedby="upload-subject-help"
-            className={INPUT}
-          />
-        </label>
-        <p id="upload-subject-help" className="text-sm text-secondary">
-          {t.subjectHelp}
-        </p>
-        {cover && image && (
-          <div className="flex items-center gap-3">
-            {/* biome-ignore lint/performance/noImgElement: this is a local blob preview */}
-            <img
-              src={image}
-              alt={t.coverPreview}
-              className="h-20 w-14 rounded object-contain ring-1 ring-separator"
-            />
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={useCover}
-                onChange={(event) => setUseCover(event.target.checked)}
+        {!append && (
+          <>
+            {(["title", "author", "isbn"] as const).map((key) => (
+              <label key={key} className="grid gap-1 text-sm">
+                {t[key]}
+                <input
+                  name={key}
+                  required={key === "title"}
+                  maxLength={key === "isbn" ? 24 : 200}
+                  value={fields[key]}
+                  className={INPUT}
+                  onChange={(event) => {
+                    manual.current.add(key);
+                    const value = event.target.value;
+                    setFields((current) => ({ ...current, [key]: value }));
+                  }}
+                />
+              </label>
+            ))}
+            <label className="grid gap-1 text-sm">
+              {t.subjects}
+              <textarea
+                name="subjects"
+                rows={2}
+                aria-describedby="upload-subject-help"
+                className={INPUT}
               />
-              {t.useCover}
             </label>
-          </div>
+            <p id="upload-subject-help" className="text-sm text-secondary">
+              {t.subjectHelp}
+            </p>
+            {cover && image && (
+              <div className="flex items-center gap-3">
+                {/* biome-ignore lint/performance/noImgElement: this is a local blob preview */}
+                <img
+                  src={image}
+                  alt={t.coverPreview}
+                  className="h-20 w-14 rounded object-contain ring-1 ring-separator"
+                />
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={useCover}
+                    onChange={(event) => setUseCover(event.target.checked)}
+                  />
+                  {t.useCover}
+                </label>
+              </div>
+            )}
+          </>
         )}
         <button
           className={`${BUTTON_PRIMARY} w-fit`}
           type="submit"
           disabled={fileBlocked}
         >
-          {submitting ? t.uploading : t.import}
+          {submitting
+            ? t.uploading
+            : append
+              ? `${t.addFormat} · ${append.format.toUpperCase()}`
+              : t.import}
         </button>
       </fieldset>
       {issue && (
         <p role="alert" className="mt-3 rounded-xl bg-fill px-4 py-3 text-sm">
           {issue.message}{" "}
-          {issue.book && (
+          {issue.book && issue.book !== append?.book && (
             <a
               href={`/admin?book=${encodeURIComponent(issue.book)}`}
               className="font-medium text-accent"

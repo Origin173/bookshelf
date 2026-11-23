@@ -1,11 +1,11 @@
-import { findIsbn } from "@bookshelf/core";
+import { findIsbn, isUploadId, type Storage } from "@bookshelf/core";
 import { readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES, MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
 import { parseSubjects } from "@/services/catalog-edits";
 import { getServices } from "@/services/container";
 import { isUnavailable } from "@/services/errors";
-import { importBook } from "@/services/uploads";
+import { appendFormat, importBook } from "@/services/uploads";
 
 export async function POST(request: Request) {
   const headers = { "cache-control": "private, no-store" };
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
   const type = request.headers.get("content-type") ?? "";
   if (type.split(";")[0] !== "multipart/form-data")
     return new Response(null, { status: 415, headers });
-  const back = (result: string, id?: string) => {
+  const target = new URL(request.url).searchParams.get("book");
+  const back = (result: string, id = target ?? undefined) => {
     if (request.headers.get("accept") === "application/json")
       return Response.json({ result, book: id }, { headers });
     const query = new URLSearchParams({ result });
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       headers: { ...headers, location: `/admin?${query}` },
     });
   };
+  if (target !== null && !isUploadId(target)) return back("missing");
   const bytes = await readBodyBytes(
     request,
     MAX_UPLOAD_BYTES + MAX_COVER_BYTES + 16 * 1024,
@@ -43,44 +45,8 @@ export async function POST(request: Request) {
   } catch {
     return back("invalidFile");
   }
-  const file = form.get("file"),
-    name = form.get("title"),
-    author = form.get("author");
-  if (
-    typeof name !== "string" ||
-    !name.trim() ||
-    name.length > 200 ||
-    typeof author !== "string" ||
-    author.length > 200
-  )
-    return back("invalidDetails");
-  if (!file || typeof file === "string" || !file.size)
-    return back("invalidFile");
-  const rawIsbn = form.get("isbn") ?? "";
-  if (typeof rawIsbn !== "string" || rawIsbn.length > 24)
-    return back("invalidIsbn");
-  const candidate = rawIsbn.trim().replace(/[ -]/g, "").toUpperCase();
-  const isbn = candidate ? findIsbn([candidate]) : undefined;
-  if (candidate && candidate !== isbn) return back("invalidIsbn");
-  const rawSubjects = form.get("subjects") ?? "";
-  const subjects =
-    typeof rawSubjects === "string" ? parseSubjects(rawSubjects) : null;
-  if (!subjects) return back("invalid");
-  const image = form.get("cover");
-  if (image && (typeof image === "string" || image.size > MAX_COVER_BYTES))
-    return back("invalidCover");
-  const cover =
-    image && typeof image !== "string" && image.size
-      ? new Uint8Array(await image.arrayBuffer())
-      : undefined;
   try {
-    const outcome = await importBook(
-      storage,
-      file,
-      name.trim(),
-      author.trim(),
-      { isbn, cover, subjects },
-    );
+    const outcome = await saveForm(storage, form, target);
     return back(
       outcome.result === "conflict" ? "uploadConflict" : outcome.result,
       "id" in outcome ? outcome.id : undefined,
@@ -89,4 +55,48 @@ export async function POST(request: Request) {
     if (!isUnavailable(error)) throw error;
     return back("unavailable");
   }
+}
+
+async function saveForm(
+  storage: Storage,
+  form: FormData,
+  target: string | null,
+) {
+  const file = form.get("file");
+  if (!file || typeof file === "string" || !file.size)
+    return { result: "invalidFile" } as const;
+  if (target !== null) return appendFormat(storage, file, target);
+  const name = form.get("title"),
+    author = form.get("author");
+  if (
+    typeof name !== "string" ||
+    !name.trim() ||
+    name.length > 200 ||
+    typeof author !== "string" ||
+    author.length > 200
+  )
+    return { result: "invalidDetails" } as const;
+  const rawIsbn = form.get("isbn") ?? "";
+  if (typeof rawIsbn !== "string" || rawIsbn.length > 24)
+    return { result: "invalidIsbn" } as const;
+  const candidate = rawIsbn.trim().replace(/[ -]/g, "").toUpperCase();
+  const isbn = candidate ? findIsbn([candidate]) : undefined;
+  if (candidate && candidate !== isbn)
+    return { result: "invalidIsbn" } as const;
+  const rawSubjects = form.get("subjects") ?? "";
+  const subjects =
+    typeof rawSubjects === "string" ? parseSubjects(rawSubjects) : null;
+  if (!subjects) return { result: "invalid" } as const;
+  const image = form.get("cover");
+  if (image && (typeof image === "string" || image.size > MAX_COVER_BYTES))
+    return { result: "invalidCover" } as const;
+  const cover =
+    image && typeof image !== "string" && image.size
+      ? new Uint8Array(await image.arrayBuffer())
+      : undefined;
+  return importBook(storage, file, name.trim(), author.trim(), {
+    isbn,
+    cover,
+    subjects,
+  });
 }

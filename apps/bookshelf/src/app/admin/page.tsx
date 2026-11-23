@@ -1,3 +1,4 @@
+import { isUploadId } from "@bookshelf/core";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -39,7 +40,20 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     };
   });
   const book = data?.books.find((b) => b.id === id);
+  const append =
+    book && isUploadId(book.id) && book.formats.length === 1
+      ? {
+          book: book.id,
+          format:
+            book.formats[0].format === "pdf"
+              ? ("epub" as const)
+              : ("pdf" as const),
+        }
+      : undefined;
   const notice =
+    result === "formatAdded" ||
+    result === "formatExists" ||
+    result === "missing" ||
     result === "invalidIsbn" ||
     result === "invalidCover" ||
     result === "invalidTitle" ||
@@ -84,7 +98,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           {notice}
         </p>
       )}
-      {!id && (
+      {(!id || append) && (
         <details
           open={
             result === "tooLarge" ||
@@ -98,10 +112,16 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           className="mt-6"
         >
           <summary className="w-fit cursor-pointer text-sm font-medium text-accent">
-            {t.upload}
+            {append
+              ? `${t.addFormat} · ${append.format.toUpperCase()}`
+              : t.upload}
           </summary>
           <UploadForm
+            append={append}
             t={{
+              addFormat: t.addFormat,
+              formatExists: t.formatExists,
+              missing: t.missing,
               title: t.title,
               author: t.author,
               file: t.file,

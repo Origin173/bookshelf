@@ -113,6 +113,7 @@ export function parseBookKey(key: string): { id: string; file: string } | null {
   if (isUploadId(id))
     return file === "book.epub" ||
       file === "book.pdf" ||
+      /^format-[a-f0-9]{64}\.(epub|pdf)$/.test(file) ||
       /^cover-[a-f0-9]{64}\.png$/.test(file)
       ? { id, file }
       : null;
