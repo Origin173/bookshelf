@@ -5,6 +5,10 @@ export const LOCALE_COOKIE = "bookshelf_language";
 const en = {
   upload: "Upload a book",
   import: "Add to shelf",
+  uploading: "Adding to the shelf…",
+  uploadUnconfirmed:
+    "Upload unconfirmed. Check your connection and try again with the same file.",
+  uploadDenied: "A signed-in administrator and a writable shelf are required.",
   title: "Title",
   author: "Authors (optional, separated by semicolons)",
   isbn: "ISBN (optional)",
@@ -26,8 +30,7 @@ const en = {
   invalidDetails:
     "Enter a title. Title and author may each have up to 200 characters.",
   tooLarge: "This file exceeds the 8 MiB web upload limit.",
-  uploadConflict:
-    "Another upload is being saved. Select the file and try again.",
+  uploadConflict: "Another upload is being saved. Try again in a moment.",
   homeScreen: "Add Bookshelf to your Home Screen",
   installHelp:
     "On iPhone, open this shelf in Safari, choose Share, then Add to Home Screen. Turn on Open as Web App if shown and tap Add. In other browsers, look for Install in the browser menu. Reading requires a connection.",
@@ -79,6 +82,9 @@ const en = {
 const zh: typeof en = {
   upload: "上传图书",
   import: "加入书架",
+  uploading: "正在加入书架…",
+  uploadUnconfirmed: "暂时无法确认上传结果。请检查连接，再用同一文件重试。",
+  uploadDenied: "请确认已登录管理员账号，且书架可写。",
   title: "书名",
   author: "作者（可选，多位作者用分号分隔）",
   isbn: "ISBN（可选）",
@@ -99,7 +105,7 @@ const zh: typeof en = {
   invalidFile: "请选择支持的 EPUB 或 PDF 文件。",
   invalidDetails: "请填写书名。书名和作者各限 200 个字符。",
   tooLarge: "文件超过网页上传的 8 MiB 上限。",
-  uploadConflict: "另一份上传正在保存。请重新选择文件并重试。",
+  uploadConflict: "另一份上传正在保存，请稍后重试。",
   homeScreen: "将书架添加到主屏幕",
   installHelp:
     "在 iPhone 的 Safari 中打开书架，点“分享”，再选“添加到主屏幕”。如有“作为网页 App 打开”，请启用后点“添加”。其他浏览器可在菜单中查找安装选项。阅读需要联网。",
