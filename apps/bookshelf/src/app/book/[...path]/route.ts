@@ -3,6 +3,7 @@ import { serviceUnavailable } from "@/lib/http";
 import { entryContentType } from "@/lib/media";
 import { enforceR2RateLimit } from "@/lib/rate-limit";
 import { responseCacheKey } from "@/lib/response-cache";
+import { withAccount } from "@/services/auth";
 import { getServices } from "@/services/container";
 import { optional } from "@/services/errors";
 
@@ -45,7 +46,9 @@ function split(segments: string[]): { key: string; entryPath: string } | null {
  * Serves a single file from inside an EPUB, letting the reader fetch chapters
  * one at a time instead of downloading a whole book to show its first page.
  */
-export async function GET(
+export const GET = withAccount(serve);
+
+async function serve(
   request: Request,
   routeContext: RouteContext<"/book/[...path]">,
 ) {

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
+process.env.BOOKSHELF_PUBLIC_DEMO = "1";
+
 import { GET as book } from "../src/app/book/[...path]/route.ts";
 import { GET as cover } from "../src/app/cover/[...key]/route.ts";
 import { GET as download } from "../src/app/download/[...key]/route.ts";

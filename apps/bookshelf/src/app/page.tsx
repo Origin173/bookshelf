@@ -8,6 +8,7 @@ import { BUTTON_PRIMARY, BUTTON_QUIET } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
 import { placeholder, tint } from "@/lib/media";
 import { OPDS_ALTERNATE } from "@/lib/opds/feed";
+import { requirePageAccount } from "@/services/account-page";
 import { type Book, bookKey, readableFormat } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
@@ -72,6 +73,7 @@ function Cover({ book }: { book: Book }) {
 }
 
 export default async function Home(props: PageProps<"/">) {
+  const account = await requirePageAccount();
   const { q } = await props.searchParams;
   const query = typeof q === "string" ? q : "";
 
@@ -86,7 +88,7 @@ export default async function Home(props: PageProps<"/">) {
    */
   const profile = await ifAvailable(() => activeProfile());
   const [everyone, positions] = await Promise.all([
-    ifAvailable(() => profiles.list()),
+    account ? undefined : ifAvailable(() => profiles.list()),
     profile ? ifAvailable(() => progress.all(profile.id)) : undefined,
   ]);
 
@@ -105,6 +107,19 @@ export default async function Home(props: PageProps<"/">) {
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Bookshelf</h1>
+        {account && (
+          <form
+            action="/login/session"
+            method="post"
+            className="flex items-center gap-2"
+          >
+            <input type="hidden" name="intent" value="logout" />
+            <span className="text-sm text-secondary">{account}</span>
+            <button className={BUTTON_QUIET} type="submit">
+              退出登录
+            </button>
+          </form>
+        )}
 
         {profile && everyone && (
           <ProfileMenu

@@ -1,4 +1,6 @@
 import { enforceR2RateLimit } from "@/lib/rate-limit";
+import { readBody } from "@/lib/request-body";
+import { withAccount } from "@/services/auth";
 import { getServices } from "@/services/container";
 import { isUnavailable } from "@/services/errors";
 import { activeProfile } from "@/services/session";
@@ -24,39 +26,6 @@ const MAX_PAGE = 1_000_000;
  * the server many times that in memory once it is parsed.
  */
 const MAX_BODY_BYTES = 16 * 1024;
-
-/**
- * The body as text, or null if it is longer than `limit` bytes.
- *
- * A declared length is believed when it is too long, never when it is short:
- * a chunked body declares nothing, and a lying one is caught by the count. The
- * stream is cancelled once the count passes the limit, so the rest is never
- * buffered.
- */
-async function readBody(
-  request: Request,
-  limit: number,
-): Promise<string | null> {
-  if (Number(request.headers.get("content-length")) > limit) return null;
-  if (!request.body) return "";
-
-  const reader = request.body.getReader();
-  const decoder = new TextDecoder();
-  let received = 0;
-  let text = "";
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) return text + decoder.decode();
-
-    received += value.byteLength;
-    if (received > limit) {
-      void reader.cancel().catch(() => {});
-      return null;
-    }
-    text += decoder.decode(value, { stream: true });
-  }
-}
 
 function field(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0
@@ -125,7 +94,9 @@ function pageNumber(value: unknown): number | undefined {
  * asking and keeps its position in the browser, which is what happens against
  * a library the app cannot write to.
  */
-export async function POST(request: Request) {
+export const POST = withAccount(savePosition, false);
+
+async function savePosition(request: Request) {
   if (crossSite(request)) {
     return Response.json({ error: "cross-site" }, { status: 403 });
   }

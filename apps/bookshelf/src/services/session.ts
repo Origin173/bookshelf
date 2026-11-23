@@ -1,5 +1,11 @@
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
+import {
+  accountProfile,
+  publicDemo,
+  SESSION_COOKIE,
+  sessionUser,
+} from "@/services/auth";
 import { getServices } from "@/services/container";
 import type { Profile } from "@/services/profiles";
 
@@ -52,6 +58,11 @@ export async function profileCookieOptions() {
  */
 export const activeProfile = cache(async (): Promise<Profile> => {
   const store = await cookies();
+  if (!publicDemo()) {
+    const username = sessionUser(store.get(SESSION_COOKIE)?.value);
+    if (!username) throw new Error("Login required");
+    return accountProfile(username);
+  }
   const { profiles } = await getServices();
   return profiles.resolve(store.get(PROFILE_COOKIE)?.value);
 });

@@ -3,6 +3,7 @@ import { serviceUnavailable } from "@/lib/http";
 import { imageContentType, isImage } from "@/lib/media";
 import { enforceR2RateLimit } from "@/lib/rate-limit";
 import { responseCacheKey } from "@/lib/response-cache";
+import { withAccount } from "@/services/auth";
 import { getServices } from "@/services/container";
 import { optional, reading } from "@/services/errors";
 
@@ -21,7 +22,9 @@ const MAX_AGE_SECONDS = 86400;
  * metadata — books without a cover get an inline placeholder from the page
  * instead of a request here.
  */
-export async function GET(
+export const GET = withAccount(handler);
+
+async function handler(
   request: Request,
   routeContext: RouteContext<"/cover/[...key]">,
 ) {

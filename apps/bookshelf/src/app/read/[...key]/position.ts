@@ -150,12 +150,12 @@ export function useReadingPosition({
     if (saved && (!local || saved.updatedAt > local.updatedAt)) {
       writeLocal(storageKey, saved);
     } else if (!local) {
-      const older = migrate.current?.();
+      const older = profileId === "default" ? migrate.current?.() : null;
       if (older) writeLocal(storageKey, older);
     }
 
     setReady(true);
-  }, [storageKey, saved]);
+  }, [storageKey, saved, profileId]);
 
   // Leaving the page is the one moment a debounce cannot be allowed to lose.
   useEffect(() => {

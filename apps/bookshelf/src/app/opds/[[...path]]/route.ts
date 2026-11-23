@@ -2,6 +2,7 @@ import { serviceUnavailable } from "@/lib/http";
 import { serveOpds } from "@/lib/opds/serve";
 import { siteOrigin } from "@/lib/origin";
 import { enforceR2RateLimit } from "@/lib/rate-limit";
+import { withAccount } from "@/services/auth";
 import { getServices } from "@/services/container";
 import { reading } from "@/services/errors";
 
@@ -17,7 +18,9 @@ import { reading } from "@/services/errors";
  * instance is reached, what the catalog holds, and how to say that the library
  * could not be read. Everything else is a pure function of those three.
  */
-export async function GET(
+export const GET = withAccount(handler);
+
+async function handler(
   request: Request,
   ctx: RouteContext<"/opds/[[...path]]">,
 ) {

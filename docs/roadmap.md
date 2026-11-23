@@ -9,14 +9,9 @@ of these are larger than they look.
 
 ## Know this before you deploy
 
-**There is no authentication.** Anyone who can reach your shelf can read and
-download every book in it, and pick any profile while doing it. The
-[OPDS catalog](opds.md) makes that library machine-enumerable as well. Put your
-shelf on a network you trust, or behind something that asks who's calling —
-Cloudflare Access, a reverse proxy with basic auth, or a VPN.
-
-Scoped tokens are the planned fix, because OPDS clients do HTTP Basic rather
-than an identity provider.
+**Accounts share the library.** Each account can read and download every book
+and keeps its own positions. Device-specific OPDS tokens remain a possible
+extension of [password authentication](opds.md#signing-in).
 
 **Nothing is encrypted.** Your library is published in the clear, and object
 keys are slugified titles — so a listing of your storage names your shelf.

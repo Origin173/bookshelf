@@ -1,6 +1,7 @@
 import { ChevronLeft, CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Avatar } from "@/app/avatar";
 import {
   createProfile,
@@ -11,6 +12,7 @@ import {
 import { State } from "@/app/state";
 import { BUTTON, BUTTON_PRIMARY, INPUT } from "@/app/ui";
 import { OG_BASE, SITE_DESCRIPTION } from "@/lib/site";
+import { requirePageAccount } from "@/services/account-page";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
 import type { Profile } from "@/services/profiles";
@@ -30,6 +32,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProfilesPage(props: PageProps<"/profiles">) {
+  if (await requirePageAccount()) redirect("/");
   const { error } = await props.searchParams;
   const { profiles } = await getServices();
 

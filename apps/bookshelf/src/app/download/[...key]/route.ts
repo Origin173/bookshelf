@@ -8,6 +8,7 @@ import {
 } from "@bookshelf/core";
 import { serviceUnavailable } from "@/lib/http";
 import { enforceDownloadRateLimit, enforceR2RateLimit } from "@/lib/rate-limit";
+import { withAccount } from "@/services/auth";
 import { getServices } from "@/services/container";
 import { reading } from "@/services/errors";
 
@@ -84,7 +85,9 @@ function contentDisposition(fileName: string, inline: boolean): string {
  * serve a range says so by returning the whole object, and this answers 200
  * rather than a 206 that would misdescribe its own body.
  */
-export async function GET(
+export const GET = withAccount(handler);
+
+async function handler(
   request: Request,
   ctx: RouteContext<"/download/[...key]">,
 ) {

@@ -95,10 +95,20 @@ More in [the R2 provider](docs/providers/r2.md).
 
 ## Before you commit a library to it
 
-**There is no authentication.** Anyone who can reach your shelf can download
-every book in it, and pick any profile while doing it. The
-[OPDS catalog](docs/opds.md) makes it machine-enumerable as well. Put it on a
-network you trust, or behind something that asks who's calling.
+**Private accounts are on by default.** Run `npm run account -- reader` in
+an interactive terminal after signing in to Wrangler. Save the generated password.
+Visit `/login` in a browser. In a reading app, add `https://YOUR-DOMAIN/opds`
+and enter the same username and password in its HTTP Basic authentication fields.
+Each account has its own web reading positions. `reader` keeps the original
+default profile's positions. OPDS clients download books and manage their own positions.
+
+Run the command with another username to add a reader. Running it again for
+an existing username rotates the password and invalidates that user's sessions.
+Remove the corresponding `BOOKSHELF_USER_…` Worker secret to disable an account.
+Use `--stdin` for a password supplied by a password manager. For a Node or
+Docker deployment, `--env-file=NEW_FILE` writes a private environment file.
+Load it at runtime with Node's or Docker's `--env-file` option. Serve over HTTPS.
+Keep the R2 bucket private and purge any old public CDN cache when upgrading.
 
 **Nothing is encrypted.** Your library is stored in the clear, and object keys
 are slugified titles — a listing of your storage names your shelf. With the
@@ -114,6 +124,7 @@ today.
 
 | variable | what it does |
 | --- | --- |
+| `BOOKSHELF_PUBLIC_DEMO` | set to `1` only for an explicitly public demo with the legacy profile switcher |
 | `BOOKSHELF_READ_ONLY` | set to `1` and storage keeps serving but stops accepting. Profiles can't be added, renamed or deleted, and reading positions stay in the browser. Set this on anything strangers can reach |
 | `BOOKSHELF_PROVIDER` | override the provider the build was made with |
 | `BOOKSHELF_DIRECTORY` | override where the filesystem provider looks |

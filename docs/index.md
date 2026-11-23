@@ -114,9 +114,8 @@ your storage and you've lost an `npm run sync`, not a collection.
 
 ## Before you commit a library to it
 
-**There is no authentication.** Anyone who can reach your shelf can download
-every book in it. Put it on a network you trust, or behind something that asks
-who's calling.
+**Sign in to your library.** Create your first account with
+`npm run account -- reader`. Use it in the browser and in your OPDS client.
 
 **Nothing is encrypted.** Your library is stored in the clear, and object keys
 are slugified titles — a listing of your storage names your shelf.

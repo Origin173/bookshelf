@@ -2,6 +2,11 @@
 
 Profiles let everyone sharing a library keep their own place in each book.
 
+Private mode binds the active profile to the signed-in account. Sign in on
+each device with the same username to resume your books. The `reader` account
+uses the original default profile. The manual profile switcher described
+below is available in public demo mode.
+
 ## Using them
 
 Your shelf starts with one profile, called Reader. You don't have to do

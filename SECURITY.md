@@ -25,14 +25,10 @@ self-hosted instance needs to pull and redeploy to receive one.
 
 ## What isn't a vulnerability
 
-Three things are missing by design rather than by oversight. Please don't report
-them.
-
-**There's no authentication.** Anyone with the URL can read and download the
-whole library, and pick any profile while doing it. Profiles keep housemates'
-bookmarks apart; they aren't an access control boundary. A report that amounts
-to "an unauthenticated user can read the books" describes the design. See
-[the README](README.md#before-you-commit-a-library-to-it).
+Private mode requires account authentication for the library and its OPDS
+resources. Please report unauthorized access in that mode. Operators can
+explicitly opt into anonymous access with `BOOKSHELF_PUBLIC_DEMO=1`.
+See [the account setup](README.md#before-you-commit-a-library-to-it).
 
 **Whatever you put in a library is served.** The sync tool publishes what you
 point it at. Deciding what belongs in a public bucket is yours to make.

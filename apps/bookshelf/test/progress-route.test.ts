@@ -16,6 +16,7 @@ const { POST } = await import("../src/app/api/progress/route.ts");
 const { PROFILE_COOKIE } = await import("../src/services/session.ts");
 
 const SHELF = "https://shelf.test";
+process.env.BOOKSHELF_PUBLIC_DEMO = "1";
 
 function library(state: Record<string, string> = {}): MemoryLibrary {
   const memory = memoryStorage({

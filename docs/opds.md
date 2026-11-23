@@ -63,16 +63,13 @@ Two things to expect:
 
 A book with no downloadable file is left out of the feed rather than listed.
 
-## There is no authentication
+## Signing in
 
-**Anyone who can reach your shelf can browse and download the whole library
-through this feed.** It grants no access that the download links didn't already,
-but it does make reaching all of it considerably easier — there's now a stable,
-well-known URL that lists every book and every download link in a form built for
-machines.
-
-Put your shelf on a network you trust, or behind something that asks who's
-calling. See [what's missing](roadmap.md).
+Enter your Bookshelf username and password in the OPDS client's HTTP Basic
+authentication fields. Use the HTTPS feed URL. The catalog, covers and book
+downloads accept these same credentials. An anonymous client receives a 401
+challenge. A logged-in browser can also browse the feed using its session.
+For provisioning and password rotation see the [account setup](../README.md#before-you-commit-a-library-to-it).
 
 `/opds` is disallowed in `robots.txt`, which keeps crawlers off it. That is not
 a security measure.

@@ -10,6 +10,7 @@ import { BUTTON_PRIMARY } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
 import { extension } from "@/lib/media";
 import { OG_BASE } from "@/lib/site";
+import { requirePageAccount } from "@/services/account-page";
 import { bookKey } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
@@ -29,6 +30,7 @@ import { activeProfile } from "@/services/session";
 export async function generateMetadata(
   props: PageProps<"/read/[...key]">,
 ): Promise<Metadata> {
+  await requirePageAccount();
   const { key } = await props.params;
   const fileKey = key.join("/");
   const [id] = fileKey.split("/");
@@ -69,6 +71,7 @@ export async function generateMetadata(
 }
 
 export default async function ReadPage(props: PageProps<"/read/[...key]">) {
+  await requirePageAccount();
   const { key } = await props.params;
   const fileKey = key.join("/");
   const [id] = fileKey.split("/");

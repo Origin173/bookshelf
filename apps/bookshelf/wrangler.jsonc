@@ -6,6 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "minify": true,
   "keep_vars": true,
+  "vars": { "BOOKSHELF_PUBLIC_DEMO": "0" },
   "workers_dev": false,
   "preview_urls": false,
   "assets": {

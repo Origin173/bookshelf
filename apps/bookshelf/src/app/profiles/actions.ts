@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { publicDemo } from "@/services/auth";
 import { getServices } from "@/services/container";
 import {
   activeProfile,
@@ -50,6 +51,7 @@ async function readAs(id: string): Promise<void> {
 }
 
 export async function switchProfile(form: FormData): Promise<void> {
+  if (!publicDemo()) redirect("/");
   const id = text(form, "id");
   const { profiles } = await getServices();
 
@@ -72,6 +74,7 @@ export async function switchProfile(form: FormData): Promise<void> {
  * positions with no sign that anything had happened.
  */
 export async function createProfile(form: FormData): Promise<void> {
+  if (!publicDemo()) redirect("/");
   const { profiles } = await getServices();
 
   let created: { id: string };
@@ -88,6 +91,7 @@ export async function createProfile(form: FormData): Promise<void> {
 }
 
 export async function renameProfile(form: FormData): Promise<void> {
+  if (!publicDemo()) redirect("/");
   const { profiles } = await getServices();
 
   try {
@@ -101,6 +105,7 @@ export async function renameProfile(form: FormData): Promise<void> {
 }
 
 export async function deleteProfile(form: FormData): Promise<void> {
+  if (!publicDemo()) redirect("/");
   const id = text(form, "id");
   const { profiles } = await getServices();
   const current = await activeProfile();

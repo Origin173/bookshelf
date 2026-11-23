@@ -29,6 +29,7 @@ import {
  */
 
 const BOOK = "dracula/dracula.epub";
+process.env.BOOKSHELF_PUBLIC_DEMO = "1";
 const COVER = "dracula/cover.webp";
 const TEXT = "the whole of a very short book";
 

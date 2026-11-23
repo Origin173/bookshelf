@@ -33,6 +33,7 @@ function providerDefaults(): Record<string, string> {
 
 const nextConfig: NextConfig = {
   env: providerDefaults(),
+  images: { localPatterns: [], remotePatterns: [] },
 
   headers: securityHeaders,
 };
