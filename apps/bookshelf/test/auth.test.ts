@@ -3,6 +3,7 @@ import { pbkdf2Sync, randomBytes } from "node:crypto";
 import { afterEach, beforeEach, test } from "node:test";
 import { progressFile } from "@bookshelf/core";
 import { POST as edit } from "../src/app/admin/subjects/route.ts";
+import { POST as title } from "../src/app/admin/title/route.ts";
 import { POST as upload } from "../src/app/admin/upload/route.ts";
 import { GET as book } from "../src/app/book/[...path]/route.ts";
 import { GET as cover } from "../src/app/cover/[...key]/route.ts";
@@ -177,12 +178,12 @@ test("catalog writes require a private admin account and writable storage", asyn
   process.env.BOOKSHELF_ADMINS = "alice";
   const submit = async (username?: string) =>
     Promise.all(
-      [edit, upload].map(
+      [edit, title, upload].map(
         async (handler) =>
           (
             await handler(
               new Request(
-                `${origin}/admin/${handler === edit ? "subjects" : "upload"}`,
+                `${origin}/admin/${handler === edit ? "subjects" : handler === title ? "title" : "upload"}`,
                 {
                   method: "POST",
                   headers: {
@@ -205,10 +206,10 @@ test("catalog writes require a private admin account and writable storage", asyn
     library.storage.writeIfMatch = async () => {
       throw new Error("unexpected write");
     };
-    assert.deepEqual(await submit(), [403, 403]);
-    assert.deepEqual(await submit("reader"), [403, 403]);
+    assert.deepEqual(await submit(), [403, 403, 403]);
+    assert.deepEqual(await submit("reader"), [403, 403, 403]);
     process.env.BOOKSHELF_PUBLIC_DEMO = "1";
-    assert.deepEqual(await submit("alice"), [403, 403]);
+    assert.deepEqual(await submit("alice"), [403, 403, 403]);
     delete process.env.BOOKSHELF_PUBLIC_DEMO;
     setServices(
       createServices(
@@ -216,7 +217,7 @@ test("catalog writes require a private admin account and writable storage", asyn
         nullCache(),
       ),
     );
-    assert.deepEqual(await submit("alice"), [403, 403]);
+    assert.deepEqual(await submit("alice"), [403, 403, 403]);
     assert.equal(library.reads.length, 0);
   } finally {
     delete process.env.BOOKSHELF_ADMINS;

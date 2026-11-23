@@ -6,13 +6,14 @@ import {
   isUploadId,
   type Storage,
 } from "@bookshelf/core";
+import {
+  applyEdits,
+  catalogEdits,
+  type EditSnapshot,
+  editedBook,
+} from "@/services/catalog-edits";
 import { isUnavailable, optional, reading } from "@/services/errors";
 import type { ResponseCache } from "@/services/ports/cache";
-import {
-  applySubjects,
-  type SubjectSnapshot,
-  subjectEdits,
-} from "@/services/subjects";
 import { addUploads, uploadIndex } from "@/services/uploads";
 
 /**
@@ -71,13 +72,13 @@ const CACHE_KEY = "https://bookshelf.internal/catalog/shelf";
  * shelf a minute out of date beats an error page.
  */
 let previousUploads: Awaited<ReturnType<typeof uploadIndex>> | undefined;
-let previousSubjects: SubjectSnapshot | undefined;
+let previousEdits: EditSnapshot | undefined;
 let memo: { shelf: Shelf; expiresAt: number } | null = null;
 
 /** Discards the memo. Exists so tests are not order-dependent. */
 export function resetCatalogMemo(): void {
   memo = null;
-  previousSubjects = undefined;
+  previousEdits = undefined;
   previousUploads = undefined;
 }
 
@@ -132,12 +133,27 @@ export class CatalogService {
     ]);
     const base = addUploads(published, uploads);
     if (!base.books.length) return base;
+    return applyEdits(base, await this.edits());
+  }
+
+  private async edits() {
     try {
-      previousSubjects = await subjectEdits(this.storage, previousSubjects);
+      previousEdits = await catalogEdits(this.storage, previousEdits);
     } catch (error) {
-      if (!isUnavailable(error) || !previousSubjects) throw error;
+      if (!isUnavailable(error) || !previousEdits) throw error;
     }
-    return applySubjects(base, previousSubjects);
+    return previousEdits;
+  }
+
+  async display(id: string): Promise<Book | null> {
+    const book = await this.find(id);
+    if (!book) return null;
+    try {
+      return editedBook(book, await this.edits());
+    } catch (error) {
+      if (!isUnavailable(error)) throw error;
+      return book;
+    }
   }
 
   private async uploads() {
