@@ -30,7 +30,7 @@ import { usePdfSearch } from "@/app/read/[...key]/pdf-search";
 import { type Panel, PdfSidebar } from "@/app/read/[...key]/pdf-sidebar";
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
-import { BUTTON_ROUND, SELECT } from "@/app/ui";
+import { BUTTON, BUTTON_ROUND, SELECT } from "@/app/ui";
 import type { BookmarkAction } from "@/lib/bookmarks";
 import { readStored, writeStored } from "@/lib/local";
 import {
@@ -177,6 +177,7 @@ export function PdfReader({
   const [sizes, setSizes] = useState<Map<number, PageSize>>(new Map());
 
   const [page, setPage] = useState(1);
+  const [returnPage, setReturnPage] = useState<number | null>(null);
   const [layout, setLayout] = useState<Layout>("scroll");
   const [zoom, setZoom] = useState<Zoom>("auto");
   const [tint, setTint] = useState<Tint>("paper");
@@ -606,7 +607,10 @@ export function PdfReader({
           outline={outline}
           page={page}
           search={search}
-          onGo={(target) => goTo(target)}
+          onGo={(target) => {
+            if (target !== page) setReturnPage(page);
+            goTo(target);
+          }}
           onClose={() => setPanel(null)}
         />
       )}
@@ -724,6 +728,20 @@ export function PdfReader({
               <ChevronRight aria-hidden="true" className="size-4" />
             </Round>
           </div>
+
+          {returnPage !== null && (
+            <button
+              type="button"
+              className={BUTTON}
+              onClick={() => {
+                goTo(returnPage);
+                setReturnPage(null);
+                scroller.current?.focus({ preventScroll: true });
+              }}
+            >
+              {t.backToPage(returnPage)}
+            </button>
+          )}
 
           <div className="ml-auto flex items-center gap-1">
             <Round onClick={() => step(-1)} label={t.zoomOut}>
