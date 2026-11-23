@@ -148,6 +148,11 @@ export default async function Home(props: PageProps<"/">) {
         <h1 className="text-3xl font-semibold tracking-tight">Bookshelf</h1>
         <div className="flex flex-wrap items-center gap-1">
           <LanguageSwitch />
+          {account && (
+            <Link href="/lists" className={BUTTON}>
+              {t.readingLists}
+            </Link>
+          )}
           {isAdmin(account) && storage.writeIfMatch && (
             <Link href="/admin" className={BUTTON}>
               {t.manage}

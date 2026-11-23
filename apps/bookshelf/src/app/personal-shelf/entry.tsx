@@ -1,4 +1,5 @@
 import { ChevronDown, Star } from "lucide-react";
+import Link from "next/link";
 import { updateShelfEntry } from "@/app/personal-shelf/actions";
 import { BUTTON, BUTTON_QUIET, SELECT } from "@/app/ui";
 import type { messages } from "@/lib/i18n";
@@ -78,6 +79,12 @@ export function PersonalEntry({
           {t.save}
         </button>
       </form>
+      <Link
+        href={`/lists?book=${encodeURIComponent(bookId)}`}
+        className={`mt-2 inline-block ${BUTTON_QUIET}`}
+      >
+        {t.addToList}
+      </Link>
     </details>
   );
 }
