@@ -82,6 +82,12 @@ Spaces and hyphens are optional. The saved number is searchable on the shelf and
 in both OPDS feeds. Books with an ISBN show the number as read-only. If a later
 publication supplies its own ISBN, the catalog uses the published number.
 
+**Export CSV** downloads the current **Manage books** results in list order,
+including the active filter and search text. The UTF-8 file includes a byte
+order mark and four columns for title, authors, ISBN and formats. An empty
+result downloads just the header. Cells that could be interpreted as formulas
+start with an apostrophe so spreadsheet imports treat them as text.
+
 **Catalog date** accepts a year, a year and month, or a full date. Save the
 field empty to hide the date on the shelf and in both OPDS feeds. **Use
 original date** removes the edit and follows the source again, including on
