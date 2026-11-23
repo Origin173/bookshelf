@@ -89,7 +89,7 @@ test("OPDS links retain the HTTPS address of a local Worker preview", async () =
     params: Promise.resolve({ path: [] }),
   });
   assert.equal(response.status, 200);
-  const feed = await response.json();
+  const feed = (await response.json()) as { links: { href: string }[] };
   assert.equal(new URL(feed.links[0].href).origin, "https://localhost:8787");
 });
 
