@@ -154,7 +154,11 @@ export function EpubReader({
   const targetCfi = useRef<string | undefined>(undefined);
   const restoringCfi = useRef<string | undefined>(undefined);
   const requestedEntry = useRef<{ entry: TocEntry; from?: string }>(undefined);
-  const requestedPassage = useRef<{ from: string; to: string }>(undefined);
+  const requestedPassage = useRef<{ from?: string; to: string }>(undefined);
+  const [searchSelection, setSearchSelection] = useState<string>();
+  const [searchJump, setSearchJump] = useState<"idle" | "moving" | "failed">(
+    "idle",
+  );
   const [returnCfi, setReturnCfi] = useState<string>();
   const returningCfi = useRef<string>(undefined);
   const selectedSearch = useRef<SearchMatch>(undefined);
@@ -169,6 +173,37 @@ export function EpubReader({
     selectedSearch.current = undefined;
     removeSearchPaint();
   }, [removeSearchPaint]);
+  const cancelSearchJump = useCallback(() => {
+    if (!requestedPassage.current) return;
+    requestedPassage.current = undefined;
+    clearSearchHighlight();
+    setSearchJump("idle");
+  }, [clearSearchHighlight]);
+  const failSearchJump = useCallback(() => {
+    if (!requestedPassage.current) return;
+    requestedPassage.current = undefined;
+    clearSearchHighlight();
+    restoringCfi.current = undefined;
+    targetCfi.current = undefined;
+    setSearchJump("failed");
+  }, [clearSearchHighlight]);
+  const resetSearchNavigation = useCallback(
+    (leaving: boolean) => {
+      if (requestedPassage.current) {
+        restoringCfi.current = undefined;
+        targetCfi.current = undefined;
+      }
+      requestedPassage.current = undefined;
+      clearSearchHighlight();
+      setSearchSelection(undefined);
+      setSearchJump("idle");
+      if (leaving) {
+        returningCfi.current = undefined;
+        setReturnCfi(undefined);
+      }
+    },
+    [clearSearchHighlight],
+  );
   const [place, setPlace] = useState<{
     chapter: string;
     active?: TocEntry;
@@ -247,7 +282,8 @@ export function EpubReader({
     }
 
     function onResize() {
-      targetCfi.current = previewCfi.current ?? current()?.cfi;
+      targetCfi.current =
+        requestedPassage.current?.to ?? previewCfi.current ?? current()?.cfi;
       restoringCfi.current = targetCfi.current;
       // epub.js accepts an optional CFI after its width and height.
       const view = rendition.current as
@@ -372,8 +408,7 @@ export function EpubReader({
             ((end?.cfi &&
               view.epubcfi.compare(start.cfi, target) <= 0 &&
               view.epubcfi.compare(target, end.cfi) <= 0) ||
-              (mode === "scroll" &&
-                opened.spine.get(target)?.index === start.index &&
+              (opened.spine.get(target)?.index === start.index &&
                 visibleCharacter(view, target, element)));
           if (target && restoringCfi.current === target) {
             restoringCfi.current = undefined;
@@ -404,13 +439,16 @@ export function EpubReader({
               clearSearchHighlight();
             }
           }
-          if (
-            requestedPassage.current?.to === target &&
-            requestedPassage.current
-          ) {
-            if (position === target)
-              setReturnCfi(requestedPassage.current.from);
-            requestedPassage.current = undefined;
+          const requestedHit = requestedPassage.current;
+          if (requestedHit && requestedHit.to === target) {
+            if (position === target) {
+              if (requestedHit.from) setReturnCfi(requestedHit.from);
+              setSearchSelection(target);
+              requestedPassage.current = undefined;
+              setSearchJump("idle");
+            } else {
+              failSearchJump();
+            }
           }
           if (returningCfi.current === position) {
             returningCfi.current = undefined;
@@ -452,6 +490,9 @@ export function EpubReader({
         // Arrow keys while the book itself has focus: epub.js re-emits DOM
         // events from inside its iframe, which a window listener never sees.
         view.on("keydown", onKeyDown);
+        view.on("displayerror", () => {
+          if (!cancelled) failSearchJump();
+        });
 
         // `ready` resolves once the spine is parsed, which is what tells us
         // where the cover ends and the book begins.
@@ -460,7 +501,6 @@ export function EpubReader({
           entries = bookContents(opened, opened.navigation?.toc ?? [], opfUrl);
           setToc(entries);
           requestedEntry.current = undefined;
-          requestedPassage.current = undefined;
           targetCfi.current =
             openingCfi.current ?? previewCfi.current ?? current()?.cfi;
           openingCfi.current = undefined;
@@ -487,6 +527,7 @@ export function EpubReader({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
       rendition.current = null;
+      cancelSearchJump();
       removeSearchPaint();
       book?.destroy();
     };
@@ -501,24 +542,40 @@ export function EpubReader({
     t,
     removeSearchPaint,
     clearSearchHighlight,
+    cancelSearchJump,
+    failSearchJump,
   ]);
 
-  function goToPassage(
-    position: number | string,
-    returning = false,
-    match?: SearchMatch,
-  ) {
-    if (typeof position !== "string") return;
-    clearSearchHighlight();
-    selectedSearch.current = match;
-    const from = match && place?.mark.position;
+  function displayPassage(position: string, returning = false) {
     requestedEntry.current = undefined;
-    requestedPassage.current =
-      from && from !== position ? { from, to: position } : undefined;
     returningCfi.current = returning ? position : undefined;
     restoringCfi.current = position;
     targetCfi.current = position;
     return rendition.current?.display(position);
+  }
+
+  function goToPassage(position: number | string, returning = false) {
+    if (typeof position !== "string") return;
+    cancelSearchJump();
+    clearSearchHighlight();
+    return displayPassage(position, returning);
+  }
+
+  function goToSearchMatch(match: SearchMatch, keepReturn: boolean) {
+    if (requestedPassage.current || !rendition.current || status !== "ready")
+      return;
+    const from = keepReturn && returnCfi ? undefined : place?.mark.position;
+    const request = {
+      from: from !== match.cfi ? from : undefined,
+      to: match.cfi,
+    };
+    requestedPassage.current = request;
+    clearSearchHighlight();
+    selectedSearch.current = match;
+    setSearchJump("moving");
+    void displayPassage(match.cfi)?.catch(() => {
+      if (requestedPassage.current === request) failSearchJump();
+    });
   }
 
   const turn = useCallback((direction: "prev" | "next") => {
@@ -569,7 +626,7 @@ export function EpubReader({
           <button
             type="button"
             className={`${BUTTON} shrink-0`}
-            disabled={status !== "ready"}
+            disabled={status !== "ready" || searchJump === "moving"}
             onClick={() => {
               void goToPassage(returnCfi, true)?.catch(() => {
                 returningCfi.current = undefined;
@@ -580,7 +637,7 @@ export function EpubReader({
           </button>
         )}
       </section>
-      <div className="flex items-center justify-between gap-1.5 px-3 pb-3 pt-1 max-[440px]:flex-wrap sm:gap-3 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 pb-3 pt-1 sm:gap-3 sm:px-6">
         <button
           type="button"
           onClick={() => turn("prev")}
@@ -610,17 +667,10 @@ export function EpubReader({
           bookKey={bookKey}
           entries={toc}
           t={t}
-          onReset={clearSearchHighlight}
-          onGo={({ cfi, rangeCfi }) => {
-            const match = { cfi, rangeCfi };
-            void goToPassage(cfi, false, match)?.catch(() => {
-              if (selectedSearch.current !== match) return;
-              clearSearchHighlight();
-              requestedPassage.current = undefined;
-              restoringCfi.current = undefined;
-              targetCfi.current = undefined;
-            });
-          }}
+          selected={searchSelection}
+          jump={searchJump}
+          onReset={resetSearchNavigation}
+          onGo={goToSearchMatch}
         />
         {toc.length > 0 ? (
           <EpubContents
@@ -629,9 +679,9 @@ export function EpubReader({
             aliases={aliases}
             t={t}
             onGo={(entry) => {
+              cancelSearchJump();
               clearSearchHighlight();
               returningCfi.current = undefined;
-              requestedPassage.current = undefined;
               requestedEntry.current = { entry, from: place?.mark.position };
               restoringCfi.current = undefined;
               targetCfi.current = undefined;

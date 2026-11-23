@@ -32,6 +32,14 @@ const en = {
   searchPassageHint: "Search the text of this EPUB.",
   searchingPassages: "Searching chapters…",
   searchIncomplete: "Some chapters could not be searched.",
+  searchMatches: "Search matches",
+  previousMatch: "Previous match",
+  nextMatch: "Next match",
+  matchPosition: (index: number, count: number, partial: boolean) =>
+    partial ? `Match ${index} · ${count} found` : `Match ${index} of ${count}`,
+  searchPaused: "Search paused. Reopen search to continue.",
+  openingMatch: "Opening match…",
+  matchUnavailable: "Could not open this match.",
   zoomIn: "Zoom in",
   zoomOut: "Zoom out",
   zoom: "Zoom",
@@ -122,6 +130,16 @@ const zh: ReaderText = {
   searchPassageHint: "搜索这本 EPUB 的正文。",
   searchingPassages: "正在搜索章节…",
   searchIncomplete: "部分章节未能完成搜索。",
+  searchMatches: "搜索命中",
+  previousMatch: "上一处命中",
+  nextMatch: "下一处命中",
+  matchPosition: (index, count, partial) =>
+    partial
+      ? `第 ${index} 处 · 已找到 ${count} 处`
+      : `第 ${index} / ${count} 处命中`,
+  searchPaused: "搜索已暂停，重新打开即可继续。",
+  openingMatch: "正在打开命中…",
+  matchUnavailable: "无法打开此处命中。",
   zoomIn: "放大",
   zoomOut: "缩小",
   zoom: "缩放",
