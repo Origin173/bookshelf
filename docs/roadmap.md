@@ -26,10 +26,8 @@ the same book on two screens at once and one of them loses its place.
 
 Where reading and browsing are thin rather than absent.
 
-- **Typography and theme in the EPUB reader.** The PDF reader has paper, sepia
-  and night; the EPUB reader has three layouts and nothing else, so a book
-  renders black-on-white next to a shelf that follows your system theme. Font
-  size, family, line height and margins are all missing too.
+- **More EPUB typography controls.** Text size and page tint are available.
+  Font family, line height and margins are still open.
 - **Where you are in an EPUB.** A PDF shows a page of a total and a progress
   line. An EPUB shows a chapter name — no percentage, no page count, no "N pages
   left in this chapter".

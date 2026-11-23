@@ -4,6 +4,13 @@ import type { BookProgress } from "@bookshelf/core";
 import type { Book, Contents, NavItem, Rendition } from "epubjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type Appearance,
+  applyAppearance,
+  EpubAppearance,
+  original,
+  readAppearance,
+} from "@/app/read/[...key]/epub-appearance";
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
@@ -130,6 +137,15 @@ export function EpubReader({
   const [toc, setToc] = useState<{ item: NavItem; depth: number }[]>([]);
   const [mode, setMode] = useState<Mode>("double");
 
+  const appearanceKey = `bookshelf:epub:appearance:${profileId}`;
+  const [appearance, setAppearance] = useState(original);
+  const [fixedLayout, setFixedLayout] = useState<boolean | null>(null);
+
+  function changeAppearance(next: Appearance) {
+    writeStored(appearanceKey, `${next.size}/${next.tint}`);
+    setAppearance(next);
+  }
+
   const legacy = useCallback(() => {
     const raw = readStored(legacyProgressKey(bookKey));
     if (!raw) return null;
@@ -161,8 +177,9 @@ export function EpubReader({
     ) {
       setMode(savedMode);
     }
+    setAppearance(readAppearance(appearanceKey));
     setModeRestored(true);
-  }, []);
+  }, [appearanceKey]);
 
   const restored = modeRestored && ready;
 
@@ -226,6 +243,11 @@ export function EpubReader({
           allowScriptedContent: false,
         });
         rendition.current = view;
+        view.hooks.content.register((contents: Contents) => {
+          if (view.settings.layout !== "pre-paginated") {
+            applyAppearance(contents, appearance);
+          }
+        });
         if (mode !== "scroll") {
           view.hooks.content.register((contents: Contents) =>
             enableSwipe(view, contents),
@@ -277,9 +299,12 @@ export function EpubReader({
 
         // `ready` resolves once the spine is parsed, which is what tells us
         // where the cover ends and the book begins.
-        return opened.ready.then(() =>
-          view.display(current()?.cfi ?? firstReadableHref(opened)),
-        );
+        return opened.ready.then(async () => {
+          if (cancelled) return;
+          await view.display(current()?.cfi ?? firstReadableHref(opened));
+          if (!cancelled)
+            setFixedLayout(view.settings.layout === "pre-paginated");
+        });
       })
       .then(() => {
         if (!cancelled) setStatus("ready");
@@ -298,10 +323,8 @@ export function EpubReader({
       rendition.current = null;
       book?.destroy();
     };
-    // `mode` rebuilds the rendition: epub.js reflows far more reliably from a
-    // fresh render than from a flow change applied to a live one, and the saved
-    // position puts the reader straight back where it was.
-  }, [opfUrl, mode, restored, current, record]);
+    // A fresh rendition lays out the saved passage with the selected settings.
+  }, [opfUrl, mode, appearance, restored, current, record]);
 
   const turn = useCallback((direction: "prev" | "next") => {
     const view = rendition.current;
@@ -339,7 +362,7 @@ export function EpubReader({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-1.5 border-t border-separator px-3 py-3 sm:gap-3 sm:px-6">
+      <div className="flex items-center justify-between gap-1.5 border-t border-separator px-3 py-3 max-[360px]:flex-wrap sm:gap-3 sm:px-6">
         <button
           type="button"
           onClick={() => turn("prev")}
@@ -360,6 +383,13 @@ export function EpubReader({
             t={t}
           />
         )}
+        {fixedLayout === false && (
+          <EpubAppearance
+            value={appearance}
+            onChange={changeAppearance}
+            t={t}
+          />
+        )}
         {toc.length > 0 ? (
           <select
             aria-label={t.jump}
@@ -369,7 +399,7 @@ export function EpubReader({
                 rendition.current?.display(event.target.value);
               }
             }}
-            className={`${SELECT} min-w-0 flex-1 truncate`}
+            className={`${SELECT} min-w-0 flex-1 truncate max-[360px]:order-first max-[360px]:basis-full`}
           >
             <option value="">{label || t.contents}</option>
             {toc.map(({ item, depth }) => (
