@@ -1,7 +1,6 @@
 "use client";
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import type { Candidate } from "@/app/admin/inspect-book";
 import { BUTTON_PRIMARY, INPUT } from "@/app/ui";
 import type { messages } from "@/lib/i18n";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
@@ -45,7 +44,7 @@ type Labels = Pick<
   | "useCover"
   | "coverPreview"
 >;
-type Fields = Pick<Candidate, "title" | "author" | "isbn">;
+type Fields = { title: string; author: string; isbn: string };
 const empty = { title: "", author: "", isbn: "" };
 
 export function UploadForm({
@@ -161,10 +160,14 @@ export function UploadForm({
       const { inspectBook } = await import("@/app/admin/inspect-book");
       const candidate = await inspectBook(file);
       if (sequence.current !== version) return;
-      apply(candidate);
+      apply({
+        title: candidate.title,
+        author: candidate.authors.join("; "),
+        isbn: candidate.isbn,
+      });
       setCover(candidate.cover);
       setNotice(
-        candidate.title || candidate.author || candidate.isbn
+        candidate.title || candidate.authors.length || candidate.isbn
           ? "reviewDetails"
           : candidate.cover
             ? "coverOnly"
