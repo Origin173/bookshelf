@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { UploadForm } from "@/app/admin/upload-form";
 import { LanguageSwitch } from "@/app/language-switch";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, INPUT } from "@/app/ui";
 import { messages } from "@/lib/i18n";
@@ -39,6 +40,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   });
   const book = data?.books.find((b) => b.id === id);
   const notice =
+    result === "invalidIsbn" ||
+    result === "invalidCover" ||
     result === "invalidTitle" ||
     result === "titleSaved" ||
     result === "uploaded" ||
@@ -85,6 +88,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
         <details
           open={
             result === "tooLarge" ||
+            result === "invalidIsbn" ||
+            result === "invalidCover" ||
             result === "invalidFile" ||
             result === "invalidDetails" ||
             result === "uploadConflict"
@@ -94,38 +99,23 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           <summary className="w-fit cursor-pointer text-sm font-medium text-accent">
             {t.upload}
           </summary>
-          <form
-            action="/admin/upload"
-            encType="multipart/form-data"
-            method="post"
-            className="mt-4 grid max-w-lg gap-3"
-          >
-            <label className="grid gap-1 text-sm">
-              {t.title}
-              <input name="title" required maxLength={200} className={INPUT} />
-            </label>
-            <label className="grid gap-1 text-sm">
-              {t.author}
-              <input name="author" maxLength={200} className={INPUT} />
-            </label>
-            <label className="grid gap-1 text-sm">
-              {t.file}
-              <input
-                type="file"
-                name="file"
-                accept=".epub,.pdf"
-                required
-                aria-describedby="upload-help"
-                className={`${INPUT} min-w-0 max-w-full`}
-              />
-            </label>
-            <p id="upload-help" className="text-sm text-secondary">
-              {t.uploadHelp}
-            </p>
-            <button className={`${BUTTON_PRIMARY} w-fit`} type="submit">
-              {t.import}
-            </button>
-          </form>
+          <UploadForm
+            t={{
+              title: t.title,
+              author: t.author,
+              file: t.file,
+              uploadHelp: t.uploadHelp,
+              import: t.import,
+              isbn: t.isbn,
+              analyzing: t.analyzing,
+              reviewDetails: t.reviewDetails,
+              noDetails: t.noDetails,
+              coverOnly: t.coverOnly,
+              noPreview: t.noPreview,
+              useCover: t.useCover,
+              coverPreview: t.coverPreview,
+            }}
+          />
         </details>
       )}
       {!data ? (

@@ -11,10 +11,14 @@ import {
   type Storage,
   storageBookKey,
 } from "@bookshelf/core";
+import {
+  COVER_EDGE,
+  MAX_COVER_BYTES,
+  MAX_UPLOAD_BYTES,
+} from "@/lib/upload-limits";
 import type { Shelf } from "@/services/catalog";
 import { reading, writing } from "@/services/errors";
 
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const INDEX = `${STATE_PREFIX}uploads/catalog.json`;
 
 type Index = { books: Book[]; updatedAt?: string; etag: string | null };
@@ -102,6 +106,7 @@ export async function importBook(
   file: File,
   title: string,
   author: string,
+  details: { isbn?: string; cover?: Uint8Array<ArrayBuffer> } = {},
 ) {
   const write = storage.writeIfMatch?.bind(storage);
   if (!write) return { result: "forbidden" } as const;
@@ -117,9 +122,15 @@ export async function importBook(
   const book: Book = {
     id,
     title,
-    authors: author ? [author] : [],
+    authors: author
+      .split(/[;；]/)
+      .map((part) => part.trim())
+      .filter(Boolean),
+    ...(details.isbn && { isbn: details.isbn }),
     formats: [{ format, file: filename, size: bytes.length }],
   };
+  if (details.cover && !validThumbnail(details.cover))
+    return { result: "invalidCover" } as const;
   const index = await uploadIndex(storage);
   if (index.books.some((b) => b.id === id))
     return { result: "duplicate", id } as const;
@@ -130,6 +141,20 @@ export async function importBook(
   );
   if (!stored && !(await reading("the uploaded book", () => storage.head(key))))
     return { result: "conflict" } as const;
+  if (details.cover) {
+    const png = details.cover;
+    const digest = createHash("sha256").update(png).digest("hex");
+    book.cover = `cover-${digest}.png`;
+    const coverKey = storageBookKey(bookKey(id, book.cover));
+    const saved = await writing("the thumbnail", () =>
+      write(coverKey, png, "image/png", null),
+    );
+    if (
+      !saved &&
+      !(await reading("the thumbnail", () => storage.head(coverKey)))
+    )
+      return { result: "conflict" } as const;
+  }
   const record = new TextEncoder().encode(
     JSON.stringify({
       version: 1,
@@ -142,4 +167,22 @@ export async function importBook(
   return saved
     ? ({ result: "uploaded", id } as const)
     : ({ result: "conflict" } as const);
+}
+
+function validThumbnail(png: Uint8Array): boolean {
+  if (png.length < 45 || png.length > MAX_COVER_BYTES) return false;
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  const width = view.getUint32(16),
+    height = view.getUint32(20);
+  return (
+    view.getUint32(0) === 0x89504e47 &&
+    view.getUint32(4) === 0x0d0a1a0a &&
+    view.getUint32(8) === 13 &&
+    view.getUint32(12) === 0x49484452 &&
+    width > 0 &&
+    height > 0 &&
+    width <= COVER_EDGE &&
+    height <= COVER_EDGE &&
+    view.getUint32(png.length - 8) === 0x49454e44
+  );
 }
