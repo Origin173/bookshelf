@@ -28,9 +28,6 @@ Where reading and browsing are thin rather than absent.
 
 - **More EPUB typography controls.** Text size and page tint are available.
   Font family, line height and margins are still open.
-- **Where you are in an EPUB.** A PDF shows a page of a total and a progress
-  line. An EPUB shows a chapter name — no percentage, no page count, no "N pages
-  left in this chapter".
 - **A page per book.** Your books' descriptions are read, published, and never
   shown, because there's no page where a book's own details live. The shelf row
   crowds the actions together and there's nowhere to see a large cover.
