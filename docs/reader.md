@@ -47,6 +47,13 @@ until you move to another page or passage. A bookmark opens its own file.
 Each book keeps one synced reading position, and its bookmarks stay with
 their respective formats.
 
+## Browse an author
+
+Select an author under a book title to see their books within your current
+shelf filters. Each coauthor has a separate link. Names match the catalog
+spelling, including spaces and punctuation. **Clear author** keeps your other
+filters.
+
 ## Browse a series
 
 Select a series name beneath a book title to see its volumes in reading order.

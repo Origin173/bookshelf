@@ -1,6 +1,7 @@
 import { CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Fragment } from "react";
 import { HomeScreenHelp } from "@/app/home-screen-help";
 import { LanguageSwitch } from "@/app/language-switch";
 import { PersonalEntry } from "@/app/personal-shelf/entry";
@@ -12,7 +13,7 @@ import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
 import { placeholder, tint } from "@/lib/media";
-import { bySeries, bySubject, named } from "@/lib/opds/browse";
+import { authorNames, bySeries, bySubject, named } from "@/lib/opds/browse";
 import { OPDS_ALTERNATE } from "@/lib/opds/feed";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile, isAdmin } from "@/services/auth";
@@ -91,12 +92,33 @@ function Cover({ book }: { book: Book }) {
   );
 }
 
+function shelfLink(
+  params: URLSearchParams,
+  name: "series" | "author",
+  value = "",
+) {
+  const next = new URLSearchParams(params);
+  if (value) next.set(name, value);
+  else next.delete(name);
+  return next.size ? `/?${next}` : "/";
+}
+
 export default async function Home(props: PageProps<"/">) {
   const account = await requirePageAccount();
-  const { q, subject, series, format, status, favorite, view, shelfNotice } =
-    await props.searchParams;
+  const {
+    q,
+    subject,
+    series,
+    author,
+    format,
+    status,
+    favorite,
+    view,
+    shelfNotice,
+  } = await props.searchParams;
   const selectedFormat = format === "epub" || format === "pdf" ? format : "";
   const seriesName = typeof series === "string" ? series.trim() : "";
+  const authorName = typeof author === "string" ? author.trim() : "";
   const recent = !!account && view === "recent";
   const selectedStatus = account && isReadingStatus(status) ? status : "";
   const favoritesOnly = !!account && favorite === "1";
@@ -105,9 +127,11 @@ export default async function Home(props: PageProps<"/">) {
   const query = typeof q === "string" ? q : "";
 
   const params = new URLSearchParams();
+  if (authorName) params.set("author", authorName);
+  if (selectedFormat) params.set("format", selectedFormat);
+  const seriesFilters = new URLSearchParams(params);
   if (selected) params.set("subject", selected);
   if (seriesName) params.set("series", seriesName);
-  if (selectedFormat) params.set("format", selectedFormat);
   if (selectedStatus) params.set("status", selectedStatus);
   if (favoritesOnly) params.set("favorite", "1");
   if (recent) params.set("view", "recent");
@@ -118,8 +142,6 @@ export default async function Home(props: PageProps<"/">) {
   if (recent) otherView.delete("view");
   else otherView.set("view", "recent");
   const switchView = otherView.size ? `/?${otherView}` : "/";
-  const withoutSeries = new URLSearchParams(params);
-  withoutSeries.delete("series");
   const { catalog, profiles, progress, storage } = await getServices();
 
   /*
@@ -154,6 +176,7 @@ export default async function Home(props: PageProps<"/">) {
       ).filter((book) => {
         const entry = personal?.books.get(book.id);
         return (
+          (!authorName || authorNames(book).includes(authorName)) &&
           (!selectedFormat ||
             book.formats.some((f) => f.format === selectedFormat)) &&
           (!selectedStatus || entry?.status === selectedStatus) &&
@@ -257,9 +280,23 @@ export default async function Home(props: PageProps<"/">) {
               <Link
                 className={BUTTON_QUIET}
                 prefetch={false}
-                href={withoutSeries.size ? `/?${withoutSeries}` : "/"}
+                href={shelfLink(params, "series")}
               >
                 {t.clearSeries}
+              </Link>
+            </div>
+          )}
+          {authorName && (
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <h2 className="min-w-0 break-words text-xl font-semibold">
+                {authorName}
+              </h2>
+              <Link
+                className={BUTTON_QUIET}
+                prefetch={false}
+                href={shelfLink(params, "author")}
+              >
+                {t.clearAuthor}
               </Link>
             </div>
           )}
@@ -275,6 +312,9 @@ export default async function Home(props: PageProps<"/">) {
               {recent && <input type="hidden" name="view" value="recent" />}
               {seriesName && (
                 <input type="hidden" name="series" value={seriesName} />
+              )}
+              {authorName && (
+                <input type="hidden" name="author" value={authorName} />
               )}
               {query && <input type="hidden" name="q" value={query} />}
               {(shelf.groups.length > 0 || selected) && (
@@ -376,6 +416,7 @@ export default async function Home(props: PageProps<"/">) {
                     !query &&
                     !selected &&
                     !seriesName &&
+                    !authorName &&
                     !selectedFormat &&
                     !selectedStatus &&
                     !favoritesOnly
@@ -399,8 +440,24 @@ export default async function Home(props: PageProps<"/">) {
                       <Cover book={book} />
                       <div className="min-w-0">
                         <p className="truncate font-medium">{book.title}</p>
-                        <p className="mt-1 truncate text-sm text-secondary">
-                          {book.authors.join(", ")}
+                        <p className="mt-1 break-words text-sm text-secondary">
+                          {authorNames(book).map((name, i) => (
+                            <Fragment key={name}>
+                              {i > 0 && ", "}
+                              {name === authorName ? (
+                                name
+                              ) : (
+                                <Link
+                                  href={shelfLink(params, "author", name)}
+                                  prefetch={false}
+                                  aria-label={`${t.browseAuthor} · ${name}`}
+                                  className="text-accent hover:underline"
+                                >
+                                  {name}
+                                </Link>
+                              )}
+                            </Fragment>
+                          ))}
                         </p>
                         {series && (
                           <p className="mt-1 break-words text-sm text-secondary">
@@ -408,7 +465,11 @@ export default async function Home(props: PageProps<"/">) {
                               series
                             ) : (
                               <Link
-                                href={`/?${new URLSearchParams(selectedFormat ? { series, format: selectedFormat } : { series })}`}
+                                href={shelfLink(
+                                  seriesFilters,
+                                  "series",
+                                  series,
+                                )}
                                 prefetch={false}
                                 aria-label={`${t.browseSeries} · ${series}`}
                                 className="text-accent hover:underline"
