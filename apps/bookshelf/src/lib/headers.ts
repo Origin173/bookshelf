@@ -91,6 +91,10 @@ const BASELINE = [
 export function securityHeaders() {
   return [
     { source: "/:path*", headers: BASELINE },
+    ...["/", "/login"].map((source) => ({
+      source,
+      headers: [{ key: "referrer-policy", value: "same-origin" }],
+    })),
     {
       // Everything but the two routes whose responses are meant to be framed.
       // The EPUB reader renders a chapter from `/book/` into a same-origin

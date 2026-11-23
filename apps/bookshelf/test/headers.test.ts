@@ -20,12 +20,9 @@ function policyFor(path: string): Map<string, string> {
   const found = new Map<string, string>();
 
   for (const rule of rules()) {
-    // The sources here are either `/:path*`, which matches everything, or one
-    // negative lookahead. Enough to answer which rule covers a path without
-    // reimplementing path-to-regexp.
     const lookahead = rule.source.match(/\(\?!([^)]*)\)/);
     const applies = !lookahead
-      ? true
+      ? rule.source === "/:path*" || rule.source === path
       : !lookahead[1]
           .split("|")
           .some((prefix) => path.startsWith(`/${prefix}`));
@@ -54,8 +51,20 @@ test("every response says how to treat what it is carrying", () => {
   ]) {
     const policy = policyFor(path);
     assert.equal(policy.get("x-content-type-options"), "nosniff", path);
-    assert.equal(policy.get("referrer-policy"), "no-referrer", path);
     assert.ok(policy.get("permissions-policy"), path);
+  }
+});
+
+test("session forms send their origin while book pages suppress referrers", () => {
+  for (const path of ["/login", "/"]) {
+    assert.equal(policyFor(path).get("referrer-policy"), "same-origin", path);
+  }
+  for (const path of [
+    "/read/title/file.epub",
+    "/book/title/file.epub/ch.xhtml",
+    "/download/title/file.pdf",
+  ]) {
+    assert.equal(policyFor(path).get("referrer-policy"), "no-referrer", path);
   }
 });
 
