@@ -190,6 +190,10 @@ if none was found. You can enter one subject per line to make the uploaded
 book available under those subjects on the shelf and in OPDS. Books without
 a cover use the usual placeholder.
 
+In **Manage books**, choose **Missing covers** to find published and
+web-imported books whose catalog entry has no cover. Choose **All books** to
+return to the full list.
+
 The form accepts one file up to **8 MiB**, an optional PNG thumbnail up to
 **240 × 240 pixels and 256 KiB**, and 16 KiB for the remaining multipart data.
 The Worker checks the request size as it arrives. Use the CLI for larger
