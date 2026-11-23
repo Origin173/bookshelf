@@ -6,6 +6,7 @@ import { AdminBookList } from "@/app/admin/book-list";
 import { BulkSubjectForm } from "@/app/admin/bulk-subject-form";
 import { adminHref, catalogView } from "@/app/admin/catalog-link";
 import { CoverForm } from "@/app/admin/cover-form";
+import { IsbnInput } from "@/app/admin/isbn-input";
 import { SourceDetails } from "@/app/admin/source-details";
 import { UploadForm } from "@/app/admin/upload-form";
 import { LanguageSwitch } from "@/app/language-switch";
@@ -70,6 +71,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     result === "formatExists" ||
     result === "missing" ||
     result === "invalidIsbn" ||
+    result === "invalidBookIsbn" ||
+    result === "isbnSaved" ||
     result === "invalidCover" ||
     result === "invalidLocalCover" ||
     result === "coverSaved" ||
@@ -352,6 +355,27 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               </button>
             </div>
           </form>
+          {book.isbn ? (
+            <p className="mt-6 text-sm">ISBN · {book.isbn}</p>
+          ) : (
+            <form
+              action="/admin/isbn"
+              method="post"
+              className="mt-6 grid max-w-lg gap-3"
+            >
+              {revisionFields}
+              <label htmlFor="book-isbn" className="font-medium">
+                ISBN
+              </label>
+              <IsbnInput invalid={t.invalidBookIsbn} />
+              <p id="isbn-help" className="text-sm text-secondary">
+                {t.isbnHelp}
+              </p>
+              <button type="submit" className={`${BUTTON_PRIMARY} w-fit`}>
+                {t.addIsbn}
+              </button>
+            </form>
+          )}
           <form
             action="/admin/date"
             method="post"

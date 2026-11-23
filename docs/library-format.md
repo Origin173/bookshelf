@@ -74,6 +74,11 @@ Renaming a book keeps its ID, file links and reading positions. Saving an
 empty list clears the subjects. **Use published subjects** follows the
 metadata from sync again.
 
+If a book has no ISBN, enter its ISBN-10 or ISBN-13 and choose **Add ISBN**.
+Spaces and hyphens are optional. The saved number is searchable on the shelf and
+in both OPDS feeds. Books with an ISBN show the number as read-only. If a later
+publication supplies its own ISBN, the catalog uses the published number.
+
 **Catalog date** accepts a year, a year and month, or a full date. Save the
 field empty to hide the date on the shelf and in both OPDS feeds. **Use
 original date** removes the edit and follows the source again, including on
