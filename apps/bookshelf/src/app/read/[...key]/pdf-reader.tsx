@@ -394,7 +394,7 @@ export function PdfReader({
    * this is the one that runs first.
    */
   const at = useRef(page);
-  useEffect(() => {
+  useLayoutEffect(() => {
     at.current = page;
   }, [page]);
 
@@ -409,6 +409,9 @@ export function PdfReader({
    * resized under a fit — which leaves the same offset pointing at a different
    * page, thirty pages out at 150% two hundred pages in.
    *
+   * Restore the offset before paint so the visibility observer sees the page
+   * at its new scale.
+   *
    * Reading the page out of a ref is what keeps this from running on every
    * scroll and fighting the reader for the scrollbar.
    *
@@ -417,7 +420,7 @@ export function PdfReader({
    * is approximate for a document whose pages are not all one size.
    */
   // biome-ignore lint/correctness/useExhaustiveDependencies: `scale` is a trigger rather than an input — a change of scale is what makes the offset the reader is sitting at point at a different page.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (status !== "ready" || layout !== "scroll") return;
 
     const element = scroller.current?.querySelector(
