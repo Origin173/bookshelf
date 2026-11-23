@@ -112,6 +112,7 @@ function etag(shelf: Shelf, request: OpdsRequest, format: OpdsFormat): string {
   const signature = [
     shelf.generatedAt ?? "",
     shelf.books.length,
+    shelf.revision ?? "",
     request.path.join("/"),
     request.query.toString(),
     format,

@@ -91,7 +91,7 @@ const BASELINE = [
 export function securityHeaders() {
   return [
     { source: "/:path*", headers: BASELINE },
-    ...["/", "/login"].map((source) => ({
+    ...["/", "/login", "/admin"].map((source) => ({
       source,
       headers: [{ key: "referrer-policy", value: "same-origin" }],
     })),

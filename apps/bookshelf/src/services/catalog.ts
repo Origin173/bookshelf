@@ -7,6 +7,11 @@ import {
 } from "@bookshelf/core";
 import { isUnavailable, optional, reading } from "@/services/errors";
 import type { ResponseCache } from "@/services/ports/cache";
+import {
+  applySubjects,
+  type SubjectSnapshot,
+  subjectEdits,
+} from "@/services/subjects";
 
 /**
  * What a published library looks like is a contract with the sync tool, so it
@@ -41,7 +46,7 @@ const STALE_SECONDS = 10;
  * Optional because a catalog published before the field existed does not carry
  * one, and an empty shelf has no date at all.
  */
-export type Shelf = { books: Book[]; generatedAt?: string };
+export type Shelf = { books: Book[]; generatedAt?: string; revision?: string };
 
 /**
  * The suffix names the shape, not the contents. A cached entry outlives the
@@ -58,11 +63,13 @@ const CACHE_KEY = "https://bookshelf.internal/catalog/shelf";
  * best answer available when a refresh fails: the books in it are real, and a
  * shelf a minute out of date beats an error page.
  */
+let previousSubjects: SubjectSnapshot | undefined;
 let memo: { shelf: Shelf; expiresAt: number } | null = null;
 
 /** Discards the memo. Exists so tests are not order-dependent. */
 export function resetCatalogMemo(): void {
   memo = null;
+  previousSubjects = undefined;
 }
 
 export class CatalogService {
@@ -93,7 +100,7 @@ export class CatalogService {
     }
 
     try {
-      const shelf = await this.load();
+      const shelf = await this.published();
       memo = { shelf, expiresAt: now + TTL_SECONDS * 1000 };
       this.store(shelf);
       return shelf;
@@ -106,6 +113,18 @@ export class CatalogService {
       memo = { shelf: memo.shelf, expiresAt: now + STALE_SECONDS * 1000 };
       return memo.shelf;
     }
+  }
+
+  /** Catalog views check the edit index. Byte and position routes only need the published shelf. */
+  async browse(): Promise<Shelf> {
+    const base = await this.shelf();
+    if (!base.books.length) return base;
+    try {
+      previousSubjects = await subjectEdits(this.storage, previousSubjects);
+    } catch (error) {
+      if (!isUnavailable(error) || !previousSubjects) throw error;
+    }
+    return applySubjects(base, previousSubjects);
   }
 
   /** Every book in the library. */
@@ -143,7 +162,7 @@ export class CatalogService {
     );
   }
 
-  private async load(): Promise<Shelf> {
+  async published(): Promise<Shelf> {
     const bytes = await reading("the catalog", () =>
       this.storage.readBytes(CATALOG_FILE),
     );

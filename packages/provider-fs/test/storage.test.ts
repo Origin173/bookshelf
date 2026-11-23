@@ -266,3 +266,24 @@ test("a file that cannot be read is not reported as absent", async () => {
   assert.equal(await storage.readBytes("nowhere.epub"), null);
   assert.equal(await storage.head("nowhere.epub"), null);
 });
+
+test("concurrent subject edits only replace the observed revision once", async () => {
+  const { storage, directory } = await library();
+  const key = ".bookshelf/subjects.json";
+  const bytes = (value) => new TextEncoder().encode(value);
+  const compare = (value, expected) =>
+    storage.writeIfMatch(key, bytes(value), "application/json", expected);
+  assert.equal(await compare("first", null), true);
+  const { etag } = await storage.head(key);
+  const results = await Promise.all([
+    compare("next1", etag),
+    compare("next2", etag),
+  ]);
+  assert.equal(results.filter(Boolean).length, 1);
+  assert.equal(await compare("stale", etag), false);
+  await createAdmin({ directory }).removeAll();
+  assert.equal(
+    await text((await storage.read(key)).body),
+    results[0] ? "next1" : "next2",
+  );
+});

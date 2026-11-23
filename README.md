@@ -124,6 +124,7 @@ today.
 
 | variable | what it does |
 | --- | --- |
+| `BOOKSHELF_ADMINS` | comma-separated existing account names allowed to [edit book subjects](docs/library-format.md#editing-subjects-on-the-web) on a private, writable shelf. Defaults to none |
 | `BOOKSHELF_PUBLIC_DEMO` | set to `1` only for an explicitly public demo with the legacy profile switcher |
 | `BOOKSHELF_READ_ONLY` | set to `1` and storage keeps serving but stops accepting. Profiles can't be added, renamed or deleted, and reading positions stay in the browser. Set this on anything strangers can reach |
 | `BOOKSHELF_PROVIDER` | override the provider the build was made with |

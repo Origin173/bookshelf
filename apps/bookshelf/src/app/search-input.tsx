@@ -11,7 +11,17 @@ const DEBOUNCE_MS = 300;
  * on the server while feeling live. Falls back to a plain GET form submit when
  * JavaScript hasn't loaded.
  */
-export function SearchInput({ query }: { query: string }) {
+export function SearchInput({
+  query,
+  subject,
+  label,
+  searching,
+}: {
+  query: string;
+  subject: string;
+  label: string;
+  searching: string;
+}) {
   const router = useRouter();
   const [value, setValue] = useState(query);
   const [isPending, startTransition] = useTransition();
@@ -24,18 +34,22 @@ export function SearchInput({ query }: { query: string }) {
     const timer = setTimeout(() => {
       const trimmed = value.trim();
       startTransition(() => {
-        router.replace(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : "/", {
+        const params = new URLSearchParams();
+        if (trimmed) params.set("q", trimmed);
+        if (subject) params.set("subject", subject);
+        router.replace(params.size ? `/?${params}` : "/", {
           scroll: false,
         });
       });
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [value, query, router]);
+  }, [value, query, subject, router]);
 
   return (
     <search className="mt-8 block">
-      <form onSubmit={(event) => event.preventDefault()}>
+      <form action="/" onSubmit={(event) => event.preventDefault()}>
+        {subject && <input type="hidden" name="subject" value={subject} />}
         <div className="relative">
           <Search
             aria-hidden="true"
@@ -46,8 +60,8 @@ export function SearchInput({ query }: { query: string }) {
             name="q"
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder="Search books…"
-            aria-label="Search books"
+            placeholder={`${label}…`}
+            aria-label={label}
             autoComplete="off"
             className="w-full rounded-xl bg-fill py-2.5 pr-10 pl-10 outline-none transition-shadow placeholder:text-tertiary focus:ring-2 focus:ring-accent"
           />
@@ -57,7 +71,7 @@ export function SearchInput({ query }: { query: string }) {
             }`}
           >
             <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-            <span className="sr-only">Searching…</span>
+            <span className="sr-only">{searching}</span>
           </output>
         </div>
       </form>

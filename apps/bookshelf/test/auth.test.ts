@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { pbkdf2Sync, randomBytes } from "node:crypto";
 import { afterEach, beforeEach, test } from "node:test";
 import { progressFile } from "@bookshelf/core";
+import { POST as edit } from "../src/app/admin/subjects/route.ts";
 import { GET as book } from "../src/app/book/[...path]/route.ts";
 import { GET as cover } from "../src/app/cover/[...key]/route.ts";
 import { GET as download } from "../src/app/download/[...key]/route.ts";
@@ -153,4 +154,42 @@ test("web progress belongs to the account across devices and ignores the legacy 
     library.json<{ books: { sample: { page: number } } }>(progressFile(id))
       .books.sample.page;
   assert.deepEqual([saved("default"), saved(alice)], [2, 9]);
+});
+
+test("subject edits require a private admin account and writable storage", async () => {
+  process.env.BOOKSHELF_ADMINS = "alice";
+  const submit = (username?: string) =>
+    edit(
+      new Request(`${origin}/admin/subjects`, {
+        method: "POST",
+        headers: {
+          origin,
+          ...(username && {
+            cookie: `bookshelf_session=${issueSession(username)}`,
+          }),
+        },
+        body: new URLSearchParams({ id: "sample", subjects: "Fiction" }),
+      }),
+    );
+  try {
+    library.storage.writeIfMatch = async () => {
+      throw new Error("unexpected write");
+    };
+    assert.equal((await submit()).status, 403);
+    assert.equal((await submit("reader")).status, 403);
+    process.env.BOOKSHELF_PUBLIC_DEMO = "1";
+    assert.equal((await submit("alice")).status, 403);
+    delete process.env.BOOKSHELF_PUBLIC_DEMO;
+    setServices(
+      createServices(
+        memoryStorage(files, { writable: false }).storage,
+        nullCache(),
+      ),
+    );
+    assert.equal((await submit("alice")).status, 403);
+    assert.equal(library.reads.length, 0);
+  } finally {
+    delete process.env.BOOKSHELF_ADMINS;
+    delete process.env.BOOKSHELF_PUBLIC_DEMO;
+  }
 });

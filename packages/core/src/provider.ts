@@ -99,6 +99,14 @@ export interface Storage {
    */
   write?(key: string, bytes: Uint8Array, contentType?: string): Promise<void>;
 
+  /** Replace an object only if its ETag still matches, or create it if expected is null. */
+  writeIfMatch?(
+    key: string,
+    bytes: Uint8Array,
+    contentType: string,
+    expected: string | null,
+  ): Promise<boolean>;
+
   /** Deletes one object. Optional alongside {@link Storage.write}. */
   remove?(key: string): Promise<void>;
 }

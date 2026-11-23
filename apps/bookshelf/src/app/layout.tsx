@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { language } from "@/lib/i18n";
 import { OPDS_ALTERNATE } from "@/lib/opds/feed";
 import { siteOrigin } from "@/lib/origin";
 import { OG_BASE, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
@@ -36,9 +37,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang={await language()} className="h-full antialiased">
       <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createReadStream, type Stats } from "node:fs";
 import {
   copyFile,
@@ -60,7 +61,7 @@ function describe(key: string, stats: Stats): StoredObject {
   return {
     key,
     size: stats.size,
-    etag: `"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`,
+    etag: `"${stats.ino.toString(16)}-${stats.size.toString(16)}-${stats.mtimeMs.toString(16)}"`,
     uploadedAt: stats.mtime,
     // Nowhere to store a content type, so it comes from the key. The shared
     // table means this lands on the same answer an uploading provider recorded.
@@ -205,9 +206,34 @@ class FsStorage implements WritableStorage {
     // Written beside the target and renamed, so a process that dies midway
     // leaves the previous version intact rather than a truncated one. These
     // are the only files the app owns, and losing them loses bookmarks.
-    const temporary = `${file}.${process.pid.toString(36)}.tmp`;
+    const temporary = `${file}.${randomUUID()}.tmp`;
     await writeFile(temporary, bytes);
     await rename(temporary, file);
+  }
+
+  async writeIfMatch(
+    key: string,
+    bytes: Uint8Array,
+    _contentType: string,
+    expected: string | null,
+  ): Promise<boolean> {
+    const file = resolveKey(this.root, key);
+    if (!file) throw new Error(`key escapes the library: ${key}`);
+    await mkdir(path.dirname(file), { recursive: true });
+    const lock = `${file}.lock`;
+    try {
+      await mkdir(lock);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+      throw error;
+    }
+    try {
+      if (((await this.head(key))?.etag ?? null) !== expected) return false;
+      await this.write(key, bytes);
+      return true;
+    } finally {
+      await rmdir(lock);
+    }
   }
 
   async remove(key: string): Promise<void> {

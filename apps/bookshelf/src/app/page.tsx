@@ -1,15 +1,24 @@
 import { CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LanguageSwitch } from "@/app/language-switch";
 import { ProfileMenu } from "@/app/profile-menu";
 import { SearchInput } from "@/app/search-input";
 import { State } from "@/app/state";
-import { BUTTON_PRIMARY, BUTTON_QUIET } from "@/app/ui";
+import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
+import { messages } from "@/lib/i18n";
 import { placeholder, tint } from "@/lib/media";
+import { bySubject, named } from "@/lib/opds/browse";
 import { OPDS_ALTERNATE } from "@/lib/opds/feed";
 import { requirePageAccount } from "@/services/account-page";
-import { type Book, bookKey, readableFormat } from "@/services/catalog";
+import { isAdmin } from "@/services/auth";
+import {
+  type Book,
+  bookKey,
+  readableFormat,
+  searchBooks,
+} from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
 import { activeProfile } from "@/services/session";
@@ -74,11 +83,16 @@ function Cover({ book }: { book: Book }) {
 
 export default async function Home(props: PageProps<"/">) {
   const account = await requirePageAccount();
-  const { q } = await props.searchParams;
+  const { q, subject } = await props.searchParams;
+  const selected = typeof subject === "string" ? subject : "";
+  const t = await messages();
   const query = typeof q === "string" ? q : "";
 
-  const here = query ? `/?q=${encodeURIComponent(query)}` : "/";
-  const { catalog, profiles, progress } = await getServices();
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (selected) params.set("subject", selected);
+  const here = params.size ? `/?${params}` : "/";
+  const { catalog, profiles, progress, storage } = await getServices();
 
   /*
    * Who is reading, and how far they got, are not worth a shelf for. Both come
@@ -96,77 +110,115 @@ export default async function Home(props: PageProps<"/">) {
   // without — but it still degrades to a state that can say what happened
   // rather than to the error boundary.
   const shelf = await ifAvailable(async () => {
-    const [matching, all] = await Promise.all([
-      catalog.search(query),
-      catalog.all(),
-    ]);
-    return { matching, total: all.length };
+    const { books } = await catalog.browse();
+    const groups = bySubject(books);
+    const filtered = selected ? (named(groups, selected)?.books ?? []) : books;
+    return {
+      matching: searchBooks(filtered, query),
+      total: books.length,
+      groups,
+    };
   });
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Bookshelf</h1>
-        {account && (
-          <form
-            action="/login/session"
-            method="post"
-            className="flex items-center gap-2"
-          >
-            <input type="hidden" name="intent" value="logout" />
-            <span className="text-sm text-secondary">{account}</span>
-            <button className={BUTTON_QUIET} type="submit">
-              退出登录
-            </button>
-          </form>
-        )}
+        <div className="flex flex-wrap items-center gap-1">
+          <LanguageSwitch />
+          {isAdmin(account) && storage.writeIfMatch && (
+            <Link href="/admin" className={BUTTON}>
+              {t.manage}
+            </Link>
+          )}
+          {account && (
+            <form
+              action="/login/session"
+              method="post"
+              className="flex items-center gap-2"
+            >
+              <input type="hidden" name="intent" value="logout" />
+              <span className="text-sm text-secondary">{account}</span>
+              <button className={BUTTON_QUIET} type="submit">
+                {t.signOut}
+              </button>
+            </form>
+          )}
 
-        {profile && everyone && (
-          <ProfileMenu
-            profiles={everyone}
-            activeId={profile.id}
-            writable={profiles.writable}
-            from={here}
-          />
-        )}
+          {profile && everyone && (
+            <ProfileMenu
+              profiles={everyone}
+              activeId={profile.id}
+              writable={profiles.writable}
+              from={here}
+            />
+          )}
+        </div>
       </div>
 
       {!shelf ? (
         <div className="mt-20">
           <State
             icon={CloudOff}
-            title="The library is unreachable"
+            title={t.unavailable}
             actions={
               // A plain anchor rather than a Link: the point is a fresh request
               // rather than whatever the router already has.
               <a href={here} className={BUTTON_PRIMARY}>
-                Try again
+                {t.retry}
               </a>
             }
           >
-            <p>
-              Your books are where they were — this shelf just cannot read them
-              at the moment. Nothing has been lost, and nobody&rsquo;s reading
-              position has been touched.
-            </p>
+            <p>{t.shelfError}</p>
           </State>
         </div>
       ) : (
         <>
-          <SearchInput query={query} />
+          <SearchInput
+            key={selected}
+            query={query}
+            subject={selected}
+            label={t.search}
+            searching={t.searching}
+          />
+          {(shelf.groups.length > 0 || selected) && (
+            <form action="/" className="mt-3 flex flex-wrap items-center gap-2">
+              {query && <input type="hidden" name="q" value={query} />}
+              <label htmlFor="subject" className="text-sm text-secondary">
+                {t.subjects}
+              </label>
+              <select
+                key={selected}
+                id="subject"
+                name="subject"
+                defaultValue={selected}
+                className={`${SELECT} min-w-0 max-w-full`}
+              >
+                <option value="">{t.allSubjects}</option>
+                {selected && !named(shelf.groups, selected) && (
+                  <option>{selected}</option>
+                )}
+                {shelf.groups.map((g) => (
+                  <option key={g.name} value={g.name}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+              <button className={BUTTON} type="submit">
+                {t.filter}
+              </button>
+            </form>
+          )}
 
           {!profile && (
             <p className="mt-6 rounded-xl bg-fill px-4 py-3 text-sm text-secondary">
-              Profiles could not be read just now, so this is the shelf without
-              them — every book is here, but not where anyone got to in it.
+              {t.noProfile}
             </p>
           )}
 
           {shelf.matching.length === 0 ? (
             <p className="mt-10 text-secondary">
-              {shelf.total === 0
-                ? "No catalog published yet. Run the publish script and upload its output."
-                : `No books match “${query}”.`}
+              {shelf.total === 0 ? t.empty : t.noMatches}
             </p>
           ) : (
             <ul className="mt-10 divide-y divide-separator">
@@ -176,7 +228,7 @@ export default async function Home(props: PageProps<"/">) {
                 return (
                   <li
                     key={book.id}
-                    className="flex items-center justify-between gap-6 py-4"
+                    className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4"
                   >
                     <div className="flex min-w-0 items-center gap-4">
                       <Cover book={book} />
@@ -208,7 +260,7 @@ export default async function Home(props: PageProps<"/">) {
                           href={`/read/${encodeKey(bookKey(book.id, readable.file))}`}
                           className={BUTTON_PRIMARY}
                         >
-                          {positions?.[book.id] ? "Continue" : "Read"}
+                          {positions?.[book.id] ? t.resume : t.read}
                         </Link>
                       )}
                       {book.formats.map((format) => (
