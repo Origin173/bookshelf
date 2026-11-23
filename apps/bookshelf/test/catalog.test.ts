@@ -42,6 +42,7 @@ test("PDF title corrections retain edits made against the earlier publication", 
   const identity = bookIdentity(original);
   const file = `_cover-${"1".repeat(64)}.png`;
   const snapshot = {
+    dates: { atlas: { identity, published: "1890-04" } },
     edits: { atlas: { identity, subjects: ["Ocean"] } },
     isbns: { atlas: { identity, isbn: "9780306406157" } },
     authors: { atlas: { identity, authors: ["林 青", "Lin, J."] } },
@@ -51,6 +52,7 @@ test("PDF title corrections retain edits made against the earlier publication", 
   };
   assert.deepEqual(editedBook(corrected, snapshot), {
     ...corrected,
+    published: "1890-04",
     isbn: "9780306406157",
     authors: ["林 青", "Lin, J."],
     cover: file,
