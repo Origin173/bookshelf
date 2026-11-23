@@ -30,7 +30,7 @@ const en = {
   totalPages: (count: number | string) => `of ${count}`,
   pageNumber: (n: number) => `Page ${n}`,
   noContents:
-    "This PDF carries no bookmarks, so there is no contents to show. The page box in the toolbar goes anywhere in it.",
+    "This PDF has no table of contents. Enter a page number in the toolbar to jump.",
   searchHint: "Type at least two letters to search the whole book.",
   noMatches: (query: string) => `Nothing in this book matches “${query}”.`,
   results: (count: number) => `${count} ${count === 1 ? "result" : "results"}`,
@@ -38,6 +38,18 @@ const en = {
     `${found} — more than shown, so narrow it down`,
   searching: (found: string, n: number) =>
     `${found} so far, searching page ${n}`,
+  bookmarks: "Bookmarks",
+  bookmarksUnavailable: "Bookmarks are unavailable. Try again.",
+  addBookmark: "Bookmark this location",
+  bookmarked: "Location bookmarked",
+  removeBookmark: "Remove",
+  emptyBookmarks: "No bookmarks in this book yet.",
+  loadingBookmarks: "Loading bookmarks…",
+  retryBookmarks: "Retry",
+  accountChanged:
+    "The signed-in account changed. Reopen the book from your shelf.",
+  bookmarkConflict:
+    "Bookmarks changed on another device. Reload them and try again.",
   hide: "Hide",
 };
 
@@ -73,12 +85,22 @@ const zh: ReaderText = {
   page: "页码",
   totalPages: (count) => `共 ${count} 页`,
   pageNumber: (n) => `第 ${n} 页`,
-  noContents: "这份 PDF 没有书签。可以在工具栏中输入页码跳转。",
+  noContents: "这份 PDF 没有内置目录。可以在工具栏中输入页码跳转。",
   searchHint: "输入至少两个字符即可搜索全书。",
   noMatches: (query) => `书中没有找到“${query}”。`,
   results: (count) => `${count} 条结果`,
   moreResults: (found) => `已显示 ${found}，可缩小搜索范围以查看其他匹配项。`,
   searching: (found, n) => `已找到 ${found}，正在搜索第 ${n} 页。`,
+  bookmarks: "书签",
+  bookmarksUnavailable: "暂时无法读取或更新书签，请重试。",
+  addBookmark: "添加当前位置",
+  bookmarked: "当前位置已加书签",
+  removeBookmark: "移除",
+  emptyBookmarks: "这本书还没有个人书签。",
+  loadingBookmarks: "正在读取书签…",
+  retryBookmarks: "重试",
+  accountChanged: "登录账号已切换，请从书架重新打开图书。",
+  bookmarkConflict: "另一台设备刚刚修改了书签，请重新读取后重试。",
   hide: "收起",
 };
 

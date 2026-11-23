@@ -54,6 +54,18 @@ In continuous scroll the arrows scroll instead of turning. On a touchscreen,
 swipe to turn when the pages fit the screen horizontally. When zoomed in, drag
 to pan across the page and use the arrow buttons to turn.
 
+## Personal bookmarks
+
+Open **Bookmarks** in either reader and choose **Bookmark this location**.
+Select an entry to jump back, or **Remove** to forget it. The PDF reader saves
+the page number. The EPUB reader saves the exact text location (CFI) and shows
+the chapter and page as they appeared when you marked it. Opening the list,
+adding, and removing leave your current reading position in place.
+
+Each signed-in account has its own bookmarks for each book file. They are
+included in the library's `.bookshelf/` backup. A read-only library can show
+existing bookmarks.
+
 ## PDFs
 
 **Zoom** is automatic by default: fitted to the width of your window, but never

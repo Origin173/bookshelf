@@ -5,9 +5,11 @@ import type { Book, Contents, NavItem, Rendition } from "epubjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReadingPosition } from "@/app/read/[...key]/position";
+import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
 import { readStored, writeStored } from "@/lib/local";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
+import type { Bookmark, BookmarkAction } from "@/services/bookmarks";
 
 type Mode = "single" | "double" | "scroll";
 
@@ -103,6 +105,7 @@ export function EpubReader({
   profileId,
   saved,
   canSync,
+  bookmarks,
   locale,
 }: {
   locale: ReaderLocale;
@@ -114,6 +117,7 @@ export function EpubReader({
   saved: BookProgress | null;
   /** False against a library the app cannot write to. */
   canSync: boolean;
+  bookmarks?: BookmarkAction;
 }) {
   const t = readerText[locale];
   const container = useRef<HTMLDivElement>(null);
@@ -122,6 +126,7 @@ export function EpubReader({
     "loading",
   );
   const [label, setLabel] = useState("");
+  const [mark, setMark] = useState<Bookmark | null>(null);
   const [toc, setToc] = useState<{ item: NavItem; depth: number }[]>([]);
   const [mode, setMode] = useState<Mode>("double");
 
@@ -195,6 +200,7 @@ export function EpubReader({
     }
 
     setStatus("loading");
+    setMark(null);
 
     // epub.js touches window at import time, so it is loaded here rather than
     // at module scope, where it would break the server render.
@@ -231,11 +237,25 @@ export function EpubReader({
         view.on(
           "relocated",
           (location: {
-            start?: { cfi?: string; href?: string; index?: number };
+            start?: {
+              cfi?: string;
+              href?: string;
+              index?: number;
+              displayed?: { page?: number };
+            };
           }) => {
+            if (cancelled) return;
             setLabel(location.start?.href ?? "");
 
             if (location.start?.cfi) {
+              const href = location.start.href ?? "";
+              setMark({
+                position: location.start.cfi,
+                chapter: (
+                  opened.navigation?.get(href)?.label?.trim() || href
+                ).slice(0, 240),
+                chapterPage: location.start.displayed?.page,
+              });
               record({ cfi: location.start.cfi, href: location.start.href });
             }
 
@@ -319,7 +339,7 @@ export function EpubReader({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-separator px-6 py-3">
+      <div className="flex items-center justify-between gap-1.5 border-t border-separator px-3 py-3 sm:gap-3 sm:px-6">
         <button
           type="button"
           onClick={() => turn("prev")}
@@ -329,6 +349,17 @@ export function EpubReader({
           <ChevronLeft aria-hidden="true" className="size-4" />
         </button>
 
+        {bookmarks && (
+          <ReaderBookmarks
+            action={bookmarks}
+            current={status === "ready" ? mark : null}
+            onGo={(position) => {
+              if (typeof position === "string")
+                return rendition.current?.display(position);
+            }}
+            t={t}
+          />
+        )}
         {toc.length > 0 ? (
           <select
             aria-label={t.jump}

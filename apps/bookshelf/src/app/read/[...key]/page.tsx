@@ -3,6 +3,7 @@ import { ArrowDownToLine, ChevronLeft, CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { readerBookmarks } from "@/app/read/[...key]/bookmark-action";
 import { EpubReader } from "@/app/read/[...key]/epub-reader";
 import { PdfReader } from "@/app/read/[...key]/pdf-reader";
 import { State, StatePage } from "@/app/state";
@@ -13,6 +14,7 @@ import { extension } from "@/lib/media";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
 import { OG_BASE } from "@/lib/site";
 import { requirePageAccount } from "@/services/account-page";
+import { publicDemo } from "@/services/auth";
 import { bookKey } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
@@ -185,6 +187,11 @@ async function EpubBody({
       locale={locale}
       bookId={bookId}
       profileId={profile?.id ?? DEFAULT_PROFILE_ID}
+      bookmarks={
+        profile && !publicDemo()
+          ? readerBookmarks.bind(null, profile.id, fileKey)
+          : undefined
+      }
       saved={saved}
       canSync={progress.writable && profile !== undefined}
     />
@@ -223,6 +230,11 @@ async function PdfBody({
       locale={locale}
       bookId={bookId}
       profileId={profile?.id ?? DEFAULT_PROFILE_ID}
+      bookmarks={
+        profile && !publicDemo()
+          ? readerBookmarks.bind(null, profile.id, fileKey)
+          : undefined
+      }
       saved={saved}
       canSync={progress.writable && profile !== undefined}
     />
