@@ -90,6 +90,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             result === "tooLarge" ||
             result === "invalidIsbn" ||
             result === "invalidCover" ||
+            result === "invalid" ||
             result === "invalidFile" ||
             result === "invalidDetails" ||
             result === "uploadConflict"
@@ -110,6 +111,9 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               uploadUnconfirmed: t.uploadUnconfirmed,
               uploadDenied: t.uploadDenied,
               editBook: t.editBook,
+              subjects: t.subjects,
+              subjectHelp: t.subjectHelp,
+              invalid: t.invalid,
               invalidIsbn: t.invalidIsbn,
               invalidCover: t.invalidCover,
               invalidFile: t.invalidFile,

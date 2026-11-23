@@ -2,6 +2,7 @@ import { findIsbn } from "@bookshelf/core";
 import { readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES, MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
+import { parseSubjects } from "@/services/catalog-edits";
 import { getServices } from "@/services/container";
 import { isUnavailable } from "@/services/errors";
 import { importBook } from "@/services/uploads";
@@ -61,6 +62,10 @@ export async function POST(request: Request) {
   const candidate = rawIsbn.trim().replace(/[ -]/g, "").toUpperCase();
   const isbn = candidate ? findIsbn([candidate]) : undefined;
   if (candidate && candidate !== isbn) return back("invalidIsbn");
+  const rawSubjects = form.get("subjects") ?? "";
+  const subjects =
+    typeof rawSubjects === "string" ? parseSubjects(rawSubjects) : null;
+  if (!subjects) return back("invalid");
   const image = form.get("cover");
   if (image && (typeof image === "string" || image.size > MAX_COVER_BYTES))
     return back("invalidCover");
@@ -74,7 +79,7 @@ export async function POST(request: Request) {
       file,
       name.trim(),
       author.trim(),
-      { isbn, cover },
+      { isbn, cover, subjects },
     );
     return back(
       outcome.result === "conflict" ? "uploadConflict" : outcome.result,

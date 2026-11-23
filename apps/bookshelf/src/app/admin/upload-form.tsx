@@ -7,6 +7,7 @@ import type { messages } from "@/lib/i18n";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 
 type UploadError =
+  | "invalid"
   | "invalidIsbn"
   | "invalidCover"
   | "invalidFile"
@@ -19,6 +20,8 @@ type UploadError =
 type Labels = Pick<
   Awaited<ReturnType<typeof messages>>,
   | UploadError
+  | "subjects"
+  | "subjectHelp"
   | "uploading"
   | "uploadUnconfirmed"
   | "uploadDenied"
@@ -191,6 +194,18 @@ export function UploadForm({ t }: { t: Labels }) {
             />
           </label>
         ))}
+        <label className="grid gap-1 text-sm">
+          {t.subjects}
+          <textarea
+            name="subjects"
+            rows={2}
+            aria-describedby="upload-subject-help"
+            className={INPUT}
+          />
+        </label>
+        <p id="upload-subject-help" className="text-sm text-secondary">
+          {t.subjectHelp}
+        </p>
         {cover && image && (
           <div className="flex items-center gap-3">
             {/* biome-ignore lint/performance/noImgElement: this is a local blob preview */}

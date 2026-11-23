@@ -11,6 +11,7 @@ test("retrying after an index write failure publishes the existing upload once",
   const write = must(storage.write);
   const file = new File([new Uint8Array(bookPdf(BOOKS[0]))], "example.pdf");
   const details = {
+    subjects: ["Coasts", "Maps"],
     isbn: "9780000000002",
     cover: new Uint8Array(coverArt(12, 18, [1, 2, 3])),
   };
@@ -45,6 +46,7 @@ test("retrying after an index write failure publishes the existing upload once",
   assert.equal(books[0]?.title, "One");
   assert.deepEqual(books[0]?.authors, ["First", "Second"]);
   assert.equal(books[0]?.isbn, details.isbn);
+  assert.deepEqual(books[0]?.subjects, details.subjects);
   assert.match(books[0]?.cover ?? "", /^cover-[0-9a-f]{64}\.png$/);
   assert.equal(memory.writes.filter((w) => w.key.endsWith(".png")).length, 1);
   assert.equal(memory.writes.filter((w) => w.key.endsWith(".pdf")).length, 1);
