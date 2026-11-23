@@ -1,4 +1,5 @@
 import { findIsbn, isUploadId, type Storage } from "@bookshelf/core";
+import { adminHref, catalogView } from "@/app/admin/catalog-link";
 import { parseSubjects } from "@/lib/catalog-names";
 import { readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES, MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
@@ -20,15 +21,22 @@ export async function POST(request: Request) {
   const type = request.headers.get("content-type") ?? "";
   if (type.split(";")[0] !== "multipart/form-data")
     return new Response(null, { status: 415, headers });
-  const target = new URL(request.url).searchParams.get("book");
+  const params = new URL(request.url).searchParams;
+  const target = params.get("book");
   const back = (result: string, id = target ?? undefined) => {
     if (request.headers.get("accept") === "application/json")
       return Response.json({ result, book: id }, { headers });
-    const query = new URLSearchParams({ result });
-    if (id) query.set("book", id);
+    const view = catalogView(
+      params.get("cover"),
+      params.get("date"),
+      params.get("q"),
+    );
     return new Response(null, {
       status: 303,
-      headers: { ...headers, location: `/admin?${query}` },
+      headers: {
+        ...headers,
+        location: adminHref({ ...view, book: id, result }),
+      },
     });
   };
   if (target !== null && !isUploadId(target)) return back("missing");

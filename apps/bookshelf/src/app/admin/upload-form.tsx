@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { adminHref, type CatalogView } from "@/app/admin/catalog-link";
 import { BUTTON_PRIMARY, INPUT } from "@/app/ui";
 import type { messages } from "@/lib/i18n";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
@@ -50,8 +51,10 @@ const empty = { title: "", author: "", isbn: "" };
 export function UploadForm({
   t,
   append,
+  view,
 }: {
   t: Labels;
+  view: CatalogView;
   append?: { book: string; format: "epub" | "pdf" };
 }) {
   const [submitting, setSubmitting] = useState(false);
@@ -115,7 +118,7 @@ export function UploadForm({
           | { result: "uploaded" | "formatAdded"; book: string }
           | { result: UploadError; book?: string };
         if (outcome.result === "uploaded" || outcome.result === "formatAdded") {
-          window.location.assign(`/admin?${new URLSearchParams(outcome)}`);
+          window.location.assign(adminHref({ ...view, ...outcome }));
           return;
         }
         setIssue({ message: t[outcome.result], book: outcome.book });
@@ -182,7 +185,7 @@ export function UploadForm({
     <form
       onSubmit={submit}
       aria-busy={submitting}
-      action={append ? `/admin/upload?book=${append.book}` : "/admin/upload"}
+      action={adminHref({ ...view, book: append?.book }, "/admin/upload")}
       encType="multipart/form-data"
       method="post"
       className="mt-4 max-w-lg"
@@ -290,7 +293,7 @@ export function UploadForm({
           {issue.message}{" "}
           {issue.book && issue.book !== append?.book && (
             <a
-              href={`/admin?book=${encodeURIComponent(issue.book)}`}
+              href={adminHref({ ...view, book: issue.book })}
               className="font-medium text-accent"
             >
               {t.editBook}
