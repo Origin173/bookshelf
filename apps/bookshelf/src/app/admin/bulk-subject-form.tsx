@@ -12,6 +12,9 @@ type Labels = Pick<
   | "searchCatalog"
   | "clearSearch"
   | "noMatches"
+  | "matchingBooks"
+  | "selectMatches"
+  | "deselectMatches"
   | "selectedBooks"
   | "chooseSubject"
   | "noBulkSubjects"
@@ -59,11 +62,13 @@ export function BulkSubjectForm({
   const additions = preview
     ? rows.map((book) => subjectAddition(book.subjects, subject))
     : [];
-  function toggle(id: string) {
+  function setBooksChecked(books: Row[], checked: boolean) {
     setIds((current) => {
       const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      for (const { id } of books) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
       return next;
     });
   }
@@ -140,9 +145,36 @@ export function BulkSubjectForm({
           clear={t.clearSearch}
         />
       )}
-      <p aria-live="polite" className="mt-3 text-sm font-medium">
-        {t.selectedBooks} · {ids.size}
-      </p>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium">
+        {!preview && (
+          <span aria-live="polite">
+            {t.matchingBooks} · {rows.length}
+          </span>
+        )}
+        <p aria-live="polite">
+          {t.selectedBooks} · {ids.size}
+        </p>
+      </div>
+      {!preview && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={`${BUTTON} disabled:opacity-50`}
+            disabled={rows.every((book) => ids.has(book.id))}
+            onClick={() => setBooksChecked(rows, true)}
+          >
+            {t.selectMatches}
+          </button>
+          <button
+            type="button"
+            className={`${BUTTON} disabled:opacity-50`}
+            disabled={!rows.some((book) => ids.has(book.id))}
+            onClick={() => setBooksChecked(rows, false)}
+          >
+            {t.deselectMatches}
+          </button>
+        </div>
+      )}
       {!rows.length && <p className="my-4 text-secondary">{t.noMatches}</p>}
       <ul className="my-4 divide-y divide-separator">
         {rows.map((book, i) => {
@@ -175,7 +207,9 @@ export function BulkSubjectForm({
                     type="checkbox"
                     value={book.id}
                     checked={ids.has(book.id)}
-                    onChange={() => toggle(book.id)}
+                    onChange={(event) =>
+                      setBooksChecked([book], event.target.checked)
+                    }
                   />
                   {info}
                 </label>
