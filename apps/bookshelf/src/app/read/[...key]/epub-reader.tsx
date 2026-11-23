@@ -129,6 +129,8 @@ export function EpubReader({
     "loading",
   );
   const openingCfi = useRef(start);
+  // Keep the opening passage in memory while the saved position is in the PDF.
+  const previewCfi = useRef<string | undefined>(undefined);
   const targetCfi = useRef<string | undefined>(undefined);
   const restoringCfi = useRef<string | undefined>(undefined);
   const requestedEntry = useRef<TocEntry | undefined>(undefined);
@@ -207,7 +209,7 @@ export function EpubReader({
     }
 
     function onResize() {
-      targetCfi.current = current()?.cfi;
+      targetCfi.current = previewCfi.current ?? current()?.cfi;
       restoringCfi.current = targetCfi.current;
       // epub.js accepts an optional CFI after its width and height.
       const view = rendition.current as
@@ -350,8 +352,17 @@ export function EpubReader({
               chapterPage: counted ? page : undefined,
             },
           });
-          if (position !== current()?.cfi)
+          const saved = current();
+          if (!previewCfi.current && !target && saved?.page && !saved.cfi) {
+            previewCfi.current = position;
+            targetCfi.current = position;
+          } else if (
+            position !== previewCfi.current &&
+            position !== saved?.cfi
+          ) {
+            previewCfi.current = undefined;
             record({ cfi: position, href: start.href });
+          }
           prefetchAhead(opened, start.index);
         });
 
@@ -366,7 +377,8 @@ export function EpubReader({
           entries = bookContents(opened, opened.navigation?.toc ?? [], opfUrl);
           setToc(entries);
           requestedEntry.current = undefined;
-          targetCfi.current = openingCfi.current ?? current()?.cfi;
+          targetCfi.current =
+            openingCfi.current ?? previewCfi.current ?? current()?.cfi;
           openingCfi.current = undefined;
           restoringCfi.current = targetCfi.current;
           await view.display(targetCfi.current ?? firstReadableHref(opened));

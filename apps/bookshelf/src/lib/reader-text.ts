@@ -1,5 +1,6 @@
 const en = {
   shelf: "Shelf",
+  readFormat: "Read",
   download: "Download",
   back: "Back to the shelf",
   unavailable: "This book is out of reach",
@@ -73,6 +74,7 @@ export type ReaderText = typeof en;
 
 const zh: ReaderText = {
   shelf: "书架",
+  readFormat: "阅读",
   download: "下载",
   back: "返回书架",
   unavailable: "暂时无法打开这本书",

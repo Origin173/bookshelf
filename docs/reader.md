@@ -35,6 +35,15 @@ carry over the login cookie. Safari’s local reading positions are not copied.
 Sync your place before installing if you want to resume it in the app.
 [WebKit’s installation notes](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/#login-cookies).
 
+## Choose a reading format
+
+When a book has both formats, the shelf and reader offer **Read PDF** or
+**Read EPUB** to open the other file. **Continue** still follows the last
+saved position. Opening the other format leaves that position in place
+until you move to another page or passage. A bookmark opens its own file.
+Each book keeps one synced reading position, and its bookmarks stay with
+their respective formats.
+
 ## Browse a series
 
 Select a series name beneath a book title to see its volumes in reading order.
