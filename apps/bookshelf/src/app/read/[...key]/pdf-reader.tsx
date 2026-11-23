@@ -598,7 +598,7 @@ export function PdfReader({
         />
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* A labelled, scrollable region that also takes the keyboard: paging
             and the browser's own scrolling then have one target rather than
             two. A `section` with a label is a region without having to say so.
