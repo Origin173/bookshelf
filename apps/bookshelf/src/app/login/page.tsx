@@ -4,6 +4,7 @@ import { HomeScreenHelp } from "@/app/home-screen-help";
 import { LanguageSwitch } from "@/app/language-switch";
 import { BUTTON_PRIMARY, INPUT } from "@/app/ui";
 import { messages } from "@/lib/i18n";
+import { loginBook } from "@/lib/login-book";
 import { publicDemo, SESSION_COOKIE, sessionUser } from "@/services/auth";
 
 export async function generateMetadata() {
@@ -14,10 +15,11 @@ export async function generateMetadata() {
 }
 
 export default async function LoginPage(props: PageProps<"/login">) {
+  const { error, book } = await props.searchParams;
+  const resume = loginBook(book);
   const jar = await cookies();
   if (publicDemo() || sessionUser(jar.get(SESSION_COOKIE)?.value))
-    redirect("/");
-  const { error } = await props.searchParams;
+    redirect(resume ? `/read/${resume}` : "/");
   const t = await messages();
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-16">
@@ -31,6 +33,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         </h1>
       </div>
       <form action="/login/session" method="post" className="grid gap-4">
+        {resume && <input type="hidden" name="book" value={resume} />}
         <label className="grid gap-2 text-sm">
           {t.username}
           <input
