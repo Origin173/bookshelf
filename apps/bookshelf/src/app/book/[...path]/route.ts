@@ -60,7 +60,11 @@ async function serve(
 
   const { catalog, content, cache, limits } = await getServices();
 
-  const cacheKey = await responseCacheKey(request, catalog);
+  const noStore = request.headers
+    .get("cache-control")
+    ?.split(",")
+    .some((directive) => directive.trim().toLowerCase() === "no-store");
+  const cacheKey = noStore ? null : await responseCacheKey(request, catalog);
   const hit = cacheKey ? await optional(() => cache.match(cacheKey)) : null;
   if (hit) return hit;
 
@@ -86,7 +90,9 @@ async function serve(
     headers: {
       "content-type": entryContentType(target.entryPath),
       "content-length": String(body.byteLength),
-      "cache-control": `public, max-age=${MAX_AGE_SECONDS}`,
+      "cache-control": noStore
+        ? "private, no-store"
+        : `public, max-age=${MAX_AGE_SECONDS}`,
       // Book markup is untrusted. The reader renders it in a sandboxed iframe
       // without scripting, and this keeps that true for anyone who opens one of
       // these URLs directly.

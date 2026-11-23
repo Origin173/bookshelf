@@ -12,6 +12,7 @@ import {
   readAppearance,
 } from "@/app/read/[...key]/epub-appearance";
 import { EpubContents } from "@/app/read/[...key]/epub-contents";
+import { EpubSearch } from "@/app/read/[...key]/epub-search";
 import {
   bookContents,
   sectionTargets,
@@ -150,12 +151,14 @@ export function EpubReader({
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
+  const [searchBook, setSearchBook] = useState<Book | null>(null);
   const openingCfi = useRef(start);
   // Keep the opening passage in memory while the saved position is in the PDF.
   const previewCfi = useRef<string | undefined>(undefined);
   const targetCfi = useRef<string | undefined>(undefined);
   const restoringCfi = useRef<string | undefined>(undefined);
   const requestedEntry = useRef<{ entry: TocEntry; from?: string }>(undefined);
+  const requestedPassage = useRef<{ from: string; to: string }>(undefined);
   const [returnCfi, setReturnCfi] = useState<string>();
   const returningCfi = useRef<string>(undefined);
   const [place, setPlace] = useState<{
@@ -263,6 +266,7 @@ export function EpubReader({
     }
 
     setStatus("loading");
+    setSearchBook(null);
     setPlace(null);
 
     // epub.js touches window at import time, so it is loaded here rather than
@@ -376,6 +380,14 @@ export function EpubReader({
             }
           }
           const position = targetVisible ? target : start.cfi;
+          if (
+            requestedPassage.current?.to === target &&
+            requestedPassage.current
+          ) {
+            if (position === target)
+              setReturnCfi(requestedPassage.current.from);
+            requestedPassage.current = undefined;
+          }
           if (returningCfi.current === position) {
             returningCfi.current = undefined;
             setReturnCfi(undefined);
@@ -424,13 +436,16 @@ export function EpubReader({
           entries = bookContents(opened, opened.navigation?.toc ?? [], opfUrl);
           setToc(entries);
           requestedEntry.current = undefined;
+          requestedPassage.current = undefined;
           targetCfi.current =
             openingCfi.current ?? previewCfi.current ?? current()?.cfi;
           openingCfi.current = undefined;
           restoringCfi.current = targetCfi.current;
           await view.display(targetCfi.current ?? firstReadableHref(opened));
-          if (!cancelled)
+          if (!cancelled) {
             setFixedLayout(view.settings.layout === "pre-paginated");
+            setSearchBook(opened);
+          }
         });
       })
       .then(() => {
@@ -453,9 +468,15 @@ export function EpubReader({
     // A fresh rendition lays out the saved passage with the selected settings.
   }, [opfUrl, mode, appearance, restored, current, record, t]);
 
-  function goToPassage(position: number | string, returning = false) {
+  function goToPassage(
+    position: number | string,
+    returning = false,
+    from?: string,
+  ) {
     if (typeof position !== "string") return;
     requestedEntry.current = undefined;
+    requestedPassage.current =
+      from && from !== position ? { from, to: position } : undefined;
     returningCfi.current = returning ? position : undefined;
     restoringCfi.current = position;
     targetCfi.current = position;
@@ -521,7 +542,7 @@ export function EpubReader({
           </button>
         )}
       </section>
-      <div className="flex items-center justify-between gap-1.5 px-3 pb-3 pt-1 max-[360px]:flex-wrap sm:gap-3 sm:px-6">
+      <div className="flex items-center justify-between gap-1.5 px-3 pb-3 pt-1 max-[420px]:flex-wrap sm:gap-3 sm:px-6">
         <button
           type="button"
           onClick={() => turn("prev")}
@@ -546,6 +567,19 @@ export function EpubReader({
             t={t}
           />
         )}
+        <EpubSearch
+          book={searchBook}
+          bookKey={bookKey}
+          entries={toc}
+          t={t}
+          onGo={(cfi) => {
+            void goToPassage(cfi, false, place?.mark.position)?.catch(() => {
+              requestedPassage.current = undefined;
+              restoringCfi.current = undefined;
+              targetCfi.current = undefined;
+            });
+          }}
+        />
         {toc.length > 0 ? (
           <EpubContents
             entries={toc}
@@ -554,6 +588,7 @@ export function EpubReader({
             t={t}
             onGo={(entry) => {
               returningCfi.current = undefined;
+              requestedPassage.current = undefined;
               requestedEntry.current = { entry, from: place?.mark.position };
               restoringCfi.current = undefined;
               targetCfi.current = undefined;
