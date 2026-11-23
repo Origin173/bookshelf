@@ -8,6 +8,7 @@ import { PersonalEntry } from "@/app/personal-shelf/entry";
 import { ProfileMenu } from "@/app/profile-menu";
 import { ReadingFormats } from "@/app/reading-formats";
 import { SearchInput } from "@/app/search-input";
+import { SignOutForm } from "@/app/sign-out-form";
 import { State } from "@/app/state";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
 import { searchBooks } from "@/lib/book-search";
@@ -221,19 +222,7 @@ export default async function Home(props: PageProps<"/">) {
               {t.manage}
             </Link>
           )}
-          {account && (
-            <form
-              action="/login/session"
-              method="post"
-              className="flex items-center gap-2"
-            >
-              <input type="hidden" name="intent" value="logout" />
-              <span className="text-sm text-secondary">{account}</span>
-              <button className={BUTTON_QUIET} type="submit">
-                {t.signOut}
-              </button>
-            </form>
-          )}
+          {account && <SignOutForm account={account} label={t.signOut} />}
 
           {profile && everyone && (
             <ProfileMenu

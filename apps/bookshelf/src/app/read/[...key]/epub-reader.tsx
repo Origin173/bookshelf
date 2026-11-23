@@ -610,6 +610,7 @@ export function EpubReader({
           bookKey={bookKey}
           entries={toc}
           t={t}
+          onReset={clearSearchHighlight}
           onGo={({ cfi, rangeCfi }) => {
             const match = { cfi, rangeCfi };
             void goToPassage(cfi, false, match)?.catch(() => {
