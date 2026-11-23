@@ -5,6 +5,7 @@ import {
   bookIdentity,
   catalogEdits,
   editedBook,
+  parseAuthors,
   parseSubjects,
   saveBookEdit,
 } from "@/services/catalog-edits";
@@ -14,7 +15,7 @@ import { storeThumbnail, validThumbnail } from "@/services/thumbnails";
 
 export async function updateBook(
   request: Request,
-  field: "subjects" | "title" | "cover",
+  field: "subjects" | "title" | "cover" | "authors",
 ) {
   const reject = (status: number) =>
     new Response(null, {
@@ -99,6 +100,17 @@ export async function updateBook(
           title: reset ? null : title,
         }))
           ? "titleSaved"
+          : "conflict",
+      );
+    }
+    if (field === "authors") {
+      const authors = typeof raw === "string" ? parseAuthors(value) : null;
+      if (!reset && !authors) return back("invalidAuthors");
+      return back(
+        (await saveBookEdit(storage, snapshot, book, {
+          authors: reset ? null : authors,
+        }))
+          ? "authorsSaved"
           : "conflict",
       );
     }

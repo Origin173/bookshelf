@@ -9,11 +9,8 @@ import type { Shelf } from "@/services/catalog";
 import { reading, writing } from "@/services/errors";
 
 const FILE = `${STATE_PREFIX}subjects.json`;
-const MAX_SUBJECTS = 20;
-const MAX_LENGTH = 80;
-
-export function parseSubjects(text: string): string[] | null {
-  const subjects = [
+function parseNames(text: string, maxLength: number): string[] | null {
+  const names = [
     ...new Set(
       text
         .split(/\r?\n/)
@@ -21,10 +18,17 @@ export function parseSubjects(text: string): string[] | null {
         .filter(Boolean),
     ),
   ];
-  return subjects.length <= MAX_SUBJECTS &&
-    subjects.every((s) => s.length <= MAX_LENGTH)
-    ? subjects
+  return names.length <= 20 && names.every((name) => name.length <= maxLength)
+    ? names
     : null;
+}
+
+export function parseSubjects(text: string) {
+  return parseNames(text, 80);
+}
+
+export function parseAuthors(text: string) {
+  return parseNames(text, 200);
 }
 
 // A later publish can reuse a title slug. Apply an edit only to the book it was made for.
@@ -41,8 +45,10 @@ type Edits = Record<string, SubjectEdit>;
 
 type TitleEdit = { identity: string; title: string };
 type Titles = Record<string, TitleEdit>;
+type Authors = Record<string, { identity: string; authors: string[] }>;
 type Covers = Record<string, { identity: string; file: string }>;
 export type EditSnapshot = {
+  authors: Authors;
   covers: Covers;
   edits: Edits;
   titles: Titles;
@@ -58,12 +64,14 @@ export async function catalogEdits(
       FILE,
       previous?.etag ? { ifNoneMatch: previous.etag } : undefined,
     );
-    if (!object) return { edits: {}, titles: {}, covers: {}, etag: null };
+    if (!object)
+      return { edits: {}, titles: {}, covers: {}, authors: {}, etag: null };
     if (!object.body && previous?.etag === object.object.etag) return previous;
     const data = (await new Response(object.body).json()) as {
       version?: number;
       books?: Edits;
       titles?: Titles;
+      authors?: Authors;
       covers?: Covers;
     } | null;
     if (
@@ -107,24 +115,45 @@ export async function catalogEdits(
       )
     )
       throw new Error("Invalid cover index");
-    return { edits: data.books, titles, covers, etag: object.object.etag };
+    const authors = data.authors ?? {};
+    if (
+      typeof authors !== "object" ||
+      Array.isArray(authors) ||
+      !Object.values(authors).every(
+        (entry) =>
+          entry &&
+          typeof entry.identity === "string" &&
+          Array.isArray(entry.authors) &&
+          entry.authors.every((name) => typeof name === "string"),
+      )
+    )
+      throw new Error("Invalid author edits");
+    return {
+      edits: data.books,
+      titles,
+      covers,
+      authors,
+      etag: object.object.etag,
+    };
   });
 }
 
 export function editedBook(
   book: Book,
-  { edits, titles, covers }: EditSnapshot,
+  { edits, titles, covers, authors }: EditSnapshot,
 ): Book {
   const subject = Object.hasOwn(edits, book.id) && edits[book.id];
   const title = Object.hasOwn(titles, book.id) && titles[book.id];
   const cover =
     !book.cover && Object.hasOwn(covers, book.id) && covers[book.id];
-  if (!subject && !title && !cover) return book;
+  const credit = Object.hasOwn(authors, book.id) && authors[book.id];
+  if (!subject && !title && !cover && !credit) return book;
   const identity = bookIdentity(book);
   const legacy = book.legacyTitle && bookIdentity(book, book.legacyTitle);
   const matches = (saved: string) => saved === identity || saved === legacy;
   return {
     ...book,
+    ...(credit && matches(credit.identity) && { authors: credit.authors }),
     ...(cover && matches(cover.identity) && { cover: cover.file }),
     ...(subject && matches(subject.identity) && { subjects: subject.subjects }),
     ...(title && matches(title.identity) && { title: title.title }),
@@ -146,11 +175,13 @@ export async function saveBookEdit(
   change:
     | { title: string | null }
     | { subjects: string[] | null }
+    | { authors: string[] | null }
     | { cover: string },
 ) {
   if (!storage.writeIfMatch) return false;
   const edits: Edits = Object.assign(Object.create(null), snapshot.edits);
   const titles: Titles = Object.assign(Object.create(null), snapshot.titles);
+  const authors: Authors = Object.assign(Object.create(null), snapshot.authors);
   const covers: Covers = Object.assign(Object.create(null), snapshot.covers);
   const identity = bookIdentity(book);
   if ("cover" in change) covers[book.id] = { identity, file: change.cover };
@@ -158,10 +189,13 @@ export async function saveBookEdit(
     if (change.title === null || change.title === book.title)
       delete titles[book.id];
     else titles[book.id] = { identity, title: change.title };
+  } else if ("authors" in change) {
+    if (change.authors === null) delete authors[book.id];
+    else authors[book.id] = { identity, authors: change.authors };
   } else if (change.subjects === null) delete edits[book.id];
   else edits[book.id] = { identity, subjects: change.subjects };
   const bytes = new TextEncoder().encode(
-    JSON.stringify({ version: 1, books: edits, titles, covers }),
+    JSON.stringify({ version: 1, books: edits, titles, covers, authors }),
   );
   const write = storage.writeIfMatch.bind(storage);
   return writing("the catalog edits", () =>

@@ -190,6 +190,12 @@ if none was found. You can enter one subject per line to make the uploaded
 book available under those subjects on the shelf and in OPDS. Books without
 a cover use the usual placeholder.
 
+To correct the credits on an existing book, open **Manage books → Edit book**
+and enter one author per line, in the order shown on the book. Save an empty
+field for an uncredited work, or select **Use original authors** to restore
+the published or imported credits. The shelf and both OPDS feeds use the saved
+names. Normal and forced CLI publishing preserve these edits for the same book.
+
 In **Manage books**, choose **Missing covers** to find published and
 web-imported books whose catalog entry has no cover. Choose **All books** to
 return to the full list.
