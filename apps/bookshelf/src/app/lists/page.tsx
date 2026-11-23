@@ -72,7 +72,19 @@ export default async function Lists(props: PageProps<"/lists">) {
       </h1>
       {feedback && (
         <p role="status" className="mt-4 text-sm text-secondary">
-          {feedback}
+          {feedback}{" "}
+          {data && notice === "changed" && (
+            <a
+              href={
+                selected
+                  ? `/lists?list=${encodeURIComponent(selected.id)}`
+                  : "/lists"
+              }
+              className="font-medium text-accent underline"
+            >
+              {t.reloadList}
+            </a>
+          )}
         </p>
       )}
       {data && (
