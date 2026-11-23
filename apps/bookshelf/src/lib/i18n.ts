@@ -144,6 +144,8 @@ const en = {
   bulkRetry: "Save could not be confirmed. Try again.",
   cancel: "Cancel",
   missingCovers: "Missing covers",
+  missingDates: "Missing catalog dates",
+  noMissingDates: "Every book has a catalog date.",
   addCover: "Add cover",
   coverImage: "Cover image",
   coverHelp:
@@ -351,6 +353,8 @@ const zh: typeof en = {
   bulkRetry: "无法确认是否保存成功，请重试。",
   cancel: "取消",
   missingCovers: "缺少封面",
+  missingDates: "缺少书目日期",
+  noMissingDates: "所有书目都已登记日期。",
   addCover: "添加封面",
   coverImage: "封面图片",
   coverHelp: "选择不超过 8 MiB 的本地 PNG 或 JPEG 图片。仅上传缩略图。",

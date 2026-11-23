@@ -78,6 +78,10 @@ metadata from sync again.
 field empty to hide the date on the shelf and in both OPDS feeds. **Use
 original date** removes the edit and follows the source again, including on
 later syncs. The original date shown beside the field can be a PDF file date.
+Choose **Missing catalog dates** in **Manage books** to find undated books,
+including dates you cleared. Search by title or author, edit a book, then
+follow **Manage books** back to the same search. A book leaves this list as
+soon as it has a date.
 
 The shelf, reading page and both OPDS feeds use the display title. The shelf filter
 and both feeds use the edited subjects. The app reads both fields from

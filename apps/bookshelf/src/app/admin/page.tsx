@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminBookList } from "@/app/admin/book-list";
 import { BulkSubjectForm } from "@/app/admin/bulk-subject-form";
+import { adminHref, catalogView } from "@/app/admin/catalog-link";
 import { CoverForm } from "@/app/admin/cover-form";
 import { SourceDetails } from "@/app/admin/source-details";
 import { UploadForm } from "@/app/admin/upload-form";
@@ -34,12 +35,10 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   if (!isAdmin(await requirePageAccount())) notFound();
   const { storage, catalog } = await getServices();
   if (!storage.writeIfMatch) notFound();
-  const { book: id, result, cover, bulk } = await props.searchParams;
+  const { book: id, result, cover, date, q, bulk } = await props.searchParams;
   const bulkSubjects = !id && bulk === "subjects";
-  const missingCovers = cover === "missing";
-  const listHref = missingCovers ? "/admin?cover=missing" : "/admin";
-  const editHref = (book: string) =>
-    `/admin?${new URLSearchParams(missingCovers ? { book, cover: "missing" } : { book })}`;
+  const view = catalogView(cover, date, q);
+  const listHref = adminHref(view);
   const t = await messages();
   const data = await ifAvailable(async () => {
     const [published, snapshot] = await Promise.all([
@@ -54,10 +53,6 @@ export default async function AdminPage(props: PageProps<"/admin">) {
       source: published.books.find((b) => b.id === id),
     };
   });
-  const listed =
-    !id && missingCovers
-      ? data?.books.filter((book) => !book.cover)
-      : data?.books;
   const book = data?.books.find((b) => b.id === id);
   const append =
     book && isUploadId(book.id) && book.formats.length === 1
@@ -103,6 +98,14 @@ export default async function AdminPage(props: PageProps<"/admin">) {
       <input type="hidden" name="id" value={data.source.id} />
       <input type="hidden" name="identity" value={bookIdentity(data.source)} />
       <input type="hidden" name="revision" value={data.revision ?? ""} />
+      {view.missing && (
+        <input
+          type="hidden"
+          name={view.missing === "cover" ? "from" : "date"}
+          value="missing"
+        />
+      )}
+      {view.q && <input type="hidden" name="q" value={view.q} />}
       <input type="hidden" name="generation" value={data.generatedAt ?? ""} />
     </>
   );
@@ -146,6 +149,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           </summary>
           <UploadForm
             append={append}
+            view={view}
             t={{
               addFormat: t.addFormat,
               addFormatHelp: t.addFormatHelp,
@@ -184,29 +188,6 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           />
         </details>
       )}
-      {!bulkSubjects && !id && data && data.books.length > 0 && (
-        <nav aria-label={t.manage} className="mt-6 flex flex-wrap gap-2">
-          <Link
-            href="/admin"
-            prefetch={false}
-            aria-current={!missingCovers ? "page" : undefined}
-            className={missingCovers ? BUTTON : BUTTON_PRIMARY}
-          >
-            {t.allBooks}
-          </Link>
-          <Link
-            href="/admin?cover=missing"
-            prefetch={false}
-            aria-current={missingCovers ? "page" : undefined}
-            className={missingCovers ? BUTTON_PRIMARY : BUTTON}
-          >
-            {t.missingCovers}
-          </Link>
-          <Link href="/admin?bulk=subjects" prefetch={false} className={BUTTON}>
-            {t.bulkSubject}
-          </Link>
-        </nav>
-      )}
       {!data ? (
         <p className="mt-8 text-secondary">
           {t.unavailable}{" "}
@@ -216,7 +197,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               bulkSubjects
                 ? "/admin?bulk=subjects"
                 : id
-                  ? editHref(String(id))
+                  ? adminHref({ ...view, book: String(id) })
                   : listHref
             }
           >
@@ -290,9 +271,6 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             }}
           >
             {revisionFields}
-            {missingCovers && (
-              <input type="hidden" name="from" value="missing" />
-            )}
           </SourceDetails>
           {!book.cover && (
             <CoverForm
@@ -305,9 +283,6 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               }}
             >
               {revisionFields}
-              {missingCovers && (
-                <input type="hidden" name="from" value="missing" />
-              )}
             </CoverForm>
           )}
           <form
@@ -349,9 +324,6 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             className="mt-6 grid max-w-lg gap-3"
           >
             {revisionFields}
-            {missingCovers && (
-              <input type="hidden" name="from" value="missing" />
-            )}
             <label htmlFor="book-authors" className="font-medium">
               {t.authors}
             </label>
@@ -386,9 +358,6 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             className="mt-6 grid max-w-lg gap-3"
           >
             {revisionFields}
-            {missingCovers && (
-              <input type="hidden" name="from" value="missing" />
-            )}
             <input
               type="hidden"
               name="sourceDate"
@@ -460,23 +429,27 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             </div>
           </form>
         </>
-      ) : id || !listed?.length ? (
-        <p className="mt-8 text-secondary">
-          {id
-            ? t.missing
-            : data.books.length === 0
-              ? t.empty
-              : t.noMissingCovers}
-        </p>
+      ) : id || !data.books.length ? (
+        <p className="mt-8 text-secondary">{id ? t.missing : t.empty}</p>
       ) : (
         <AdminBookList
-          books={listed.map(({ id, title, authors }) => ({
-            id,
-            title,
-            authors,
-            href: editHref(id),
-          }))}
+          key={JSON.stringify([view.missing, view.q])}
+          view={view}
+          books={data.books
+            .filter((b) =>
+              view.missing === "date"
+                ? !b.published?.trim()
+                : view.missing !== "cover" || !b.cover,
+            )
+            .map(({ id, title, authors }) => ({ id, title, authors }))}
           t={{
+            manage: t.manage,
+            allBooks: t.allBooks,
+            missingCovers: t.missingCovers,
+            noMissingCovers: t.noMissingCovers,
+            missingDates: t.missingDates,
+            noMissingDates: t.noMissingDates,
+            bulkSubject: t.bulkSubject,
             searchCatalog: t.searchCatalog,
             clearSearch: t.clearSearch,
             noMatches: t.noMatches,

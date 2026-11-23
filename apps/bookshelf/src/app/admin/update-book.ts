@@ -1,4 +1,5 @@
 import { findIsbn } from "@bookshelf/core";
+import { adminHref, catalogView } from "@/app/admin/catalog-link";
 import { validCatalogDate } from "@/lib/catalog-date";
 import { parseAuthors, parseSubjects } from "@/lib/catalog-names";
 import { readBody, readBodyBytes } from "@/lib/request-body";
@@ -54,12 +55,11 @@ export async function updateBook(
   const id = form.get("id");
   if (typeof id !== "string") return reject(400);
   const back = (result: string) => {
-    const params = new URLSearchParams({ book: id, result });
-    if (form.get("from") === "missing") params.set("cover", "missing");
+    const view = catalogView(form.get("from"), form.get("date"), form.get("q"));
     return new Response(null, {
       status: 303,
       headers: {
-        location: `/admin?${params}`,
+        location: adminHref({ ...view, book: id, result }),
         "cache-control": "private, no-store",
       },
     });
