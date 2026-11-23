@@ -22,6 +22,8 @@ export function AdminBookList({
     noMissingCovers: string;
     missingDates: string;
     noMissingDates: string;
+    missingIsbns: string;
+    noMissingIsbns: string;
     bulkSubject: string;
     searchCatalog: string;
     clearSearch: string;
@@ -40,10 +42,21 @@ export function AdminBookList({
       );
   }
   const rows = searchBookText(books, query);
+  const filters = [
+    [undefined, t.allBooks],
+    ["cover", t.missingCovers],
+    ["date", t.missingDates],
+    ["isbn", t.missingIsbns],
+  ] as const;
+  const empty = {
+    cover: t.noMissingCovers,
+    date: t.noMissingDates,
+    isbn: t.noMissingIsbns,
+  };
   return (
     <>
       <nav aria-label={t.manage} className="mt-6 flex flex-wrap gap-2">
-        {([undefined, "cover", "date"] as const).map((missing) => (
+        {filters.map(([missing, label]) => (
           <Link
             key={missing ?? "all"}
             href={adminHref({ missing, q: query })}
@@ -52,11 +65,7 @@ export function AdminBookList({
             aria-current={missing === view.missing ? "page" : undefined}
             className={missing === view.missing ? BUTTON_PRIMARY : BUTTON}
           >
-            {missing === "date"
-              ? t.missingDates
-              : missing === "cover"
-                ? t.missingCovers
-                : t.allBooks}
+            {label}
           </Link>
         ))}
         <Link href="/admin?bulk=subjects" prefetch={false} className={BUTTON}>
@@ -100,11 +109,7 @@ export function AdminBookList({
         </ul>
       ) : (
         <p className="mt-8 text-secondary">
-          {books.length
-            ? t.noMatches
-            : view.missing === "date"
-              ? t.noMissingDates
-              : t.noMissingCovers}
+          {!books.length && view.missing ? empty[view.missing] : t.noMatches}
         </p>
       )}
     </>
