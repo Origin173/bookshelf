@@ -16,6 +16,7 @@ library/
     the-time-machine.pdf   any number of formats
   catalog.json             generated from every metadata.json
   .bookshelf/              written by the app, not the sync tool
+    subjects.json          optional web edits
     profiles.json
     progress/<profile>.json
 ```
@@ -40,7 +41,7 @@ Generated from every `metadata.json` in the library. Delete it and the next
 
 ## .bookshelf/
 
-Your profiles and reading positions. This is the only thing in the library the
+Your profiles, reading positions and subject edits. This is the only thing in the library the
 sync tool didn't put there, and it never removes it — not on a normal run, not
 with `--force`.
 
@@ -50,4 +51,24 @@ Back up your books, and back up `.bookshelf/`.
 
 Everything else regenerates. If you lose the library but still have your
 original files, `npm run sync` rebuilds all of it. If you lose `.bookshelf/`,
-everyone's reading positions are gone.
+reading positions and web edits are gone.
+
+## Editing subjects on the web
+
+Set `BOOKSHELF_ADMINS` to a comma-separated list of existing account names
+(for example, `librarian`). On a private, writable shelf, sign in and open
+**Manage books**. Choose a book and enter one subject per line. Saving an
+empty list clears the subjects. **Use published subjects** follows the
+metadata from sync again.
+
+The shelf filter and both OPDS formats use these subjects. Edited subjects are read from
+one small object. A warm reader checks its ETag before downloading it again.
+Concurrent changes ask the editor to review the latest version before retrying.
+
+Back up `.bookshelf/subjects.json` with the rest of the app state. Sync leaves
+this file in place, including on a forced publish. An edit follows the book's
+ID, title, authors and identifier across publishes. If any of those change,
+the published subjects apply. For filesystem libraries, keep the published
+directory separate from the disposable build output. If a stopped Node
+process leaves `.bookshelf/subjects.json.lock`, stop all writers, remove
+that empty directory, then restart.

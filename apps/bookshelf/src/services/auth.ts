@@ -6,6 +6,23 @@ export const SESSION_COOKIE = "bookshelf_session";
 export const SESSION_SECONDS = 60 * 60 * 24 * 14;
 export const publicDemo = () => process.env.BOOKSHELF_PUBLIC_DEMO === "1";
 
+export function isAdmin(username: string | null): boolean {
+  return (
+    !publicDemo() &&
+    username !== null &&
+    (process.env.BOOKSHELF_ADMINS ?? "")
+      .split(",")
+      .some((name) => name.trim() === username)
+  );
+}
+
+export function requestUser(request: Request) {
+  const cookie = request.headers
+    .get("cookie")
+    ?.match(/(?:^|;\s*)bookshelf_session=([^;]+)/)?.[1];
+  return sessionUser(cookie);
+}
+
 const usernamePattern = /^[a-z][a-z0-9-]{0,31}$/;
 const recordPattern = /^v1\.([a-f0-9]{32})\.([a-f0-9]{64})\.([a-f0-9]{64})$/;
 
@@ -96,10 +113,7 @@ export function withAccount<Context extends unknown[]>(
 ) {
   return async (request: Request, ...context: Context): Promise<Response> => {
     if (publicDemo()) return serve(request, ...context);
-    const cookie = request.headers
-      .get("cookie")
-      ?.match(/(?:^|;\s*)bookshelf_session=([^;]+)/)?.[1];
-    if (sessionUser(cookie))
+    if (requestUser(request))
       return privateResponse(await serve(request, ...context));
     const header = request.headers.get("authorization") ?? "";
     const match =

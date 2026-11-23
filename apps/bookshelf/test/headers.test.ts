@@ -56,7 +56,7 @@ test("every response says how to treat what it is carrying", () => {
 });
 
 test("session forms send their origin while book pages suppress referrers", () => {
-  for (const path of ["/login", "/"]) {
+  for (const path of ["/login", "/", "/admin"]) {
     assert.equal(policyFor(path).get("referrer-policy"), "same-origin", path);
   }
   for (const path of [

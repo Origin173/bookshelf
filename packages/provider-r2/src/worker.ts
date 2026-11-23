@@ -27,6 +27,7 @@ export type R2GetOptionsLike = {
 };
 
 export type R2PutOptionsLike = {
+  onlyIf?: Headers;
   httpMetadata?: { contentType?: string };
 };
 
@@ -132,6 +133,23 @@ class R2Storage implements WritableStorage {
       key,
       bytes,
       contentType ? { httpMetadata: { contentType } } : undefined,
+    );
+  }
+
+  async writeIfMatch(
+    key: string,
+    bytes: Uint8Array,
+    contentType: string,
+    expected: string | null,
+  ): Promise<boolean> {
+    const onlyIf = new Headers(
+      expected ? { "if-match": expected } : { "if-none-match": "*" },
+    );
+    return (
+      (await this.bucket.put(key, bytes, {
+        onlyIf,
+        httpMetadata: { contentType },
+      })) !== null
     );
   }
 

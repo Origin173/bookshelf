@@ -37,7 +37,7 @@
     }
   },
   "scripts": {
-    "account": "node tools/account.mjs",
+    "account": "node -- tools/account.mjs",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "check-types": "turbo run check-types",
