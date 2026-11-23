@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LanguageSwitch } from "@/app/language-switch";
 import { editList } from "@/app/lists/actions";
+import { ExportList } from "@/app/lists/export-button";
 import { ReadingFormats } from "@/app/reading-formats";
 import {
   BUTTON,
@@ -15,7 +16,7 @@ import {
 import { messages } from "@/lib/i18n";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile } from "@/services/auth";
-import { bookLists } from "@/services/book-lists";
+import { bookLists, listMembers } from "@/services/book-lists";
 import { readableFormat, resumeFormat } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
@@ -45,8 +46,7 @@ export default async function Lists(props: PageProps<"/lists">) {
   const writable = !!storage.writeIfMatch;
   const memberIds = new Set(selected?.books);
   const available = data?.books.filter((b) => !memberIds.has(b.id)) ?? [];
-  const byId = new Map(data?.books.map((b) => [b.id, b]));
-  const members = selected?.books.flatMap((id) => byId.get(id) ?? []) ?? [];
+  const members = selected && data ? listMembers(selected, data.books) : [];
   const positions = members.length ? await progress.all(profileId) : undefined;
   const feedback =
     !data || notice === "unavailable"
@@ -143,6 +143,15 @@ export default async function Lists(props: PageProps<"/lists">) {
               <h2 className="break-words text-xl font-semibold">
                 {selected.name}
               </h2>
+              <ExportList
+                key={`${account}/${selected.id}`}
+                account={account}
+                listId={selected.id}
+                label={t.exportList}
+                working={t.preparingDownload}
+                failed={t.exportListFailed}
+                changed={t.exportListAccountChanged}
+              />
               {writable && available.length > 0 && (
                 <form
                   action={action}

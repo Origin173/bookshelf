@@ -97,6 +97,9 @@ from a book's **My shelf** menu. Use the up and down arrows beside a title
 to change its position in that list. Your reading order is saved with the
 list and follows you across sessions. **Continue** opens the format holding your
 saved position. With no saved position, **Read** uses the usual default.
+**Export list as Markdown** downloads the list name and its visible titles,
+authors and formats in the saved order. An empty list exports its heading.
+
 A book can belong to several lists. Renaming
 a list keeps its link. Removing a book or deleting a list leaves the book,
 its reading status and its position on the shelf. Lists are private to each

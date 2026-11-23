@@ -2,9 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { markdownText } from "@/lib/markdown";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile } from "@/services/auth";
-import { bookLists, saveLists, swapListNeighbors } from "@/services/book-lists";
+import {
+  bookLists,
+  listMembers,
+  saveLists,
+  swapListNeighbors,
+} from "@/services/book-lists";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
 
@@ -83,4 +89,32 @@ export async function editList(
   if (!result) return back(listId, "unavailable");
   if (result.notice === "saved") revalidatePath("/lists");
   back(result.id, result.notice);
+}
+
+export async function exportList(renderedFor: string, listId: string) {
+  const account = await requirePageAccount();
+  if (!account || account !== renderedFor) return { error: "account" } as const;
+  const { storage, catalog } = await getServices();
+  const markdown = await ifAvailable(async () => {
+    const { lists } = await bookLists(storage, accountProfile(account).id);
+    const list = lists.find((item) => item.id === listId);
+    if (!list) return;
+    const books = list.books.length ? (await catalog.browse()).books : [];
+    const rows = listMembers(list, books).map((book, i) => {
+      const details = [
+        book.title,
+        book.authors.join(", "),
+        book.formats.map((f) => f.format.toUpperCase()).join(", "),
+      ]
+        .filter(Boolean)
+        .map(markdownText);
+      return `${i + 1}. ${details.join(" · ")}`;
+    });
+    return (
+      [`# ${markdownText(list.name)}`, rows.join("\n")]
+        .filter(Boolean)
+        .join("\n\n") + "\n"
+    );
+  });
+  return markdown ? { markdown } : ({ error: "unavailable" } as const);
 }

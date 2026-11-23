@@ -2,19 +2,13 @@
 
 import { bookmarkLabel } from "@/lib/bookmarks";
 import { language } from "@/lib/i18n";
+import { markdownText } from "@/lib/markdown";
 import { readerText } from "@/lib/reader-text";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile } from "@/services/auth";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
 import { readingNotes } from "@/services/reading-notes";
-
-function heading(value: string) {
-  return value
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/([\\`*_[\]#<>|~])/g, "\\$1");
-}
 
 export async function exportNotePage(renderedFor: string, cursor?: string) {
   const account = await requirePageAccount();
@@ -37,7 +31,7 @@ export async function exportNotePage(renderedFor: string, cursor?: string) {
   const t = readerText[await language()];
   const groups = page.groups.map(({ book, notes }) => ({
     id: book.id,
-    title: heading(book.title),
+    title: markdownText(book.title),
     entries: notes.map(({ mark, format }) => {
       const location = [mark.name, bookmarkLabel(mark, t), format.toUpperCase()]
         .filter(Boolean)
@@ -47,7 +41,7 @@ export async function exportNotePage(renderedFor: string, cursor?: string) {
         .split("\n")
         .map((line) => `    ${line}`)
         .join("\n");
-      return `### ${heading(location)}\n\n${text}`;
+      return `### ${markdownText(location)}\n\n${text}`;
     }),
   }));
   return { groups, cursor: page.cursor } as const;
