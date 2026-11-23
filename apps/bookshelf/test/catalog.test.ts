@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
-import { isbnQuery, isbnToAdd } from "../src/lib/isbn.ts";
+import { editionKey, isbnQuery, isbnToAdd } from "../src/lib/isbn.ts";
 import {
   type Book,
   CatalogService,
@@ -228,6 +228,14 @@ test("a missing ISBN can be filled with a book number", () => {
   assert.equal(isbnToAdd("978 0-306-40615-7"), "9780306406157");
   assert.equal(isbnToAdd("9780306406158"), undefined);
   assert.equal(isbnToAdd("4006381333931"), undefined);
+});
+
+test("upload editions compare valid ISBN-10 and 978 equivalents", () => {
+  assert.equal(editionKey("0‑8044 2957‑x"), "978080442957");
+  assert.equal(editionKey("9780804429573"), "978080442957");
+  assert.equal(editionKey("9790000000018"), "979000000001");
+  assert.equal(editionKey("9780804429574"), undefined);
+  assert.equal(editionKey("4006381333931"), undefined);
 });
 
 test("only a complete ISBN selects exact shelf search", async () => {

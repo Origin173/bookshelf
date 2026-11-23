@@ -8,6 +8,8 @@ const en = {
   formatAdded: "Format added to this book.",
   formatExists: "This book already has that format.",
   upload: "Upload a book",
+  matchingEditions: "Books with a matching ISBN",
+  publisher: "Publisher",
   import: "Add to shelf",
   uploading: "Adding to the shelf…",
   uploadUnconfirmed:
@@ -231,6 +233,8 @@ const zh: typeof en = {
   formatAdded: "已将格式添加到这本书。",
   formatExists: "这本书已有该格式。",
   upload: "上传图书",
+  matchingEditions: "ISBN 匹配的已有书目",
+  publisher: "出版社",
   import: "加入书架",
   uploading: "正在加入书架…",
   uploadUnconfirmed: "暂时无法确认上传结果。请检查连接，再用同一文件重试。",

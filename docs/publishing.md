@@ -232,6 +232,13 @@ sends the file and reviewed details to your shelf. Keep the form open after an
 error to correct the details or retry the same file. A retry sends the file
 again. If the first upload was saved, the form links to the existing book.
 
+When the upload preview has an ISBN, it lists books with that number or the
+equivalent ISBN-10 and 978 ISBN-13. Compare the titles, authors, publishers
+and formats. **Add to shelf** still submits a separate import. For an
+eligible web book, **Add format** opens its existing form in a new tab,
+where you can select the file to attach. ISBNs starting with 979 match
+only the same ISBN-13.
+
 Cloudflare also applies a request body limit for the domain (100 MB on Free
 and Pro). Workers Free allows 10 ms of CPU per HTTP request, and each isolate
 has 128 MB of memory. Local preview does not measure those production quotas.

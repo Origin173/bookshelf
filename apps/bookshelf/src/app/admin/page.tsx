@@ -1,4 +1,3 @@
-import { isUploadId } from "@bookshelf/core";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,6 +7,10 @@ import { adminHref, catalogView } from "@/app/admin/catalog-link";
 import { CoverForm } from "@/app/admin/cover-form";
 import { IsbnInput } from "@/app/admin/isbn-input";
 import { SourceDetails } from "@/app/admin/source-details";
+import {
+  missingUploadFormat,
+  uploadEditions,
+} from "@/app/admin/upload-editions";
 import { UploadForm } from "@/app/admin/upload-form";
 import { LanguageSwitch } from "@/app/language-switch";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, INPUT } from "@/app/ui";
@@ -56,15 +59,10 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     };
   });
   const book = data?.books.find((b) => b.id === id);
+  const missingFormat = book && missingUploadFormat(book);
   const append =
-    book && isUploadId(book.id) && book.formats.length === 1
-      ? {
-          book: book.id,
-          format:
-            book.formats[0].format === "pdf"
-              ? ("epub" as const)
-              : ("pdf" as const),
-        }
+    book && missingFormat
+      ? { book: book.id, format: missingFormat }
       : undefined;
   const notice =
     result === "bulkSaved" ||
@@ -155,6 +153,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           </summary>
           <UploadForm
             append={append}
+            editions={!id && data ? uploadEditions(data.books) : undefined}
             view={view}
             t={{
               addFormat: t.addFormat,
@@ -165,6 +164,11 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               author: t.author,
               file: t.file,
               uploadHelp: t.uploadHelp,
+              matchingEditions: t.matchingEditions,
+              authors: t.authors,
+              publisher: t.publisher,
+              bookFormat: t.bookFormat,
+              notListed: t.notListed,
               publishLarger: t.publishLarger,
               import: t.import,
               uploading: t.uploading,
