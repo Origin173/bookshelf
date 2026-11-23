@@ -93,8 +93,9 @@ function Cover({ book }: { book: Book }) {
 
 export default async function Home(props: PageProps<"/">) {
   const account = await requirePageAccount();
-  const { q, subject, series, status, favorite, view, shelfNotice } =
+  const { q, subject, series, format, status, favorite, view, shelfNotice } =
     await props.searchParams;
+  const selectedFormat = format === "epub" || format === "pdf" ? format : "";
   const seriesName = typeof series === "string" ? series.trim() : "";
   const recent = !!account && view === "recent";
   const selectedStatus = account && isReadingStatus(status) ? status : "";
@@ -106,6 +107,7 @@ export default async function Home(props: PageProps<"/">) {
   const params = new URLSearchParams();
   if (selected) params.set("subject", selected);
   if (seriesName) params.set("series", seriesName);
+  if (selectedFormat) params.set("format", selectedFormat);
   if (selectedStatus) params.set("status", selectedStatus);
   if (favoritesOnly) params.set("favorite", "1");
   if (recent) params.set("view", "recent");
@@ -152,6 +154,8 @@ export default async function Home(props: PageProps<"/">) {
       ).filter((book) => {
         const entry = personal?.books.get(book.id);
         return (
+          (!selectedFormat ||
+            book.formats.some((f) => f.format === selectedFormat)) &&
           (!selectedStatus || entry?.status === selectedStatus) &&
           (!favoritesOnly || entry?.favorite)
         );
@@ -266,7 +270,7 @@ export default async function Home(props: PageProps<"/">) {
             label={t.search}
             searching={t.searching}
           />
-          {(personal || shelf.groups.length > 0 || selected) && (
+          {(shelf.total > 0 || personal || selected || selectedFormat) && (
             <form action="/" className="mt-3 flex flex-wrap items-center gap-2">
               {recent && <input type="hidden" name="view" value="recent" />}
               {seriesName && (
@@ -297,6 +301,19 @@ export default async function Home(props: PageProps<"/">) {
                   </select>
                 </>
               )}
+              <label className="flex items-center gap-2 text-sm text-secondary">
+                {t.bookFormat}
+                <select
+                  key={selectedFormat}
+                  name="format"
+                  defaultValue={selectedFormat}
+                  className={SELECT}
+                >
+                  <option value="">{t.allFormats}</option>
+                  <option value="epub">EPUB</option>
+                  <option value="pdf">PDF</option>
+                </select>
+              </label>
               {personal && (
                 <>
                   <label htmlFor="status" className="text-sm text-secondary">
@@ -359,6 +376,7 @@ export default async function Home(props: PageProps<"/">) {
                     !query &&
                     !selected &&
                     !seriesName &&
+                    !selectedFormat &&
                     !selectedStatus &&
                     !favoritesOnly
                   ? t.noRecent
@@ -390,7 +408,7 @@ export default async function Home(props: PageProps<"/">) {
                               series
                             ) : (
                               <Link
-                                href={`/?${new URLSearchParams({ series })}`}
+                                href={`/?${new URLSearchParams(selectedFormat ? { series, format: selectedFormat } : { series })}`}
                                 prefetch={false}
                                 aria-label={`${t.browseSeries} · ${series}`}
                                 className="text-accent hover:underline"
