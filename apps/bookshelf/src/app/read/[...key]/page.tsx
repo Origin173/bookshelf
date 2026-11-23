@@ -32,9 +32,9 @@ import { activeProfile } from "@/services/session";
 export async function generateMetadata(
   props: PageProps<"/read/[...key]">,
 ): Promise<Metadata> {
-  await requirePageAccount();
   const { key } = await props.params;
   const fileKey = key.join("/");
+  await requirePageAccount(fileKey);
   const [id] = fileKey.split("/");
 
   // The catalog is memoised per request, so the page's own lookup is free.
@@ -73,9 +73,9 @@ export async function generateMetadata(
 }
 
 export default async function ReadPage(props: PageProps<"/read/[...key]">) {
-  await requirePageAccount();
   const { key } = await props.params;
   const fileKey = key.join("/");
+  await requirePageAccount(fileKey);
   const [id] = fileKey.split("/");
 
   const { catalog } = await getServices();

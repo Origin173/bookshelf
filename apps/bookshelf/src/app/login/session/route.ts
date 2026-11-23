@@ -1,3 +1,4 @@
+import { loginBook, loginPath } from "@/lib/login-book";
 import { readBody } from "@/lib/request-body";
 import {
   issueSession,
@@ -34,12 +35,13 @@ export async function POST(request: Request) {
   if (body === null) return new Response(null, { status: 413 });
   const form = new URLSearchParams(body);
   if (form.get("intent") === "logout") return redirectTo("/login", "");
+  const book = loginBook(form.get("book"));
   const username = (form.get("username") ?? "").trim().toLowerCase();
   const result = await verifyPassword(
     username,
     form.get("password") ?? "",
     request,
   );
-  if (result !== "ok") return redirectTo(`/login?error=${result}`);
-  return redirectTo("/", issueSession(username));
+  if (result !== "ok") return redirectTo(loginPath(book, result));
+  return redirectTo(book ? `/read/${book}` : "/", issueSession(username));
 }
