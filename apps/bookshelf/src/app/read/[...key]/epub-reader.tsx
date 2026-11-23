@@ -127,6 +127,7 @@ export function EpubReader({
     "loading",
   );
   const targetCfi = useRef<string | undefined>(undefined);
+  const restoringCfi = useRef<string | undefined>(undefined);
   const requestedEntry = useRef<TocEntry | undefined>(undefined);
   const [place, setPlace] = useState<{
     chapter: string;
@@ -204,6 +205,7 @@ export function EpubReader({
 
     function onResize() {
       targetCfi.current = current()?.cfi;
+      restoringCfi.current = targetCfi.current;
       // epub.js accepts an optional CFI after its width and height.
       const view = rendition.current as
         | (Rendition & {
@@ -316,6 +318,18 @@ export function EpubReader({
             }
           }
           const target = targetCfi.current;
+          if (target && restoringCfi.current === target) {
+            restoringCfi.current = undefined;
+            if (!onScreen(target)) {
+              // A new font or viewport can finish paginating after the first
+              // display. Reposition once against the actual rendered section.
+              const heading = targets.find(({ cfi }) => cfi === target);
+              void view.display(heading?.entry.href ?? target).catch(() => {
+                if (!cancelled) setStatus("error");
+              });
+              return;
+            }
+          }
           const position = target && onScreen(target) ? target : start.cfi;
           if (position !== target) targetCfi.current = undefined;
           const active =
@@ -353,6 +367,7 @@ export function EpubReader({
           setToc(entries);
           requestedEntry.current = undefined;
           targetCfi.current = current()?.cfi;
+          restoringCfi.current = targetCfi.current;
           await view.display(targetCfi.current ?? firstReadableHref(opened));
           if (!cancelled)
             setFixedLayout(view.settings.layout === "pre-paginated");
@@ -439,6 +454,7 @@ export function EpubReader({
             current={status === "ready" ? (place?.mark ?? null) : null}
             onGo={(position) => {
               if (typeof position === "string") {
+                restoringCfi.current = position;
                 targetCfi.current = position;
                 return rendition.current?.display(position);
               }
@@ -462,6 +478,7 @@ export function EpubReader({
                 requestedEntry.current = toc.find(
                   (entry) => entry.href === event.target.value,
                 );
+                restoringCfi.current = undefined;
                 targetCfi.current = undefined;
                 rendition.current?.display(event.target.value);
               }
