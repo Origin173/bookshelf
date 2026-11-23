@@ -161,3 +161,7 @@ book. Select a location to open the PDF page or EPUB passage. The list also
 works in a read-only library. It pages through the signed-in account’s existing
 bookmark files and shows formats still in the catalog. The links contain a
 bookmark identifier and keep the note text and the EPUB location out of the URL.
+
+In a book with several bookmarks, use **Find a bookmark** in the bookmark
+panel to filter by name, note text, page or chapter. The search runs on the
+open list and clears when the panel closes.
