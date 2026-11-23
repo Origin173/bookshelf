@@ -10,7 +10,7 @@ import { ReadingFormats } from "@/app/reading-formats";
 import { SearchInput } from "@/app/search-input";
 import { State } from "@/app/state";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
-import { searchBooks } from "@/lib/book-search";
+import { isbnQuery, searchBooks } from "@/lib/book-search";
 import { sortByCatalogDate } from "@/lib/catalog-date";
 import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
@@ -129,6 +129,7 @@ export default async function Home(props: PageProps<"/">) {
   const t = await messages();
   const query = typeof q === "string" ? q : "";
 
+  const isbn = isbnQuery(query);
   const params = new URLSearchParams();
   if (authorName) params.set("author", authorName);
   if (selectedFormat) params.set("format", selectedFormat);
@@ -173,10 +174,13 @@ export default async function Home(props: PageProps<"/">) {
     const inSeries = seriesName
       ? (named(bySeries(filtered), seriesName)?.books ?? [])
       : filtered;
-    const matching = searchBooks(
-      recent ? recentBooks(inSeries, positions ?? {}) : inSeries,
-      query,
-    ).filter((book) => {
+    const candidates = recent
+      ? recentBooks(inSeries, positions ?? {})
+      : inSeries;
+    const found = isbn
+      ? candidates.filter((book) => book.isbn === isbn)
+      : searchBooks(candidates, query);
+    const matching = found.filter((book) => {
       const entry = personal?.books.get(book.id);
       return (
         (!authorName || authorNames(book).includes(authorName)) &&
@@ -459,7 +463,9 @@ export default async function Home(props: PageProps<"/">) {
                     !selectedStatus &&
                     !favoritesOnly
                   ? t.noRecent
-                  : t.noMatches}
+                  : isbn
+                    ? t.noIsbnMatches
+                    : t.noMatches}
             </p>
           ) : (
             <ul className="mt-10 divide-y divide-separator">
