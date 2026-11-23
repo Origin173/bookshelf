@@ -2,8 +2,10 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { adminHref, type CatalogView } from "@/app/admin/catalog-link";
+import type { uploadEditions } from "@/app/admin/upload-editions";
 import { BUTTON_PRIMARY, INPUT } from "@/app/ui";
 import type { messages } from "@/lib/i18n";
+import { editionKey } from "@/lib/isbn";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 
 type UploadError =
@@ -34,6 +36,11 @@ type Labels = Pick<
   | "author"
   | "file"
   | "publishLarger"
+  | "matchingEditions"
+  | "publisher"
+  | "authors"
+  | "bookFormat"
+  | "notListed"
   | "uploadHelp"
   | "import"
   | "isbn"
@@ -51,9 +58,11 @@ const empty = { title: "", author: "", isbn: "" };
 export function UploadForm({
   t,
   append,
+  editions,
   view,
 }: {
   t: Labels;
+  editions?: ReturnType<typeof uploadEditions>;
   view: CatalogView;
   append?: { book: string; format: "epub" | "pdf" };
 }) {
@@ -64,6 +73,9 @@ export function UploadForm({
   const sequence = useRef(0);
   const manual = useRef(new Set<keyof Fields>());
   const [fields, setFields] = useState<Fields>(empty);
+  const [format, setFormat] = useState<"pdf" | "epub">();
+  const key = format && editions && editionKey(fields.isbn);
+  const matches = key ? editions?.[key] : undefined;
   const [cover, setCover] = useState<Blob | null>(null);
   const [image, setImage] = useState("");
   const [useCover, setUseCover] = useState(true);
@@ -141,6 +153,7 @@ export function UploadForm({
     const version = ++sequence.current;
     setIssue(null);
     apply(empty);
+    setFormat(undefined);
     setCover(null);
     setUseCover(true);
     setNotice(null);
@@ -158,6 +171,7 @@ export function UploadForm({
         setNotice("formatExists");
       return;
     }
+    setFormat(file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub");
     setNotice("analyzing");
     try {
       const { inspectBook } = await import("@/app/admin/inspect-book");
@@ -183,6 +197,7 @@ export function UploadForm({
 
   return (
     <form
+      id={append ? "add-format" : undefined}
       onSubmit={submit}
       aria-busy={submitting}
       action={adminHref({ ...view, book: append?.book }, "/admin/upload")}
@@ -244,6 +259,41 @@ export function UploadForm({
                 />
               </label>
             ))}
+            {matches && (
+              <section
+                aria-label={t.matchingEditions}
+                className="min-w-0 rounded-xl bg-fill px-4 py-3 text-sm"
+              >
+                <h2 className="font-medium">{t.matchingEditions}</h2>
+                <ul className="mt-2 divide-y divide-separator">
+                  {matches.map((book) => (
+                    <li key={book.id} className="break-words py-2">
+                      <p className="font-medium">{book.title}</p>
+                      <p>
+                        {t.authors} · {book.authors.join(", ") || t.notListed}
+                      </p>
+                      <p>
+                        {t.publisher} · {book.publisher || t.notListed}
+                      </p>
+                      <p>
+                        {t.bookFormat} · {book.formats.join(", ")}
+                      </p>
+                      {format && book.missingFormat === format && (
+                        <a
+                          href={`${adminHref({ ...view, book: book.id })}#add-format`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-accent hover:underline"
+                        >
+                          {t.addFormat} · {format.toUpperCase()}
+                          <span className="sr-only"> · {book.title}</span>
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             <label className="grid gap-1 text-sm">
               {t.subjects}
               <textarea

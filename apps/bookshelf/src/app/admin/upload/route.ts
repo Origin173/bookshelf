@@ -1,6 +1,7 @@
-import { findIsbn, isUploadId, type Storage } from "@bookshelf/core";
+import { isUploadId, type Storage } from "@bookshelf/core";
 import { adminHref, catalogView } from "@/app/admin/catalog-link";
 import { parseSubjects } from "@/lib/catalog-names";
+import { isbnQuery } from "@/lib/isbn";
 import { readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES, MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
@@ -88,9 +89,8 @@ async function saveForm(
   const rawIsbn = form.get("isbn") ?? "";
   if (typeof rawIsbn !== "string" || rawIsbn.length > 24)
     return { result: "invalidIsbn" } as const;
-  const candidate = rawIsbn.trim().replace(/[ -]/g, "").toUpperCase();
-  const isbn = candidate ? findIsbn([candidate]) : undefined;
-  if (candidate && candidate !== isbn)
+  const isbn = isbnQuery(rawIsbn);
+  if (!isbn && /[^\s-]/.test(rawIsbn))
     return { result: "invalidIsbn" } as const;
   const rawSubjects = form.get("subjects") ?? "";
   const subjects =
