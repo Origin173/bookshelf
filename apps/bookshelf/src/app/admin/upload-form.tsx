@@ -56,12 +56,17 @@ export function UploadForm({ t }: { t: Labels }) {
   const [useCover, setUseCover] = useState(true);
   const [notice, setNotice] = useState<
     | "analyzing"
+    | "tooLarge"
+    | "invalidFile"
     | "reviewDetails"
     | "noDetails"
     | "coverOnly"
     | "noPreview"
     | null
   >(null);
+
+  const fileBlocked =
+    notice === "analyzing" || notice === "tooLarge" || notice === "invalidFile";
 
   useEffect(() => {
     if (!cover) {
@@ -75,7 +80,7 @@ export function UploadForm({ t }: { t: Labels }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting || notice === "analyzing") return;
+    if (submitting || fileBlocked) return;
     const data = new FormData(event.currentTarget);
     if (cover && useCover) data.set("cover", cover, "cover.png");
     setSubmitting(true);
@@ -122,12 +127,15 @@ export function UploadForm({ t }: { t: Labels }) {
     setCover(null);
     setUseCover(true);
     setNotice(null);
-    if (
-      !file ||
-      file.size > MAX_UPLOAD_BYTES ||
-      !/\.(epub|pdf)$/i.test(file.name)
-    )
+    if (!file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setNotice("tooLarge");
       return;
+    }
+    if (!file.size || !/\.(epub|pdf)$/i.test(file.name)) {
+      setNotice("invalidFile");
+      return;
+    }
     setNotice("analyzing");
     try {
       const { inspectBook } = await import("@/app/admin/inspect-book");
@@ -227,7 +235,7 @@ export function UploadForm({ t }: { t: Labels }) {
         <button
           className={`${BUTTON_PRIMARY} w-fit`}
           type="submit"
-          disabled={notice === "analyzing"}
+          disabled={fileBlocked}
         >
           {submitting ? t.uploading : t.import}
         </button>
