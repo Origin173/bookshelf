@@ -97,6 +97,11 @@ show their parent headings so you can distinguish sections with the same name.
 Clear the search to see the full outline at the current heading. Your reading
 position changes when you choose a heading.
 
+After jumping to another passage from **Contents**, choose **Back to passage**
+to return to the text you just left. Turning pages, changing the text size,
+and rotating the screen keep that return point. Another contents jump updates
+it. Returning, reloading, switching books, or switching accounts clears it.
+
 Above the toolbar, the reader shows the current heading or the section
 number in the EPUB spine when no matching title is available. In paginated
 text it also shows the first visible page and the page count for that section.
