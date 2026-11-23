@@ -42,6 +42,11 @@ const en = {
   sepia: "Sepia",
   night: "Night",
   page: "Page",
+  printedPage: "Printed page",
+  goToPage: "Go",
+  unknownPageLabel: "No page has this label.",
+  duplicatePageLabel:
+    "Several pages have this label. Enter a page number instead.",
   totalPages: (count: number | string) => `of ${count}`,
   pageNumber: (n: number) => `Page ${n}`,
   noContents:
@@ -121,6 +126,10 @@ const zh: ReaderText = {
   sepia: "浅褐",
   night: "夜间",
   page: "页码",
+  printedPage: "印刷页码",
+  goToPage: "跳转",
+  unknownPageLabel: "没有使用此标签的页面。",
+  duplicatePageLabel: "多页使用了此标签，请在页码框输入实际页序。",
   totalPages: (count) => `共 ${count} 页`,
   pageNumber: (n) => `第 ${n} 页`,
   noContents: "这份 PDF 没有内置目录。可以在工具栏中输入页码跳转。",

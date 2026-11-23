@@ -152,6 +152,11 @@ existing bookmarks.
 
 ## PDFs
 
+When a PDF declares a different numbering scheme, the toolbar shows its
+**Printed page** alongside the physical page number. Enter the exact label,
+such as `iv` or `A-1`, and choose **Go**. For repeated labels, use the
+physical page number. Bookmarks and saved progress use that physical page.
+
 **Zoom** is automatic by default: fitted to the width of your window, but never
 past 125%, because a Letter page blown up to fill a wide monitor sets the body
 text at about twenty-four points. Fit-width, fit-page and fixed percentages are

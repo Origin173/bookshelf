@@ -26,6 +26,7 @@ import {
   unmarkAll,
 } from "@/app/read/[...key]/pdf-document";
 import { type PageSize, PdfPage } from "@/app/read/[...key]/pdf-page";
+import { PrintedPageBox } from "@/app/read/[...key]/pdf-printed-page";
 import { usePdfSearch } from "@/app/read/[...key]/pdf-search";
 import { type Panel, PdfSidebar } from "@/app/read/[...key]/pdf-sidebar";
 import { useReadingPosition } from "@/app/read/[...key]/position";
@@ -170,6 +171,7 @@ export function PdfReader({
 
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [pages, setPages] = useState(0);
+  const [pageLabels, setPageLabels] = useState<string[] | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
@@ -275,7 +277,18 @@ export function PdfReader({
         setPage(clamp(start ?? current()?.page ?? 1, book.numPages));
         setStatus("ready");
 
-        // Bookmarks are not needed to read, so a slow outline holds nothing up.
+        // Optional navigation metadata can arrive after the first page.
+        void book
+          .getPageLabels()
+          .catch(() => null)
+          .then((labels) => {
+            if (
+              !cancelled &&
+              labels?.some((label, i) => label && label !== String(i + 1))
+            )
+              setPageLabels(labels);
+          });
+
         const entries = await readOutline(book);
         if (!cancelled) setOutline(entries);
       } catch {
@@ -287,6 +300,7 @@ export function PdfReader({
       cancelled = true;
       unmarkAll();
       setDoc(null);
+      setPageLabels(null);
       opened?.close();
     };
   }, [url, settled, ready, current, start]);
@@ -729,6 +743,15 @@ export function PdfReader({
             </Round>
           </div>
 
+          {pageLabels && (
+            <PrintedPageBox
+              key={page}
+              t={t}
+              labels={pageLabels}
+              page={page}
+              onGo={goTo}
+            />
+          )}
           {returnPage !== null && (
             <button
               type="button"
