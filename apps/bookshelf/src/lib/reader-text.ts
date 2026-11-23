@@ -46,6 +46,8 @@ const en = {
   searching: (found: string, n: number) =>
     `${found} so far, searching page ${n}`,
   bookmarks: "Bookmarks",
+  findBookmark: "Find a bookmark",
+  noBookmarkMatches: "No bookmarks match your search.",
   bookmarksUnavailable: "Bookmarks are unavailable. Try again.",
   addBookmark: "Bookmark this location",
   bookmarked: "Location bookmarked",
@@ -112,6 +114,8 @@ const zh: ReaderText = {
   moreResults: (found) => `已显示 ${found}，可缩小搜索范围以查看其他匹配项。`,
   searching: (found, n) => `已找到 ${found}，正在搜索第 ${n} 页。`,
   bookmarks: "书签",
+  findBookmark: "查找书签",
+  noBookmarkMatches: "没有匹配的书签。",
   bookmarksUnavailable: "暂时无法读取或更新书签，请重试。",
   addBookmark: "添加当前位置",
   bookmarked: "当前位置已加书签",

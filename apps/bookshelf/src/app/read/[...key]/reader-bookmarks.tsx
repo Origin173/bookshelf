@@ -30,6 +30,7 @@ export function ReaderBookmarks({
   const editorId = useId();
   const sequence = useRef(0);
   const [result, setResult] = useState<BookmarkResult | null>(null);
+  const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<{
     mark: Bookmark;
@@ -69,10 +70,16 @@ export function ReaderBookmarks({
       setResult({ error: "unavailable" });
     }
   }
-  const marked =
-    result &&
-    "items" in result &&
-    result.items.some((item) => item.position === current?.position);
+  const items = result && "items" in result ? result.items : [];
+  const marked = items.some((item) => item.position === current?.position);
+  const needle = query.trim().toLocaleLowerCase();
+  const matching = needle
+    ? items.filter((mark) =>
+        [mark.name, mark.note, bookmarkLabel(mark, t)].some((text) =>
+          text?.toLocaleLowerCase().includes(needle),
+        ),
+      )
+    : items;
   return (
     <>
       <button
@@ -101,6 +108,7 @@ export function ReaderBookmarks({
         onClose={() => {
           sequence.current++;
           setResult(null);
+          setQuery("");
           setEditing(null);
           setBusy(false);
         }}
@@ -151,9 +159,20 @@ export function ReaderBookmarks({
                 {marked ? t.bookmarked : t.addBookmark}
               </button>
             )}
-            {result.items.length ? (
+            {(items.length > 1 || query) && (
+              <input
+                type="search"
+                aria-label={t.findBookmark}
+                placeholder={t.findBookmark}
+                className={`${INPUT} mt-3 w-full`}
+                value={query}
+                disabled={editing !== null}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            )}
+            {matching.length ? (
               <ul className="mt-3 divide-y divide-separator">
-                {result.items.map((mark) => (
+                {matching.map((mark) => (
                   <li key={mark.position} className="py-1">
                     {result.writable &&
                     editing?.mark.position === mark.position ? (
@@ -319,7 +338,9 @@ export function ReaderBookmarks({
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-secondary">{t.emptyBookmarks}</p>
+              <p role="status" className="mt-3 text-sm text-secondary">
+                {items.length ? t.noBookmarkMatches : t.emptyBookmarks}
+              </p>
             )}
           </>
         )}
