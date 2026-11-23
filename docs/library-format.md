@@ -79,3 +79,15 @@ the new publication uses its own metadata. For filesystem libraries, keep the pu
 directory separate from the disposable build output. If a stopped Node
 process leaves `.bookshelf/subjects.json.lock`, stop all writers, remove
 that empty directory, then restart.
+
+## Personal shelves
+
+On the shelf, open **My shelf** next to a book to mark it **Want to read**,
+**Reading**, or **Finished**, or add it to **Favorites**. Filter by status
+or choose **Favorites only** alongside search and subjects. Choose **Not
+marked** to clear the status. These choices belong to the signed-in account.
+Changing them leaves the reader's saved page or EPUB position in place.
+
+Personal shelves are stored in `.bookshelf/shelves/<profile-id>.json`. Include
+that directory in the same backup as reading positions. Normal and forced
+CLI publishing preserve it.
