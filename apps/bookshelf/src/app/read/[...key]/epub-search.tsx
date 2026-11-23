@@ -326,7 +326,7 @@ export function EpubSearch({
       {query.trim() && (
         <nav
           aria-label={t.searchMatches}
-          className="order-last flex basis-full items-center gap-2 border-t border-separator pt-1.5"
+          className="order-last flex h-14 basis-full items-center gap-2 border-t border-separator pt-1.5"
         >
           <button
             type="button"

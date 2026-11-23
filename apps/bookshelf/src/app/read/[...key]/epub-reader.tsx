@@ -408,8 +408,7 @@ export function EpubReader({
             ((end?.cfi &&
               view.epubcfi.compare(start.cfi, target) <= 0 &&
               view.epubcfi.compare(target, end.cfi) <= 0) ||
-              (mode === "scroll" &&
-                opened.spine.get(target)?.index === start.index &&
+              (opened.spine.get(target)?.index === start.index &&
                 visibleCharacter(view, target, element)));
           if (target && restoringCfi.current === target) {
             restoringCfi.current = undefined;
