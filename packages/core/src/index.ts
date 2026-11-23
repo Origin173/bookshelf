@@ -5,8 +5,10 @@ export {
   bookKey,
   CATALOG_FILE,
   CATALOG_VERSION,
+  isUploadId,
   METADATA_FILE,
   parseBookKey,
+  storageBookKey,
 } from "./catalog.js";
 export type { BookshelfConfig, StorageConfig } from "./config.js";
 export { CONFIG_FILES } from "./config.js";

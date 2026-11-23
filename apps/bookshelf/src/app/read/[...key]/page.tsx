@@ -1,4 +1,4 @@
-import { DEFAULT_PROFILE_ID } from "@bookshelf/core";
+import { DEFAULT_PROFILE_ID, parseBookKey } from "@bookshelf/core";
 import { ArrowDownToLine, ChevronLeft, CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -74,7 +74,9 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   await requirePageAccount();
   const { key } = await props.params;
   const fileKey = key.join("/");
-  const [id] = fileKey.split("/");
+  const target = parseBookKey(fileKey);
+  if (!target) notFound();
+  const { id, file } = target;
 
   const { catalog } = await getServices();
 
@@ -82,7 +84,7 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   // book that is not in it — one is worth coming back for and the other is not.
   const book = await ifAvailable(() => catalog.find(id));
   if (book === undefined) return <Unreachable />;
-  if (!book?.formats.some((f) => fileKey.endsWith(`/${f.file}`))) {
+  if (!book?.formats.some((f) => f.file === file)) {
     notFound();
   }
 

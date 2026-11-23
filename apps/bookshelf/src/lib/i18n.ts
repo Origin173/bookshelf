@@ -3,6 +3,21 @@ import { cache } from "react";
 
 export const LOCALE_COOKIE = "bookshelf_language";
 const en = {
+  upload: "Upload a book",
+  import: "Add to shelf",
+  title: "Title",
+  author: "Author (optional)",
+  file: "Book file",
+  uploadHelp:
+    "One EPUB or PDF, up to 8 MiB. Use the publishing tool for larger files.",
+  uploaded: "Book added to the shelf.",
+  duplicate: "This file is already on the shelf.",
+  invalidFile: "Select a supported EPUB or PDF file.",
+  invalidDetails:
+    "Enter a title. Title and author may each have up to 200 characters.",
+  tooLarge: "This file exceeds the 8 MiB web upload limit.",
+  uploadConflict:
+    "Another upload is being saved. Select the file and try again.",
   loginTitle: "Sign in to Bookshelf",
   signIn: "Sign in",
   signOut: "Sign out",
@@ -40,6 +55,19 @@ const en = {
 };
 
 const zh: typeof en = {
+  upload: "上传图书",
+  import: "加入书架",
+  title: "书名",
+  author: "作者（可选）",
+  file: "图书文件",
+  uploadHelp:
+    "每次可上传一个 EPUB 或 PDF，最大 8 MiB。较大的文件请通过发布工具导入。",
+  uploaded: "图书已加入书架。",
+  duplicate: "书架中已有这个文件。",
+  invalidFile: "请选择支持的 EPUB 或 PDF 文件。",
+  invalidDetails: "请填写书名。书名和作者各限 200 个字符。",
+  tooLarge: "文件超过网页上传的 8 MiB 上限。",
+  uploadConflict: "另一份上传正在保存。请重新选择文件并重试。",
   loginTitle: "登录书架",
   signIn: "登录",
   signOut: "退出登录",

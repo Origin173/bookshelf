@@ -4,6 +4,7 @@ import {
   normaliseEtag,
   parseBookKey,
   parseByteRange,
+  storageBookKey,
   unsatisfiedRange,
 } from "@bookshelf/core";
 import { serviceUnavailable } from "@/lib/http";
@@ -105,7 +106,7 @@ async function serve(
   ctx: RouteContext<"/download/[...key]">,
 ) {
   const { key } = await ctx.params;
-  const objectKey = key.join("/");
+  const publicKey = key.join("/");
 
   // Only a file inside a book's folder, and nothing else in the bucket. Without
   // this the URL is a read of any key the provider will answer for, including
@@ -113,10 +114,12 @@ async function serve(
   // here, and `.bookshelf/progress/<profile>.json` says what they read and
   // where they are. Neither is a book, and neither has any business on a route
   // that serves books.
-  const target = parseBookKey(objectKey);
+  const target = parseBookKey(publicKey);
   if (!target) {
     return new Response("Not found", { status: 404 });
   }
+
+  const objectKey = storageBookKey(publicKey);
 
   // `?inline=1` lets the reader embed a format the browser can display itself,
   // such as a PDF, instead of prompting a download.

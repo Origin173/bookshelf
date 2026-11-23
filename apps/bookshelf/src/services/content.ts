@@ -4,6 +4,7 @@ import {
   readZipDirectory,
   readZipEntry,
   type Storage,
+  storageBookKey,
   type ZipDirectory,
   type ZipEntry,
 } from "@bookshelf/core";
@@ -44,9 +45,10 @@ export class BookContentService {
    * lazily, so reading an entry — which needs only offsets — costs no HEAD.
    */
   private source(key: string): ByteSource {
+    const objectKey = storageBookKey(key);
     return rangedSource(
-      async () => (await this.storage.head(key))?.size ?? 0,
-      (offset, length) => this.storage.readRange(key, offset, length),
+      async () => (await this.storage.head(objectKey))?.size ?? 0,
+      (offset, length) => this.storage.readRange(objectKey, offset, length),
     );
   }
 

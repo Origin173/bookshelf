@@ -177,3 +177,29 @@ The Docker image ships both tools, so there's nothing to install on that route.
 
 Book files are hard-linked into `library/` rather than copied, so publishing
 763 MB of books costs about a megabyte of disk.
+
+## Upload from a browser
+
+On a private shelf, a signed-in administrator can open **Manage books → Upload a
+book**, enter a title and optional author, and select one EPUB or PDF. The form
+accepts up to **8 MiB per file**, with 16 KiB extra for the multipart form.
+The Worker checks the body as it arrives. Larger books belong in the CLI
+publisher. Web uploads use the title and author you enter and the usual
+placeholder cover.
+
+Cloudflare also applies a request body limit for the domain (100 MB on Free
+and Pro). Workers Free allows 10 ms of CPU per HTTP request, and each isolate
+has 128 MB of memory. Local preview does not measure those production quotas.
+See [Workers limits](https://developers.cloudflare.com/workers/platform/limits/).
+
+A PDF needs its version header and end marker. An EPUB needs a ZIP with the
+stored EPUB mimetype, a container and a package document. The existing
+readers determine which contents they can display. Uploading does not convert
+books or remove DRM.
+
+Web books live under `.bookshelf/uploads/`, including their separate catalog.
+Back up this directory with the other app state. The book bytes are written
+before the catalog entry, and their SHA-256 identifies them. Retrying the same
+file completes an interrupted import or opens the existing book. A conflicting
+catalog update asks you to retry. Both normal and forced CLI publishing leave
+this directory in place.
