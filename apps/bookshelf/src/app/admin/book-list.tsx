@@ -29,13 +29,13 @@ export function AdminBookList({
   };
 }) {
   const [query, setQuery] = useState(view.q ?? "");
-  function search(q: string) {
-    setQuery(q);
-    window.history.replaceState(
-      null,
-      "",
-      adminHref({ missing: view.missing, q }),
-    );
+  function rememberSearch() {
+    if (query !== (view.q ?? ""))
+      window.history.replaceState(
+        null,
+        "",
+        adminHref({ missing: view.missing, q: query }),
+      );
   }
   const rows = searchBooks(books, query);
   return (
@@ -45,6 +45,7 @@ export function AdminBookList({
           <Link
             key={missing ?? "all"}
             href={adminHref({ missing, q: query })}
+            onNavigate={rememberSearch}
             prefetch={false}
             aria-current={missing === view.missing ? "page" : undefined}
             className={missing === view.missing ? BUTTON_PRIMARY : BUTTON}
@@ -62,7 +63,7 @@ export function AdminBookList({
       </nav>
       <BookSearchInput
         value={query}
-        onChange={search}
+        onChange={setQuery}
         label={t.searchCatalog}
         clear={t.clearSearch}
       />
@@ -85,6 +86,7 @@ export function AdminBookList({
                   q: query,
                   book: book.id,
                 })}
+                onNavigate={rememberSearch}
                 prefetch={false}
                 className={`${BUTTON} shrink-0`}
               >
