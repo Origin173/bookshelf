@@ -1,6 +1,7 @@
 import { STATE_PREFIX, type Storage } from "@bookshelf/core";
 import {
   BOOKMARK_NAME_LIMIT,
+  BOOKMARK_NOTE_LIMIT,
   type Bookmark,
   type BookmarkChange,
   type BookmarkResult,
@@ -12,6 +13,11 @@ function valid(mark: Bookmark, format: string): boolean {
   if (
     mark.name !== undefined &&
     (typeof mark.name !== "string" || mark.name.length > BOOKMARK_NAME_LIMIT)
+  )
+    return false;
+  if (
+    mark.note !== undefined &&
+    (typeof mark.note !== "string" || mark.note.length > BOOKMARK_NOTE_LIMIT)
   )
     return false;
   if (format === "pdf")
@@ -47,10 +53,13 @@ export async function bookBookmarks(
     change !== undefined &&
     (!write ||
       !change ||
-      !["add", "remove", "rename"].includes(change.intent) ||
+      !["add", "remove", "rename", "note"].includes(change.intent) ||
       (change.intent === "rename" &&
         (typeof change.name !== "string" ||
           change.name.length > BOOKMARK_NAME_LIMIT)) ||
+      (change.intent === "note" &&
+        (typeof change.note !== "string" ||
+          change.note.length > BOOKMARK_NOTE_LIMIT)) ||
       !valid(change.mark, format))
   )
     return { error: "unavailable" };
@@ -87,15 +96,18 @@ export async function bookBookmarks(
       );
       if (format === "pdf")
         items.sort((a, b) => Number(a.position) - Number(b.position));
-    } else if (change.intent === "rename") {
+    } else if (change.intent === "rename" || change.intent === "note") {
       const stored = items[index];
       if (!stored) return { error: "bookmarkConflict" };
-      const name = change.name.trim() || undefined;
-      if (stored.name === name) return { items, writable: true };
-      if (stored.name !== change.mark.name)
+      const field = change.intent === "rename" ? "name" : "note";
+      const value =
+        (change.intent === "rename" ? change.name : change.note).trim() ||
+        undefined;
+      if (stored[field] === value) return { items, writable: true };
+      if (stored[field] !== change.mark[field])
         return { error: "bookmarkConflict" };
-      if (name) stored.name = name;
-      else delete stored.name;
+      if (value) stored[field] = value;
+      else delete stored[field];
     } else {
       if (index === -1) return { items, writable: true };
       items.splice(index, 1);
