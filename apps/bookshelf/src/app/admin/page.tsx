@@ -2,6 +2,7 @@ import { isUploadId } from "@bookshelf/core";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminBookList } from "@/app/admin/book-list";
 import { BulkSubjectForm } from "@/app/admin/bulk-subject-form";
 import { CoverForm } from "@/app/admin/cover-form";
 import { SourceDetails } from "@/app/admin/source-details";
@@ -234,6 +235,10 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             .map((group) => group.name)
             .filter((name) => parseSubjects(name)?.[0] === name)}
           t={{
+            searchCatalog: t.searchCatalog,
+            clearSearch: t.clearSearch,
+            noMatches: t.noMatches,
+            selectedBooks: t.selectedBooks,
             chooseSubject: t.chooseSubject,
             noBulkSubjects: t.noBulkSubjects,
             previewSubject: t.previewSubject,
@@ -414,27 +419,20 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               : t.noMissingCovers}
         </p>
       ) : (
-        <ul className="mt-8 divide-y divide-separator">
-          {listed.map((b) => (
-            <li
-              key={b.id}
-              className="flex items-center justify-between gap-4 py-4"
-            >
-              <div className="min-w-0">
-                <p className="break-words font-medium">{b.title}</p>
-                <p className="text-sm text-secondary">{b.authors.join(", ")}</p>
-              </div>
-              <Link
-                href={editHref(b.id)}
-                prefetch={false}
-                className={`${BUTTON} shrink-0`}
-              >
-                {t.editBook}
-                <span className="sr-only"> · {b.title}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <AdminBookList
+          books={listed.map(({ id, title, authors }) => ({
+            id,
+            title,
+            authors,
+            href: editHref(id),
+          }))}
+          t={{
+            searchCatalog: t.searchCatalog,
+            clearSearch: t.clearSearch,
+            noMatches: t.noMatches,
+            editBook: t.editBook,
+          }}
+        />
       )}
     </main>
   );

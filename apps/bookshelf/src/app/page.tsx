@@ -10,6 +10,7 @@ import { ReadingFormats } from "@/app/reading-formats";
 import { SearchInput } from "@/app/search-input";
 import { State } from "@/app/state";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
+import { searchBooks } from "@/lib/book-search";
 import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
 import { placeholder, tint } from "@/lib/media";
@@ -23,7 +24,6 @@ import {
   readableFormat,
   recentBooks,
   resumeFormat,
-  searchBooks,
 } from "@/services/catalog";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";

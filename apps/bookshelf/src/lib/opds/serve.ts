@@ -1,4 +1,5 @@
 import { type Book, normaliseEtag } from "@bookshelf/core";
+import { searchBooks } from "@/lib/book-search";
 import { atomFeed, openSearchDocument } from "@/lib/opds/atom";
 import {
   byAuthor,
@@ -27,7 +28,7 @@ import {
 } from "@/lib/opds/feed";
 import { jsonFeed } from "@/lib/opds/json";
 import { SITE_NAME } from "@/lib/site";
-import { type Shelf, searchBooks } from "@/services/catalog";
+import type { Shelf } from "@/services/catalog";
 
 /**
  * The catalog's URL space, and the one place that knows it.
