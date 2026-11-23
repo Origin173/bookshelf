@@ -13,11 +13,13 @@ const DEBOUNCE_MS = 300;
  */
 export function SearchInput({
   query,
+  path = "/",
   filters,
   label,
   searching,
 }: {
   query: string;
+  path?: "/" | "/authors";
   filters: string;
   label: string;
   searching: string;
@@ -36,18 +38,18 @@ export function SearchInput({
       startTransition(() => {
         const params = new URLSearchParams(filters);
         if (trimmed) params.set("q", trimmed);
-        router.replace(params.size ? `/?${params}` : "/", {
+        router.replace(params.size ? `${path}?${params}` : path, {
           scroll: false,
         });
       });
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [value, query, filters, router]);
+  }, [value, query, filters, router, path]);
 
   return (
     <search className="mt-8 block">
-      <form action="/" onSubmit={(event) => event.preventDefault()}>
+      <form action={path} onSubmit={(event) => event.preventDefault()}>
         {Array.from(new URLSearchParams(filters), ([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}

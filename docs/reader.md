@@ -49,6 +49,10 @@ their respective formats.
 
 ## Browse an author
 
+Open **Authors** on the shelf to browse or search all credited names. Each
+entry shows its book count and opens that author’s books. A coauthored book
+counts once under each credited name.
+
 Select an author under a book title to see their books within your current
 shelf filters. Each coauthor has a separate link. Names match the catalog
 spelling, including spaces and punctuation. **Clear author** keeps your other

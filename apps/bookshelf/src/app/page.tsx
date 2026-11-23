@@ -194,6 +194,9 @@ export default async function Home(props: PageProps<"/">) {
         <h1 className="text-3xl font-semibold tracking-tight">Bookshelf</h1>
         <div className="flex flex-wrap items-center gap-1">
           <LanguageSwitch />
+          <Link href="/authors" className={BUTTON} prefetch={false}>
+            {t.authors}
+          </Link>
           {account && (
             <>
               <Link href="/lists" className={BUTTON}>
