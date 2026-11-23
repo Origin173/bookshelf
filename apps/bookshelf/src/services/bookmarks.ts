@@ -1,21 +1,19 @@
 import { STATE_PREFIX, type Storage } from "@bookshelf/core";
+import {
+  BOOKMARK_NAME_LIMIT,
+  type Bookmark,
+  type BookmarkChange,
+  type BookmarkResult,
+} from "@/lib/bookmarks";
 import { reading, writing } from "@/services/errors";
-
-export type Bookmark = {
-  position: number | string;
-  chapter?: string;
-  chapterPage?: number;
-};
-export type BookmarkChange = { intent: "add" | "remove"; mark: Bookmark };
-export type BookmarkResult =
-  | { items: Bookmark[]; writable: boolean }
-  | { error: "unavailable" | "accountChanged" | "bookmarkConflict" };
-export type BookmarkAction = (
-  change?: BookmarkChange,
-) => Promise<BookmarkResult>;
 
 function valid(mark: Bookmark, format: string): boolean {
   if (!mark || typeof mark !== "object") return false;
+  if (
+    mark.name !== undefined &&
+    (typeof mark.name !== "string" || mark.name.length > BOOKMARK_NAME_LIMIT)
+  )
+    return false;
   if (format === "pdf")
     return (
       typeof mark.position === "number" &&
@@ -49,7 +47,10 @@ export async function bookBookmarks(
     change !== undefined &&
     (!write ||
       !change ||
-      !["add", "remove"].includes(change.intent) ||
+      !["add", "remove", "rename"].includes(change.intent) ||
+      (change.intent === "rename" &&
+        (typeof change.name !== "string" ||
+          change.name.length > BOOKMARK_NAME_LIMIT)) ||
       !valid(change.mark, format))
   )
     return { error: "unavailable" };
@@ -86,6 +87,15 @@ export async function bookBookmarks(
       );
       if (format === "pdf")
         items.sort((a, b) => Number(a.position) - Number(b.position));
+    } else if (change.intent === "rename") {
+      const stored = items[index];
+      if (!stored) return { error: "bookmarkConflict" };
+      const name = change.name.trim() || undefined;
+      if (stored.name === name) return { items, writable: true };
+      if (stored.name !== change.mark.name)
+        return { error: "bookmarkConflict" };
+      if (name) stored.name = name;
+      else delete stored.name;
     } else {
       if (index === -1) return { items, writable: true };
       items.splice(index, 1);

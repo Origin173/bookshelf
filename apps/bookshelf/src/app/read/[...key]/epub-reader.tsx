@@ -14,9 +14,9 @@ import {
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
+import type { Bookmark, BookmarkAction } from "@/lib/bookmarks";
 import { readStored, writeStored } from "@/lib/local";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
-import type { Bookmark, BookmarkAction } from "@/services/bookmarks";
 
 type Mode = "single" | "double" | "scroll";
 

@@ -31,6 +31,24 @@ test("concurrent bookmarks merge and remain private to each account and book for
     items: [{ position: 4 }, { position: 28 }],
     writable: true,
   });
+  const rename = (name: string, previous?: string) =>
+    bookBookmarks(storage, "reader", "atlas/atlas.pdf", "pdf", {
+      intent: "rename",
+      mark: { position: 4, name: previous },
+      name,
+    });
+  assert.deepEqual(await rename("  Harbor map  "), {
+    items: [{ position: 4, name: "Harbor map" }, { position: 28 }],
+    writable: true,
+  });
+  assert.deepEqual(await rename("A stale edit"), { error: "bookmarkConflict" });
+  assert.deepEqual(await rename("x".repeat(81), "Harbor map"), {
+    error: "unavailable",
+  });
+  assert.deepEqual(await rename("", "Harbor map"), {
+    items: [{ position: 4 }, { position: 28 }],
+    writable: true,
+  });
   assert.deepEqual(await read("other", "pdf"), { items: [], writable: true });
   assert.deepEqual(await read("reader", "epub"), { items: [], writable: true });
   assert.deepEqual(
@@ -40,4 +58,7 @@ test("concurrent bookmarks merge and remain private to each account and book for
     }),
     { items: [{ position: 28 }], writable: true },
   );
+  assert.deepEqual(await rename("Removed location"), {
+    error: "bookmarkConflict",
+  });
 });
