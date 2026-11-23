@@ -106,7 +106,11 @@ export async function importBook(
   file: File,
   title: string,
   author: string,
-  details: { isbn?: string; cover?: Uint8Array<ArrayBuffer> } = {},
+  details: {
+    isbn?: string;
+    cover?: Uint8Array<ArrayBuffer>;
+    subjects?: string[];
+  } = {},
 ) {
   const write = storage.writeIfMatch?.bind(storage);
   if (!write) return { result: "forbidden" } as const;
@@ -127,6 +131,7 @@ export async function importBook(
       .map((part) => part.trim())
       .filter(Boolean),
     ...(details.isbn && { isbn: details.isbn }),
+    ...(details.subjects?.length && { subjects: details.subjects }),
     formats: [{ format, file: filename, size: bytes.length }],
   };
   if (details.cover && !validThumbnail(details.cover))

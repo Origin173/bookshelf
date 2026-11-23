@@ -186,7 +186,9 @@ it suggests the package title, creators, a valid ISBN when present, and a
 declared cover if the browser can decode the image. For PDF it reads the
 document properties and renders the first page as a cover candidate. You can
 edit or clear any suggestion and uncheck **Use this cover**. Enter a title
-if none was found. Books without a cover use the usual placeholder.
+if none was found. You can enter one subject per line to make the uploaded
+book available under those subjects on the shelf and in OPDS. Books without
+a cover use the usual placeholder.
 
 The form accepts one file up to **8 MiB**, an optional PNG thumbnail up to
 **240 × 240 pixels and 256 KiB**, and 16 KiB for the remaining multipart data.
