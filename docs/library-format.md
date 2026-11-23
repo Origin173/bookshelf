@@ -74,6 +74,11 @@ Renaming a book keeps its ID, file links and reading positions. Saving an
 empty list clears the subjects. **Use published subjects** follows the
 metadata from sync again.
 
+**Catalog date** accepts a year, a year and month, or a full date. Save the
+field empty to hide the date on the shelf and in both OPDS feeds. **Use
+original date** removes the edit and follows the source again, including on
+later syncs. The original date shown beside the field can be a PDF file date.
+
 The shelf, reading page and both OPDS feeds use the display title. The shelf filter
 and both feeds use the edited subjects. The app reads both fields from
 one small object. A warm reader checks its ETag before downloading it again.

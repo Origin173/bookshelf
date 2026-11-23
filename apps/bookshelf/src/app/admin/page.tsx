@@ -80,6 +80,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     result === "coverSaved" ||
     result === "invalidTitle" ||
     result === "titleSaved" ||
+    result === "dateSaved" ||
+    result === "invalidDate" ||
     result === "authorsSaved" ||
     result === "invalidAuthors" ||
     result === "selectDetails" ||
@@ -375,6 +377,51 @@ export default async function AdminPage(props: PageProps<"/admin">) {
                 className={BUTTON}
               >
                 {t.resetAuthors}
+              </button>
+            </div>
+          </form>
+          <form
+            action="/admin/date"
+            method="post"
+            className="mt-6 grid max-w-lg gap-3"
+          >
+            {revisionFields}
+            {missingCovers && (
+              <input type="hidden" name="from" value="missing" />
+            )}
+            <input
+              type="hidden"
+              name="sourceDate"
+              value={data.source?.published ?? ""}
+            />
+            <label htmlFor="book-date" className="font-medium">
+              {t.catalogDate}
+            </label>
+            <input
+              id="book-date"
+              name="published"
+              aria-describedby="date-help"
+              defaultValue={book.published ?? ""}
+              className={INPUT}
+            />
+            <p id="date-help" className="text-sm text-secondary">
+              {t.editDateHelp}
+            </p>
+            <p className="break-words text-sm text-secondary">
+              {t.originalDate} · {data.source?.published || t.notListed}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className={BUTTON_PRIMARY}>
+                {t.saveDate}
+              </button>
+              <button
+                type="submit"
+                name="intent"
+                value="reset"
+                formNoValidate
+                className={BUTTON}
+              >
+                {t.resetDate}
               </button>
             </div>
           </form>

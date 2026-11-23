@@ -6,6 +6,7 @@ import {
   STATE_PREFIX,
   type Storage,
 } from "@bookshelf/core";
+import { validCatalogDate } from "@/lib/catalog-date";
 import { parseSubjects, subjectAddition } from "@/lib/catalog-names";
 import { bySubject } from "@/lib/opds/browse";
 import type { Shelf } from "@/services/catalog";
@@ -29,7 +30,9 @@ type Titles = Record<string, TitleEdit>;
 type Authors = Record<string, { identity: string; authors: string[] }>;
 type Covers = Record<string, { identity: string; file: string }>;
 type Isbns = Record<string, { identity: string; isbn: string }>;
+type Dates = Record<string, { identity: string; published: string }>;
 export type EditSnapshot = {
+  dates: Dates;
   isbns: Isbns;
   authors: Authors;
   covers: Covers;
@@ -49,6 +52,7 @@ export async function catalogEdits(
     );
     if (!object)
       return {
+        dates: {},
         edits: {},
         titles: {},
         covers: {},
@@ -64,6 +68,7 @@ export async function catalogEdits(
       authors?: Authors;
       isbns?: Isbns;
       covers?: Covers;
+      dates?: Dates;
     } | null;
     if (
       data?.version !== 1 ||
@@ -132,7 +137,21 @@ export async function catalogEdits(
       )
     )
       throw new Error("Invalid ISBN edits");
+    const dates = data.dates ?? {};
+    if (
+      typeof dates !== "object" ||
+      Array.isArray(dates) ||
+      !Object.values(dates).every(
+        (entry) =>
+          entry &&
+          typeof entry.identity === "string" &&
+          typeof entry.published === "string" &&
+          (entry.published === "" || validCatalogDate(entry.published)),
+      )
+    )
+      throw new Error("Invalid catalog date edits");
     return {
+      dates,
       isbns,
       edits: data.books,
       titles,
@@ -145,7 +164,7 @@ export async function catalogEdits(
 
 export function editedBook(
   book: Book,
-  { edits, titles, covers, authors, isbns }: EditSnapshot,
+  { edits, titles, covers, authors, isbns, dates }: EditSnapshot,
 ): Book {
   const subject = Object.hasOwn(edits, book.id) && edits[book.id];
   const title = Object.hasOwn(titles, book.id) && titles[book.id];
@@ -153,12 +172,15 @@ export function editedBook(
     !book.cover && Object.hasOwn(covers, book.id) && covers[book.id];
   const credit = Object.hasOwn(authors, book.id) && authors[book.id];
   const isbn = !book.isbn && Object.hasOwn(isbns, book.id) && isbns[book.id];
-  if (!subject && !title && !cover && !credit && !isbn) return book;
+  const date = Object.hasOwn(dates, book.id) && dates[book.id];
+  if (!subject && !title && !cover && !credit && !isbn && !date) return book;
   const identity = bookIdentity(book);
   const legacy = book.legacyTitle && bookIdentity(book, book.legacyTitle);
   const matches = (saved: string) => saved === identity || saved === legacy;
   return {
     ...book,
+    ...(date &&
+      matches(date.identity) && { published: date.published || undefined }),
     ...(isbn && matches(isbn.identity) && { isbn: isbn.isbn }),
     ...(credit && matches(credit.identity) && { authors: credit.authors }),
     ...(cover && matches(cover.identity) && { cover: cover.file }),
@@ -176,6 +198,8 @@ export function applyEdits(shelf: Shelf, snapshot: EditSnapshot): Shelf {
 }
 
 export type BookEdit = {
+  /** An empty string hides the source date. Null removes the override. */
+  published?: string | null;
   title?: string | null;
   authors?: string[] | null;
   subjects?: string[] | null;
@@ -196,6 +220,10 @@ export async function saveBookEdit(
   const covers: Covers = Object.assign(Object.create(null), snapshot.covers);
   const isbns: Isbns = Object.assign(Object.create(null), snapshot.isbns);
   const identity = bookIdentity(book);
+  const dates: Dates = Object.assign(Object.create(null), snapshot.dates);
+  if (change.published === null) delete dates[book.id];
+  else if (change.published !== undefined)
+    dates[book.id] = { identity, published: change.published };
   if (change.isbn) isbns[book.id] = { identity, isbn: change.isbn };
   if (change.cover) covers[book.id] = { identity, file: change.cover };
   if (change.title !== undefined) {
@@ -212,6 +240,7 @@ export async function saveBookEdit(
     edits[book.id] = { identity, subjects: change.subjects };
   return writeEdits(storage, {
     ...snapshot,
+    dates,
     edits,
     titles,
     covers,
@@ -281,11 +310,12 @@ export async function addSubjectToBooks(
 
 function writeEdits(storage: Storage, snapshot: EditSnapshot) {
   if (!storage.writeIfMatch) return false;
-  const { edits, titles, covers, authors, isbns } = snapshot;
+  const { edits, titles, covers, authors, isbns, dates } = snapshot;
   const bytes = new TextEncoder().encode(
     JSON.stringify({
       version: 1,
       books: edits,
+      dates,
       titles,
       covers,
       authors,

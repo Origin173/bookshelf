@@ -1,6 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sortByCatalogDate } from "../src/lib/catalog-date.ts";
+import {
+  sortByCatalogDate,
+  validCatalogDate,
+} from "../src/lib/catalog-date.ts";
+
+test("editable dates accept partial years and real calendar days", () => {
+  for (const date of ["180", "1984", "1984-06", "2000-02-29"])
+    assert.equal(validCatalogDate(date), true, date);
+  for (const date of [
+    "",
+    "1900-02-29",
+    "2024-13",
+    "2024-06-01T01:00:00Z",
+    "circa 1890",
+  ])
+    assert.equal(validCatalogDate(date), false, date);
+});
 
 test("catalog dates keep partial dates, ties and undated books in order", () => {
   const books = [

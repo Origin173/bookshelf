@@ -1,4 +1,5 @@
 import { findIsbn } from "@bookshelf/core";
+import { validCatalogDate } from "@/lib/catalog-date";
 import { parseAuthors, parseSubjects } from "@/lib/catalog-names";
 import { readBody, readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES } from "@/lib/upload-limits";
@@ -16,7 +17,7 @@ import { storeThumbnail, validThumbnail } from "@/services/thumbnails";
 
 export async function updateBook(
   request: Request,
-  field: "subjects" | "title" | "cover" | "authors" | "details",
+  field: "subjects" | "title" | "cover" | "authors" | "details" | "date",
 ) {
   const reject = (status: number) =>
     new Response(null, {
@@ -80,6 +81,15 @@ export async function updateBook(
     const reset = field !== "details" && form.get("intent") === "reset";
     const selected = (name: keyof BookEdit) =>
       field === name || (field === "details" && form.has(name));
+    if (field === "date") {
+      if ((book.published ?? "") !== form.get("sourceDate"))
+        return back("conflict");
+      const value = form.get("published");
+      const date = typeof value === "string" ? value.trim() : null;
+      if (!reset && (date === null || (date !== "" && !validCatalogDate(date))))
+        return back("invalidDate");
+      change.published = reset ? null : date;
+    }
     if (selected("title")) {
       const raw = form.get("title");
       const title = typeof raw === "string" ? raw.trim() : "";
@@ -124,6 +134,7 @@ export async function updateBook(
     if (!Object.keys(change).length) return back("selectDetails");
     const saved = await saveBookEdit(storage, snapshot, book, change);
     const notice = {
+      date: "dateSaved",
       title: "titleSaved",
       authors: "authorsSaved",
       subjects: "saved",

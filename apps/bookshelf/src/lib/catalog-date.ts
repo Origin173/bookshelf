@@ -15,6 +15,10 @@ function catalogDay(value?: string): number | undefined {
     return time;
 }
 
+export function validCatalogDate(value: string): boolean {
+  return /^[\d-]{1,10}$/.test(value) && catalogDay(value) !== undefined;
+}
+
 export function sortByCatalogDate<T extends Pick<Book, "published">>(
   books: T[],
   order: "newest" | "oldest",
