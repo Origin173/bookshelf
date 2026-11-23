@@ -106,6 +106,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
               author: t.author,
               file: t.file,
               uploadHelp: t.uploadHelp,
+              publishLarger: t.publishLarger,
               import: t.import,
               uploading: t.uploading,
               uploadUnconfirmed: t.uploadUnconfirmed,

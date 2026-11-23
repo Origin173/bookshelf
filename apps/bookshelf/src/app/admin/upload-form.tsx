@@ -29,6 +29,7 @@ type Labels = Pick<
   | "title"
   | "author"
   | "file"
+  | "publishLarger"
   | "uploadHelp"
   | "import"
   | "isbn"
@@ -178,7 +179,15 @@ export function UploadForm({ t }: { t: Labels }) {
           />
         </label>
         <p id="upload-help" className="text-sm text-secondary">
-          {t.uploadHelp}
+          {t.uploadHelp}{" "}
+          <a
+            href="https://github.com/Origin173/bookshelf/blob/main/docs/publishing.md#publish-your-books"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-accent hover:underline"
+          >
+            {t.publishLarger}
+          </a>
         </p>
         {notice && (
           <p role="status" className="text-sm text-secondary">
