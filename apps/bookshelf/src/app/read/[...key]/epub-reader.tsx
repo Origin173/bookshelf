@@ -194,7 +194,14 @@ export function EpubReader({
     let book: Book | null = null;
     let cancelled = false;
 
-    function onKeyDown(event: { key?: string }) {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as Element | null;
+      if (
+        target?.closest?.(
+          "dialog, select, input, textarea, [contenteditable=true]",
+        )
+      )
+        return;
       if (event.key === "ArrowLeft") rendition.current?.prev();
       if (event.key === "ArrowRight") rendition.current?.next();
     }
