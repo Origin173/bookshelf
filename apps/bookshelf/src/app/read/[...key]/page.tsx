@@ -121,13 +121,14 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
     // for instead of hiding the bottom of the toolbar behind it.
     <div className="flex h-dvh flex-col overflow-hidden">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-separator px-3 py-3 sm:gap-4 sm:px-6">
-        <Link
+        {/* Load the shelf document so its same-origin policy applies to sign-out. */}
+        <a
           href="/"
           className="inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-secondary transition-colors hover:text-foreground"
         >
           <ChevronLeft aria-hidden="true" className="size-4" />
           {t.shelf}
-        </Link>
+        </a>
         <h1 className="min-w-0 truncate text-sm font-medium">{book.title}</h1>
         <ReadingFormats book={book} current={format} read={t.readFormat} />
         <a
