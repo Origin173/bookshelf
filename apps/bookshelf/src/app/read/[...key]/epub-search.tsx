@@ -221,10 +221,12 @@ export function EpubSearch({
   const previous = index > 0 ? hits[index - 1] : undefined;
   const next = hits[index + 1];
   const moving = jump === "moving";
+  const partial =
+    !result?.complete || !!result.truncated || !!result.incomplete;
   const matchStatus =
     index < 0
       ? t.results(hits.length)
-      : t.matchPosition(index + 1, hits.length);
+      : t.matchPosition(index + 1, hits.length, partial);
   const matchNotice = moving
     ? t.openingMatch
     : jump === "failed"

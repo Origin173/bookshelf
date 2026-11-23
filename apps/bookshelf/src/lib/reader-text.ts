@@ -35,7 +35,8 @@ const en = {
   searchMatches: "Search matches",
   previousMatch: "Previous match",
   nextMatch: "Next match",
-  matchPosition: (index: number, total: number) => `Match ${index} of ${total}`,
+  matchPosition: (index: number, count: number, partial: boolean) =>
+    partial ? `Match ${index} · ${count} found` : `Match ${index} of ${count}`,
   searchPaused: "Search paused. Reopen search to continue.",
   openingMatch: "Opening match…",
   matchUnavailable: "Could not open this match.",
@@ -132,7 +133,10 @@ const zh: ReaderText = {
   searchMatches: "搜索命中",
   previousMatch: "上一处命中",
   nextMatch: "下一处命中",
-  matchPosition: (index, total) => `第 ${index} / ${total} 处命中`,
+  matchPosition: (index, count, partial) =>
+    partial
+      ? `第 ${index} 处 · 已找到 ${count} 处`
+      : `第 ${index} / ${count} 处命中`,
   searchPaused: "搜索已暂停，重新打开即可继续。",
   openingMatch: "正在打开命中…",
   matchUnavailable: "无法打开此处命中。",
