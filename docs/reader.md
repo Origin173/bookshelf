@@ -172,7 +172,13 @@ dropdown, because technical books run to hundreds of bookmarks. Use **Find a
 chapter** to filter by title. Selecting a match opens its page. Clear the
 field to see the full outline at the current section.
 
-After jumping to a different page from Contents or Search, choose **Back to
+Open **Page thumbnails** to browse previews near the visible part of the
+drawer. The current page is highlighted. Each tile shows its physical page
+number and, when different, its printed label. Select a tile to open its page.
+The previews follow the reader's rotation and are discarded when the drawer
+closes.
+
+After jumping to a different page from Contents, Search or Page thumbnails, choose **Back to
 page …** in the toolbar to return once. Each new jump remembers the page you
 just left. Turning pages or rotating the screen keeps that return point. It
 clears when you use it, reload, or open another book.
@@ -189,7 +195,7 @@ Use **Rotate pages clockwise** to turn the open PDF by 90° at a time.
 **Reset page rotation** restores the orientation in the file. This applies
 to the open reader. Bookmarks and progress still use physical page numbers.
 
-Not there yet: page thumbnails and tap zones for turning on a touchscreen.
+Not there yet: tap zones for turning on a touchscreen.
 
 ## Opening a big book is cheap
 

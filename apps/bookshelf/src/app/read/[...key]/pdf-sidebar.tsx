@@ -67,9 +67,10 @@ export function PdfSidebar({
   }, [needle, searchingText, here]);
 
   return (
-    <aside
-      aria-label={panel === "contents" ? t.contents : t.search}
-      className="flex max-h-[45dvh] w-full shrink-0 flex-col border-b border-separator bg-background sm:max-h-none sm:w-72 sm:border-r sm:border-b-0"
+    <PdfDrawer
+      label={panel === "contents" ? t.contents : t.search}
+      hide={t.hide}
+      onClose={onClose}
     >
       {searchingText || outline.length > 0 ? (
         <div className="border-b border-separator p-3">
@@ -168,14 +169,34 @@ export function PdfSidebar({
           </ul>
         )}
       </div>
+    </PdfDrawer>
+  );
+}
 
+export function PdfDrawer({
+  label,
+  hide,
+  onClose,
+  children,
+}: {
+  label: string;
+  hide: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <aside
+      aria-label={label}
+      className="flex max-h-[45dvh] w-full shrink-0 flex-col border-b border-separator bg-background sm:max-h-none sm:w-72 sm:border-r sm:border-b-0"
+    >
+      {children}
       <button
         type="button"
         onClick={onClose}
         className="flex items-center justify-center gap-1.5 border-t border-separator px-3 py-2 text-xs font-medium text-secondary transition-colors hover:bg-fill hover:text-foreground"
       >
         <X aria-hidden="true" className="size-3.5" />
-        {t.hide}
+        {hide}
       </button>
     </aside>
   );

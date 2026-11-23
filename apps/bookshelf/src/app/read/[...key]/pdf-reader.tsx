@@ -4,6 +4,7 @@ import type { BookProgress } from "@bookshelf/core";
 import {
   ChevronLeft,
   ChevronRight,
+  Images,
   List,
   Minus,
   Plus,
@@ -31,6 +32,7 @@ import { type PageSize, PdfPage } from "@/app/read/[...key]/pdf-page";
 import { PrintedPageBox } from "@/app/read/[...key]/pdf-printed-page";
 import { usePdfSearch } from "@/app/read/[...key]/pdf-search";
 import { type Panel, PdfSidebar } from "@/app/read/[...key]/pdf-sidebar";
+import { PdfThumbnails } from "@/app/read/[...key]/pdf-thumbnails";
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON, BUTTON_ROUND, SELECT } from "@/app/ui";
@@ -187,7 +189,7 @@ export function PdfReader({
   const [layout, setLayout] = useState<Layout>("scroll");
   const [zoom, setZoom] = useState<Zoom>("auto");
   const [tint, setTint] = useState<Tint>("paper");
-  const [panel, setPanel] = useState<Panel | null>(null);
+  const [panel, setPanel] = useState<Panel | "thumbnails" | null>(null);
   const [box, setBox] = useState({ width: 0, height: 0 });
 
   const { ready, current, record } = useReadingPosition({
@@ -428,10 +430,10 @@ export function PdfReader({
 
   // A rotation can change the page boxes even when the scale stays fixed.
   // Realign before paint so the visible page still agrees with the saved one.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scale and rotation are layout triggers.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scale, rotation and panel are layout triggers.
   useLayoutEffect(() => {
     if (status === "ready" && layout === "scroll") alignPage(at.current);
-  }, [status, layout, scale, rotation, alignPage]);
+  }, [status, layout, scale, rotation, panel, alignPage]);
 
   /**
    * Gives the book the keyboard as soon as there is a book.
@@ -597,9 +599,33 @@ export function PdfReader({
     (layout === "spread" ? (spreadOf(page, pages).at(-1) ?? page) : page) >=
       pages;
 
+  function jumpFromPanel(target: number) {
+    if (target !== page) setReturnPage(page);
+    goTo(target);
+  }
+
+  function closeThumbnails() {
+    setPanel(null);
+    scroller.current?.focus({ preventScroll: true });
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
-      {panel && doc && (
+      {doc && panel === "thumbnails" && (
+        <PdfThumbnails
+          doc={doc}
+          page={page}
+          labels={pageLabels}
+          rotation={rotation}
+          t={t}
+          onGo={(target) => {
+            jumpFromPanel(target);
+            closeThumbnails();
+          }}
+          onClose={closeThumbnails}
+        />
+      )}
+      {doc && panel && panel !== "thumbnails" && (
         <PdfSidebar
           key={panel}
           t={t}
@@ -607,10 +633,7 @@ export function PdfReader({
           outline={outline}
           page={page}
           search={search}
-          onGo={(target) => {
-            if (target !== page) setReturnPage(page);
-            goTo(target);
-          }}
+          onGo={jumpFromPanel}
           onClose={() => setPanel(null)}
         />
       )}
@@ -706,6 +729,15 @@ export function PdfReader({
               label={t.contents}
             >
               <List aria-hidden="true" className="size-4" />
+            </Toggle>
+            <Toggle
+              on={panel === "thumbnails"}
+              label={t.thumbnails}
+              onClick={() =>
+                setPanel(panel === "thumbnails" ? null : "thumbnails")
+              }
+            >
+              <Images aria-hidden="true" className="size-4" />
             </Toggle>
             <Toggle
               on={panel === "search"}
