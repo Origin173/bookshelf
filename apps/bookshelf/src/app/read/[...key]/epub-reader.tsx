@@ -165,6 +165,9 @@ export function EpubReader({
     mark: Bookmark & { position: string };
   } | null>(null);
   const [toc, setToc] = useState<TocEntry[]>([]);
+  const [aliases, setAliases] = useState<ReadonlyMap<string, string>>(
+    () => new Map(),
+  );
   const [mode, setMode] = useState<Mode>("double");
 
   const appearanceKey = `bookshelf:epub:appearance:${profileId}`;
@@ -296,10 +299,15 @@ export function EpubReader({
             targetsBySection.delete(removed.section.index),
         );
         view.hooks.content.register((contents: Contents) => {
-          targetsBySection.set(
-            contents.sectionIndex,
-            sectionTargets(contents, entries),
-          );
+          const targets = sectionTargets(contents, entries);
+          targetsBySection.set(contents.sectionIndex, targets);
+          const shared = new Map<string, string>();
+          for (const { entry, heading } of targets) {
+            if (entry.href !== heading.href)
+              shared.set(entry.href, heading.href);
+          }
+          if (shared.size)
+            setAliases((known) => new Map([...known, ...shared]));
           if (view.settings.layout !== "pre-paginated") {
             applyAppearance(contents, appearance);
           }
@@ -376,7 +384,7 @@ export function EpubReader({
           const active =
             targets.findLast(
               ({ cfi }) => view.epubcfi.compare(cfi, position) <= 0,
-            )?.entry ??
+            )?.heading ??
             entries.find(
               (entry) => entry.section === start.index && !entry.fragment,
             );
@@ -542,6 +550,7 @@ export function EpubReader({
           <EpubContents
             entries={toc}
             active={place?.active}
+            aliases={aliases}
             t={t}
             onGo={(entry) => {
               returningCfi.current = undefined;
