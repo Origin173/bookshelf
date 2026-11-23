@@ -7,10 +7,9 @@ import { headers } from "next/headers";
  * constants, and anything may import it.
  */
 
-/** Localhost in any of its spellings, which is the one host served over http. */
+/** A loopback host, where local development commonly uses HTTP or HTTPS. */
 function isLocal(host: string): boolean {
-  const name = host.split(":")[0];
-  return name === "localhost" || name === "127.0.0.1" || name === "[::1]";
+  return /^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host);
 }
 
 /** A header a proxy may have written as a list; the first entry is ours. */
@@ -31,7 +30,7 @@ function first(value: string | null): string | undefined {
  * reached at: behind a proxy that does not say so, or where previews should
  * name a canonical host rather than whichever alias was used.
  */
-export async function siteOrigin(): Promise<URL> {
+export async function siteOrigin(request?: Request): Promise<URL> {
   const configured = process.env.BOOKSHELF_SITE_URL?.trim();
   if (configured) {
     try {
@@ -42,13 +41,19 @@ export async function siteOrigin(): Promise<URL> {
     }
   }
 
-  const list = await headers();
+  const url = request && new URL(request.url);
+  const list = request?.headers ?? (await headers());
   const host =
     first(list.get("x-forwarded-host")) ??
     first(list.get("host")) ??
+    url?.host ??
     "localhost:3000";
 
-  return new URL(
-    `${first(list.get("x-forwarded-proto")) ?? (isLocal(host) ? "http" : "https")}://${host}`,
-  );
+  // A TLS Wrangler preview hands Next an HTTP forwarding header for its
+  // internal hop. Its route request still carries the external HTTPS URL.
+  const local = isLocal(host);
+  if (local && url?.protocol === "https:") return new URL(`https://${host}`);
+  const protocol =
+    first(list.get("x-forwarded-proto")) ?? (local ? "http" : "https");
+  return new URL(`${protocol}://${host}`);
 }

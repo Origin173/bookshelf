@@ -1,4 +1,4 @@
-import { normaliseEtag, parseBookKey } from "@bookshelf/core";
+import { normaliseEtag, parseBookKey, storageBookKey } from "@bookshelf/core";
 import { serviceUnavailable } from "@/lib/http";
 import { imageContentType, isImage } from "@/lib/media";
 import { enforceR2RateLimit } from "@/lib/rate-limit";
@@ -83,7 +83,7 @@ async function serve(
   if (limited) return limited;
 
   const found = await reading("a cover", () =>
-    storage.read(objectKey, {
+    storage.read(storageBookKey(objectKey), {
       ifNoneMatch: conditional ?? undefined,
     }),
   );

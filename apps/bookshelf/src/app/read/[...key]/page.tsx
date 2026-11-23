@@ -1,4 +1,4 @@
-import { DEFAULT_PROFILE_ID } from "@bookshelf/core";
+import { DEFAULT_PROFILE_ID, parseBookKey } from "@bookshelf/core";
 import { ArrowDownToLine, ChevronLeft, CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -39,7 +39,7 @@ export async function generateMetadata(
 
   // The catalog is memoised per request, so the page's own lookup is free.
   const { catalog } = await getServices();
-  const book = await catalog.find(id);
+  const book = await catalog.display(id);
   if (!book) return { robots: { index: false, follow: false } };
 
   const authors = book.authors.join(", ");
@@ -76,17 +76,19 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   await requirePageAccount();
   const { key } = await props.params;
   const fileKey = key.join("/");
-  const [id] = fileKey.split("/");
+  const target = parseBookKey(fileKey);
+  if (!target) notFound();
+  const { id, file } = target;
 
   const { catalog } = await getServices();
 
   // Undefined is a library that could not be read, which is not the same as a
   // book that is not in it — one is worth coming back for and the other is not.
-  const book = await ifAvailable(() => catalog.find(id));
+  const book = await ifAvailable(() => catalog.display(id));
   const locale = await language();
   const t = readerText[locale];
   if (book === undefined) return <Unreachable />;
-  if (!book?.formats.some((f) => fileKey.endsWith(`/${f.file}`))) {
+  if (!book?.formats.some((f) => f.file === file)) {
     notFound();
   }
 
