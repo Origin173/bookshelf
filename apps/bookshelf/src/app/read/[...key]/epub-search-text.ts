@@ -2,6 +2,7 @@ import type Section from "epubjs/types/section";
 
 export type Passage = {
   cfi: string;
+  rangeCfi: string;
   section: number;
   before: string;
   match: string;
@@ -87,12 +88,18 @@ export function findPassages(
     while (runIndex < runs.length && runs[runIndex].end <= start) runIndex++;
     const run = runs[runIndex];
     if (!run) break;
+    let endIndex = runIndex;
+    while (end > runs[endIndex].end) endIndex++;
+    const endRun = runs[endIndex];
     range.setStart(run.node, start - run.start);
+    range.setEnd(endRun.node, end - endRun.start);
+    const rangeCfi = section.cfiFromRange(range);
     range.collapse(true);
     const from = Math.max(0, start - 42);
     const to = Math.min(text.length, end + 58);
     hits.push({
       cfi: section.cfiFromRange(range),
+      rangeCfi,
       section: section.index,
       before: (from ? "…" : "") + text.slice(from, start).replace(/\s+/g, " "),
       match: text.slice(start, end).replace(/\s+/g, " "),

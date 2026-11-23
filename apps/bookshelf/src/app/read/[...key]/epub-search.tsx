@@ -26,7 +26,7 @@ export function EpubSearch({
   bookKey: string;
   entries: TocEntry[];
   t: ReaderText;
-  onGo: (cfi: string) => void;
+  onGo: (passage: Passage) => void;
 }) {
   const title = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -79,9 +79,9 @@ export function EpubSearch({
             bookKey={bookKey}
             entries={entries}
             t={t}
-            onGo={(cfi) => {
+            onGo={(passage) => {
               close();
-              onGo(cfi);
+              onGo(passage);
             }}
           />
         )}
@@ -109,7 +109,7 @@ function SearchPassages({
   bookKey: string;
   entries: TocEntry[];
   t: ReaderText;
-  onGo: (cfi: string) => void;
+  onGo: (passage: Passage) => void;
 }) {
   const [query, setQuery] = useState("");
   const [scan, setScan] = useState<Scan>();
@@ -231,7 +231,7 @@ function SearchPassages({
             <li key={hit.cfi}>
               <button
                 type="button"
-                onClick={() => onGo(hit.cfi)}
+                onClick={() => onGo(hit)}
                 className="w-full break-words rounded-lg px-2 py-2 text-left text-sm hover:bg-fill"
               >
                 <span className="mb-0.5 block font-medium">
