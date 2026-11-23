@@ -2,7 +2,7 @@
 
 import type { BookProgress } from "@bookshelf/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { readStored, writeStored } from "@/lib/local";
+import { readStored, removeStored, writeStored } from "@/lib/local";
 
 /**
  * Keeping a place in a book, from either reader.
@@ -36,19 +36,24 @@ function progressKey(profileId: string, bookId: string): string {
   return `bookshelf:progress:${profileId}:${bookId}`;
 }
 
-function readLocal(key: string): BookProgress | null {
+// An absent basedOn means the position has no outstanding write. Null means
+// this browser saw a book with no server position yet.
+type LocalPosition = BookProgress & { basedOn?: string | null };
+type Pending = LocalPosition & { basedOn: string | null };
+
+function readLocal(key: string): LocalPosition | null {
   const raw = readStored(key);
   if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw) as BookProgress;
+    const parsed = JSON.parse(raw) as LocalPosition;
     return typeof parsed?.updatedAt === "string" ? parsed : null;
   } catch {
     return null;
   }
 }
 
-function writeLocal(key: string, progress: BookProgress): void {
+function writeLocal(key: string, progress: LocalPosition): void {
   writeStored(key, JSON.stringify(progress));
 }
 
@@ -90,27 +95,30 @@ export function useReadingPosition({
 }): Position {
   const storageKey = progressKey(profileId, bookId);
 
-  /** A position seen but not yet sent, and the timer that will send it. */
-  const pending = useRef<ReadingPosition | null>(null);
+  const revision = useRef(saved?.updatedAt ?? null);
+  const pending = useRef<Pending | null>(null);
+  const sending = useRef(false);
+  const retry = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sync = useCallback(
-    (beacon: boolean) => {
-      if (timer.current) {
-        clearTimeout(timer.current);
-        timer.current = null;
+    async function flush(beacon = false): Promise<void> {
+      if (timer.current) clearTimeout(timer.current);
+      const sent = pending.current;
+      if (!sent || !canSync) return;
+      if (sending.current) {
+        retry.current = true;
+        return;
       }
-
-      const position = pending.current;
-      if (!position || !canSync) return;
-      pending.current = null;
-
-      // Who this reader was opened for travels with the position, so a cookie
-      // that has since moved on to another profile does not take it with it.
-      const body = JSON.stringify({ bookId, profileId, ...position });
-
-      // On the way out there is no time for a normal request to finish, and a
-      // beacon is the only kind the browser promises to deliver.
+      const { cfi, href, page, basedOn } = sent;
+      const body = JSON.stringify({
+        bookId,
+        profileId,
+        cfi,
+        href,
+        page,
+        basedOn,
+      });
       if (beacon && typeof navigator.sendBeacon === "function") {
         navigator.sendBeacon(
           "/api/progress",
@@ -118,17 +126,50 @@ export function useReadingPosition({
         );
         return;
       }
-
-      void fetch("/api/progress", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body,
-        keepalive: true,
-      }).catch(() => {
-        // The browser copy is still correct; the next pause tries again.
-      });
+      sending.current = true;
+      try {
+        const response = await fetch("/api/progress", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+          keepalive: true,
+        });
+        if (response.status !== 200 && response.status !== 409) return;
+        const result = (await response.json()) as {
+          saved: boolean;
+          current?: BookProgress | null;
+        };
+        // A 409 for a switched account has no position for this reader.
+        if (result.current === undefined) return;
+        revision.current = result.current?.updatedAt ?? null;
+        const next = pending.current;
+        if (!next) return;
+        const local = readLocal(storageKey);
+        const ownsLocal = !local || local.updatedAt === next.updatedAt;
+        if (result.saved && next !== sent) {
+          // This tab moved again while its earlier turn was being confirmed.
+          pending.current = { ...next, basedOn: revision.current };
+          if (ownsLocal) writeLocal(storageKey, pending.current);
+          retry.current = true;
+        } else {
+          // The server acknowledged the turn, or returned a newer position.
+          pending.current = null;
+          if (ownsLocal) {
+            if (result.current) writeLocal(storageKey, result.current);
+            else removeStored(storageKey);
+          }
+        }
+      } catch {
+        // Keep the pending revision until an acknowledgement or conflict.
+      } finally {
+        sending.current = false;
+        if (retry.current) {
+          retry.current = false;
+          void flush();
+        }
+      }
     },
-    [bookId, profileId, canSync],
+    [bookId, profileId, canSync, storageKey],
   );
 
   // Held in a ref so that a reader whose own effects depend on `record` is not
@@ -142,27 +183,40 @@ export function useReadingPosition({
 
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    // The library's copy and this browser's copy are reconciled once, into the
-    // browser's, so everything after this reads one place. Newest wins, which
-    // is right whichever device was last used — and means a reader that was
-    // offline does not lose its place to a stale server copy.
+    // Retry a pending turn only against the server revision it was read from.
+    // Older browsers stored timestamps without a pending-write marker.
     const local = readLocal(storageKey);
-    if (saved && (!local || saved.updatedAt > local.updatedAt)) {
-      writeLocal(storageKey, saved);
+    revision.current = saved?.updatedAt ?? null;
+    if (
+      local &&
+      local.basedOn !== undefined &&
+      local.basedOn === revision.current
+    ) {
+      pending.current = { ...local, basedOn: local.basedOn };
+      void sync();
+    } else if (
+      local?.basedOn !== undefined ||
+      (saved && (!local || saved.updatedAt > local.updatedAt))
+    ) {
+      if (saved) writeLocal(storageKey, saved);
+      else removeStored(storageKey);
     } else if (!local) {
       const older = profileId === "default" ? migrate.current?.() : null;
       if (older) writeLocal(storageKey, older);
     }
 
     setReady(true);
-  }, [storageKey, saved, profileId]);
+  }, [storageKey, saved, profileId, sync]);
 
   // Leaving the page is the one moment a debounce cannot be allowed to lose.
   useEffect(() => {
-    const flush = () => sync(true);
+    const flush = () => void sync(true);
+    const reconnect = () => void sync();
+    window.addEventListener("online", reconnect);
     window.addEventListener("pagehide", flush);
     return () => {
       window.removeEventListener("pagehide", flush);
+      window.removeEventListener("online", reconnect);
       flush();
     };
   }, [sync]);
@@ -173,16 +227,17 @@ export function useReadingPosition({
     (position: ReadingPosition) => {
       // The browser first and without waiting, so the position is never at the
       // mercy of the network; the library catches up once the reader pauses.
-      writeLocal(storageKey, {
-        ...position,
-        updatedAt: new Date().toISOString(),
-      });
-
-      pending.current = position;
+      const next = { ...position, updatedAt: new Date().toISOString() };
+      if (!canSync) {
+        writeLocal(storageKey, next);
+        return;
+      }
+      pending.current = { ...next, basedOn: revision.current };
+      writeLocal(storageKey, pending.current);
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => sync(false), SYNC_DEBOUNCE_MS);
     },
-    [storageKey, sync],
+    [storageKey, sync, canSync],
   );
 
   return { ready, current, record };

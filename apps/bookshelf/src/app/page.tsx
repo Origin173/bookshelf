@@ -1,6 +1,7 @@
 import { CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HomeScreenHelp } from "@/app/home-screen-help";
 import { LanguageSwitch } from "@/app/language-switch";
 import { ProfileMenu } from "@/app/profile-menu";
 import { SearchInput } from "@/app/search-input";
@@ -281,6 +282,9 @@ export default async function Home(props: PageProps<"/">) {
           )}
         </>
       )}
+      <footer className="mt-8 border-t border-separator pt-4">
+        <HomeScreenHelp />
+      </footer>
     </main>
   );
 }

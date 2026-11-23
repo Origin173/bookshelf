@@ -31,14 +31,19 @@ import { type Panel, PdfSidebar } from "@/app/read/[...key]/pdf-sidebar";
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
 import { readStored, writeStored } from "@/lib/local";
+import {
+  type ReaderLocale,
+  type ReaderText,
+  readerText,
+} from "@/lib/reader-text";
 
 type Layout = "spread" | "page" | "scroll";
 
-const LAYOUTS: { value: Layout; label: string }[] = [
-  { value: "spread", label: "Two pages" },
-  { value: "page", label: "One page" },
-  { value: "scroll", label: "Scroll" },
-];
+const LAYOUTS = [
+  { value: "spread", label: "twoPages" },
+  { value: "page", label: "onePage" },
+  { value: "scroll", label: "scroll" },
+] as const;
 
 type Tint = "paper" | "sepia" | "night";
 
@@ -53,7 +58,6 @@ type Tint = "paper" | "sepia" | "night";
  */
 type TintOption = {
   value: Tint;
-  label: string;
   /** Applied to the canvas, so the page changes and the chrome does not. */
   filter: string;
   /** What a page that has not been drawn yet should look like. */
@@ -61,16 +65,14 @@ type TintOption = {
 };
 
 const TINTS: TintOption[] = [
-  { value: "paper", label: "Paper", filter: "none", paper: "#ffffff" },
+  { value: "paper", filter: "none", paper: "#ffffff" },
   {
     value: "sepia",
-    label: "Sepia",
     filter: "sepia(0.32) saturate(1.1) brightness(0.97)",
     paper: "#f4ecdc",
   },
   {
     value: "night",
-    label: "Night",
     // Inverting alone turns black text white and every colour into its
     // opposite; rotating the hue back through half a turn returns the colours
     // to roughly where they started, so a red heading stays red rather than
@@ -145,7 +147,9 @@ export function PdfReader({
   profileId,
   saved,
   canSync,
+  locale,
 }: {
+  locale: ReaderLocale;
   /** `/download/<key>`, which answers ranged requests. */
   url: string;
   bookId: string;
@@ -155,6 +159,7 @@ export function PdfReader({
   /** False against a library the app cannot write to. */
   canSync: boolean;
 }) {
+  const t = readerText[locale];
   const scroller = useRef<HTMLElement>(null);
 
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
@@ -580,9 +585,10 @@ export function PdfReader({
       pages;
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
       {panel && doc && (
         <PdfSidebar
+          t={t}
           panel={panel}
           outline={outline}
           page={page}
@@ -592,14 +598,14 @@ export function PdfReader({
         />
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* A labelled, scrollable region that also takes the keyboard: paging
             and the browser's own scrolling then have one target rather than
             two. A `section` with a label is a region without having to say so.
             */}
         <section
           ref={scroller}
-          aria-label="The book"
+          aria-label={t.book}
           // biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll container that cannot be focused cannot be scrolled without a pointer.
           tabIndex={0}
           onKeyDown={onKeyDown}
@@ -645,9 +651,7 @@ export function PdfReader({
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               {status === "error" ? (
-                <p className="text-sm text-secondary">
-                  This book could not be opened.
-                </p>
+                <p className="text-sm text-secondary">{t.openError}</p>
               ) : (
                 <div className="aspect-[17/22] w-full max-w-md animate-pulse rounded bg-surface/60" />
               )}
@@ -669,14 +673,14 @@ export function PdfReader({
             <Toggle
               on={panel === "contents"}
               onClick={() => setPanel(panel === "contents" ? null : "contents")}
-              label="Contents"
+              label={t.contents}
             >
               <List aria-hidden="true" className="size-4" />
             </Toggle>
             <Toggle
               on={panel === "search"}
               onClick={() => setPanel(panel === "search" ? null : "search")}
-              label="Search in this book"
+              label={t.search}
             >
               <SearchIcon aria-hidden="true" className="size-4" />
             </Toggle>
@@ -685,23 +689,23 @@ export function PdfReader({
           <div className="flex items-center gap-1">
             <Round
               onClick={() => turn(-1)}
-              label="Previous page"
+              label={t.previous}
               disabled={page <= 1}
             >
               <ChevronLeft aria-hidden="true" className="size-4" />
             </Round>
-            <PageBox page={page} pages={pages} onGo={goTo} />
-            <Round onClick={() => turn(1)} label="Next page" disabled={atEnd}>
+            <PageBox t={t} page={page} pages={pages} onGo={goTo} />
+            <Round onClick={() => turn(1)} label={t.next} disabled={atEnd}>
               <ChevronRight aria-hidden="true" className="size-4" />
             </Round>
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            <Round onClick={() => step(-1)} label="Zoom out">
+            <Round onClick={() => step(-1)} label={t.zoomOut}>
               <Minus aria-hidden="true" className="size-4" />
             </Round>
             <select
-              aria-label="Zoom"
+              aria-label={t.zoom}
               value={typeof zoom === "number" ? String(zoom) : zoom}
               onChange={(event) => {
                 const chosen = event.target.value;
@@ -713,42 +717,42 @@ export function PdfReader({
               }}
               className={`${SELECT} shrink-0`}
             >
-              <option value="auto">Automatic</option>
-              <option value="width">Fit width</option>
-              <option value="page">Fit page</option>
+              <option value="auto">{t.auto}</option>
+              <option value="width">{t.fitWidth}</option>
+              <option value="page">{t.fitPage}</option>
               {ZOOM_STEPS.map((value) => (
                 <option key={value} value={value}>
                   {Math.round(value * 100)}%
                 </option>
               ))}
             </select>
-            <Round onClick={() => step(1)} label="Zoom in">
+            <Round onClick={() => step(1)} label={t.zoomIn}>
               <Plus aria-hidden="true" className="size-4" />
             </Round>
           </div>
 
           <select
-            aria-label="Reading layout"
+            aria-label={t.layout}
             value={layout}
             onChange={(event) => changeLayout(event.target.value as Layout)}
             className={`${SELECT} shrink-0`}
           >
             {LAYOUTS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t[option.label]}
               </option>
             ))}
           </select>
 
           <select
-            aria-label="Page tint"
+            aria-label={t.tint}
             value={tint}
             onChange={(event) => changeTint(event.target.value as Tint)}
             className={`${SELECT} shrink-0`}
           >
             {TINTS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t[option.value]}
               </option>
             ))}
           </select>
@@ -818,12 +822,14 @@ function Toggle({
  * Enter or on leaving.
  */
 function PageBox({
+  t,
   page,
   pages,
   onGo,
 }: {
   page: number;
   pages: number;
+  t: ReaderText;
   onGo: (page: number) => void;
 }) {
   const [typed, setTyped] = useState<string | null>(null);
@@ -840,7 +846,7 @@ function PageBox({
       <input
         type="text"
         inputMode="numeric"
-        aria-label="Page"
+        aria-label={t.page}
         value={typed ?? String(page)}
         onChange={(event) => setTyped(event.target.value.replace(/\D/g, ""))}
         onFocus={(event) => event.currentTarget.select()}
@@ -855,7 +861,9 @@ function PageBox({
         }}
         className="w-12 rounded-lg bg-fill px-2 py-1.5 text-center text-sm tabular-nums outline-none transition-shadow focus:ring-2 focus:ring-accent"
       />
-      <span className="shrink-0 text-tertiary">of {pages || "…"}</span>
+      <span className="shrink-0 text-tertiary">
+        {t.totalPages(pages || "…")}
+      </span>
     </span>
   );
 }

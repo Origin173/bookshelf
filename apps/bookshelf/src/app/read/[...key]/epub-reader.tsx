@@ -1,20 +1,21 @@
 "use client";
 
 import type { BookProgress } from "@bookshelf/core";
-import type { Book, NavItem, Rendition } from "epubjs";
+import type { Book, Contents, NavItem, Rendition } from "epubjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
 import { readStored, writeStored } from "@/lib/local";
+import { type ReaderLocale, readerText } from "@/lib/reader-text";
 
 type Mode = "single" | "double" | "scroll";
 
-const MODES: { value: Mode; label: string }[] = [
-  { value: "double", label: "Two pages" },
-  { value: "single", label: "One page" },
-  { value: "scroll", label: "Scroll" },
-];
+const MODES = [
+  { value: "double", label: "twoPages" },
+  { value: "single", label: "onePage" },
+  { value: "scroll", label: "scroll" },
+] as const;
 
 const MODE_STORAGE_KEY = "bookshelf:mode";
 
@@ -58,6 +59,43 @@ function firstReadableHref(book: Book): string | undefined {
   )?.href;
 }
 
+/** Chapters live in their own documents. A swipe there never reaches the toolbar. */
+function enableSwipe(view: Rendition, { document: doc }: Contents) {
+  let start: PointerEvent | null = null;
+  doc.documentElement.style.touchAction = "pan-y pinch-zoom";
+  doc.addEventListener("pointerdown", (event) => {
+    const target = event.target as Element | null;
+    start =
+      event.pointerType === "touch" &&
+      event.isPrimary &&
+      !target?.closest?.(
+        "a, button, input, select, textarea, [contenteditable=true]",
+      )
+        ? event
+        : null;
+  });
+  doc.addEventListener("pointercancel", () => {
+    start = null;
+  });
+  doc.addEventListener("pointerup", (event) => {
+    const from = start;
+    start = null;
+    if (
+      !from ||
+      event.pointerId !== from.pointerId ||
+      doc.getSelection()?.isCollapsed === false
+    )
+      return;
+    const dx = event.clientX - from.clientX;
+    const dy = event.clientY - from.clientY;
+    if (Math.abs(dx) < 60 || Math.abs(dy) >= Math.abs(dx)) return;
+    const rtl =
+      "direction" in view.settings && view.settings.direction === "rtl";
+    if (rtl ? dx > 0 : dx < 0) void view.next();
+    else void view.prev();
+  });
+}
+
 export function EpubReader({
   opfUrl,
   bookKey,
@@ -65,7 +103,9 @@ export function EpubReader({
   profileId,
   saved,
   canSync,
+  locale,
 }: {
+  locale: ReaderLocale;
   opfUrl: string;
   bookKey: string;
   bookId: string;
@@ -75,6 +115,7 @@ export function EpubReader({
   /** False against a library the app cannot write to. */
   canSync: boolean;
 }) {
+  const t = readerText[locale];
   const container = useRef<HTMLDivElement>(null);
   const rendition = useRef<Rendition | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
@@ -179,6 +220,11 @@ export function EpubReader({
           allowScriptedContent: false,
         });
         rendition.current = view;
+        if (mode !== "scroll") {
+          view.hooks.content.register((contents: Contents) =>
+            enableSwipe(view, contents),
+          );
+        }
 
         // Fires for every move — buttons, keyboard and contents jumps alike —
         // so position and label stay in step however the reader got there.
@@ -260,9 +306,7 @@ export function EpubReader({
         {status !== "ready" && (
           <div className="absolute inset-0 flex items-center justify-center">
             {status === "error" ? (
-              <p className="text-sm text-secondary">
-                This book could not be opened.
-              </p>
+              <p className="text-sm text-secondary">{t.openError}</p>
             ) : (
               <div className="w-full max-w-md animate-pulse space-y-3 px-6">
                 <div className="h-3 w-2/3 rounded bg-fill" />
@@ -279,7 +323,7 @@ export function EpubReader({
         <button
           type="button"
           onClick={() => turn("prev")}
-          aria-label="Previous page"
+          aria-label={t.previous}
           className={BUTTON_ROUND}
         >
           <ChevronLeft aria-hidden="true" className="size-4" />
@@ -287,7 +331,7 @@ export function EpubReader({
 
         {toc.length > 0 ? (
           <select
-            aria-label="Jump to chapter"
+            aria-label={t.jump}
             value=""
             onChange={(event) => {
               if (event.target.value) {
@@ -296,7 +340,7 @@ export function EpubReader({
             }}
             className={`${SELECT} min-w-0 flex-1 truncate`}
           >
-            <option value="">{label || "Contents"}</option>
+            <option value="">{label || t.contents}</option>
             {toc.map(({ item, depth }) => (
               <option key={item.href} value={item.href}>
                 {`${"  ".repeat(depth)}${item.label.trim()}`}
@@ -310,14 +354,14 @@ export function EpubReader({
         )}
 
         <select
-          aria-label="Reading layout"
+          aria-label={t.layout}
           value={mode}
           onChange={(event) => changeMode(event.target.value as Mode)}
           className={`${SELECT} shrink-0`}
         >
           {MODES.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {t[option.label]}
             </option>
           ))}
         </select>
@@ -325,7 +369,7 @@ export function EpubReader({
         <button
           type="button"
           onClick={() => turn("next")}
-          aria-label="Next page"
+          aria-label={t.next}
           className={BUTTON_ROUND}
         >
           <ChevronRight aria-hidden="true" className="size-4" />
