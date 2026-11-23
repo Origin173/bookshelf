@@ -99,6 +99,10 @@ export async function bookBookmarks(
       )
     )
       return { items, writable: true };
+    // The filesystem writer holds its lock until the atomic rename completes.
+    // Give it time to finish before reading the new revision.
+    if (attempt < 2)
+      await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
   }
   return { error: "bookmarkConflict" };
 }

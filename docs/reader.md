@@ -38,8 +38,9 @@ Both readers share the same controls.
 | | |
 | --- | --- |
 | **Layout** | two pages, one page, or continuous scroll |
-| **Contents** | jump to a chapter or a bookmark |
-| **Page tint** | paper, sepia or night |
+| **Contents** | jump to a chapter |
+| **Bookmarks** | save, revisit or remove a location |
+| **Page tint** | publisher colors (EPUB) or paper (PDF), plus sepia and night |
 | **Download** | the file itself |
 
 **Keyboard**, in the page-at-a-time layouts:
@@ -53,6 +54,15 @@ Both readers share the same controls.
 In continuous scroll the arrows scroll instead of turning. On a touchscreen,
 swipe to turn when the pages fit the screen horizontally. When zoomed in, drag
 to pan across the page and use the arrow buttons to turn.
+
+## EPUB appearance
+
+In a reflowable EPUB, open **Reading appearance** to change text size from
+85% to 200% or choose sepia or night colors. Choose **100%** and **Publisher
+colors** for the original typography and palette. The reader reopens the
+current passage as the text reflows. Illustrations retain their colors.
+This browser remembers the choices for the signed-in account across its books.
+Fixed-layout EPUBs keep their original presentation.
 
 ## Personal bookmarks
 
