@@ -210,7 +210,7 @@ async function EpubBody({
 
   return (
     <EpubReader
-      key={JSON.stringify([profile?.id, bookId, start])}
+      key={JSON.stringify([profile?.id, fileKey, start])}
       start={start}
       opfUrl={`/book/${encodeKey(fileKey)}/${encodeKey(opfPath)}`}
       bookKey={fileKey}
