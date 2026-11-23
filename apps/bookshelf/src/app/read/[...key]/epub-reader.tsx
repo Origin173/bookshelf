@@ -1,7 +1,7 @@
 "use client";
 
 import type { BookProgress } from "@bookshelf/core";
-import type { Book, Contents, Location, NavItem, Rendition } from "epubjs";
+import type { Book, Contents, Location, Rendition } from "epubjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -11,6 +11,11 @@ import {
   original,
   readAppearance,
 } from "@/app/read/[...key]/epub-appearance";
+import {
+  bookContents,
+  sectionTargets,
+  type TocEntry,
+} from "@/app/read/[...key]/epub-toc";
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
@@ -34,17 +39,6 @@ const PREFETCH_AHEAD = 2;
 /** What the reader stored before positions were shared between devices. */
 function legacyProgressKey(bookKey: string): string {
   return `bookshelf:progress:${bookKey}`;
-}
-
-/** Table of contents entries nest; one flat list with indentation is enough. */
-function flatten(
-  items: NavItem[],
-  depth = 0,
-): { item: NavItem; depth: number }[] {
-  return items.flatMap((item) => [
-    { item, depth },
-    ...flatten(item.subitems ?? [], depth + 1),
-  ]);
 }
 
 type SpineItem = { href: string; index: number; linear?: string };
@@ -133,12 +127,15 @@ export function EpubReader({
     "loading",
   );
   const targetCfi = useRef<string | undefined>(undefined);
+  const restoringCfi = useRef<string | undefined>(undefined);
+  const requestedEntry = useRef<TocEntry | undefined>(undefined);
   const [place, setPlace] = useState<{
     chapter: string;
+    active?: TocEntry;
     pages: string;
     mark: Bookmark;
   } | null>(null);
-  const [toc, setToc] = useState<{ item: NavItem; depth: number }[]>([]);
+  const [toc, setToc] = useState<TocEntry[]>([]);
   const [mode, setMode] = useState<Mode>("double");
 
   const appearanceKey = `bookshelf:epub:appearance:${profileId}`;
@@ -208,6 +205,7 @@ export function EpubReader({
 
     function onResize() {
       targetCfi.current = current()?.cfi;
+      restoringCfi.current = targetCfi.current;
       // epub.js accepts an optional CFI after its width and height.
       const view = rendition.current as
         | (Rendition & {
@@ -259,7 +257,20 @@ export function EpubReader({
           allowScriptedContent: false,
         });
         rendition.current = view;
+        let entries: TocEntry[] = [];
+        const targetsBySection = new Map<
+          number,
+          ReturnType<typeof sectionTargets>
+        >();
+        view.hooks.unloaded.register(
+          (removed: { section: { index: number } }) =>
+            targetsBySection.delete(removed.section.index),
+        );
         view.hooks.content.register((contents: Contents) => {
+          targetsBySection.set(
+            contents.sectionIndex,
+            sectionTargets(contents, entries),
+          );
           if (view.settings.layout !== "pre-paginated") {
             applyAppearance(contents, appearance);
           }
@@ -275,9 +286,6 @@ export function EpubReader({
         view.on("relocated", ({ start, end }: Location) => {
           if (cancelled || !start?.cfi) return;
 
-          const chapter =
-            opened.navigation?.get(start.href)?.label?.trim() ||
-            t.sectionNumber(start.index + 1);
           const { page, total } = start.displayed;
           const paginated =
             mode !== "scroll" &&
@@ -293,17 +301,45 @@ export function EpubReader({
             page <= total;
           // After reflow the first visible character can move while the saved
           // passage is still on screen. Keep that exact CFI until we leave it.
-          const target = targetCfi.current;
-          const position =
-            target &&
+          const targets = targetsBySection.get(start.index) ?? [];
+          const requested = requestedEntry.current;
+          const onScreen = (cfi: string) =>
             end?.cfi &&
-            view.epubcfi.compare(start.cfi, target) <= 0 &&
-            view.epubcfi.compare(target, end.cfi) <= 0
-              ? target
-              : start.cfi;
+            view.epubcfi.compare(start.cfi, cfi) <= 0 &&
+            view.epubcfi.compare(cfi, end.cfi) <= 0;
+          if (requested?.section === start.index) {
+            targetCfi.current = targets.find(
+              ({ entry }) => entry === requested,
+            )?.cfi;
+            restoringCfi.current = targetCfi.current;
+            requestedEntry.current = undefined;
+          }
+          const target = targetCfi.current;
+          if (target && restoringCfi.current === target) {
+            restoringCfi.current = undefined;
+            if (!onScreen(target)) {
+              // A new font or viewport can finish paginating after the first
+              // display. Reposition once against the actual rendered section.
+              const heading = targets.find(({ cfi }) => cfi === target);
+              void view.display(heading?.entry.href ?? target).catch(() => {
+                if (!cancelled) setStatus("error");
+              });
+              return;
+            }
+          }
+          const position = target && onScreen(target) ? target : start.cfi;
           if (position !== target) targetCfi.current = undefined;
+          const active =
+            targets.findLast(
+              ({ cfi }) => view.epubcfi.compare(cfi, position) <= 0,
+            )?.entry ??
+            entries.find(
+              (entry) => entry.section === start.index && !entry.fragment,
+            );
+          const chapter = active?.label || t.sectionNumber(start.index + 1);
           setPlace({
             chapter,
+            active,
             pages: counted ? t.sectionPage(page, total) : "",
             mark: {
               position,
@@ -320,19 +356,15 @@ export function EpubReader({
         // events from inside its iframe, which a window listener never sees.
         view.on("keydown", onKeyDown);
 
-        opened.loaded.navigation
-          .then((navigation) => {
-            if (!cancelled) setToc(flatten(navigation.toc));
-          })
-          .catch(() => {
-            // A book with no usable nav document still reads front to back.
-          });
-
         // `ready` resolves once the spine is parsed, which is what tells us
         // where the cover ends and the book begins.
         return opened.ready.then(async () => {
           if (cancelled) return;
+          entries = bookContents(opened, opened.navigation?.toc ?? [], opfUrl);
+          setToc(entries);
+          requestedEntry.current = undefined;
           targetCfi.current = current()?.cfi;
+          restoringCfi.current = targetCfi.current;
           await view.display(targetCfi.current ?? firstReadableHref(opened));
           if (!cancelled)
             setFixedLayout(view.settings.layout === "pre-paginated");
@@ -419,6 +451,7 @@ export function EpubReader({
             current={status === "ready" ? (place?.mark ?? null) : null}
             onGo={(position) => {
               if (typeof position === "string") {
+                restoringCfi.current = position;
                 targetCfi.current = position;
                 return rendition.current?.display(position);
               }
@@ -439,15 +472,29 @@ export function EpubReader({
             value=""
             onChange={(event) => {
               if (event.target.value) {
+                requestedEntry.current = toc.find(
+                  (entry) => entry.href === event.target.value,
+                );
+                restoringCfi.current = undefined;
+                targetCfi.current = undefined;
                 rendition.current?.display(event.target.value);
               }
             }}
             className={`${SELECT} min-w-0 flex-1 truncate max-[360px]:order-first max-[360px]:basis-full`}
           >
-            <option value="">{t.contents}</option>
-            {toc.map(({ item, depth }) => (
-              <option key={item.href} value={item.href}>
-                {`${"  ".repeat(depth)}${item.label.trim()}`}
+            <option value="" hidden>
+              {t.contents}
+            </option>
+            {toc.map((entry) => (
+              <option
+                key={entry.href}
+                value={entry.href}
+                aria-current={place?.active === entry ? "location" : undefined}
+                className={
+                  place?.active === entry ? "font-semibold" : undefined
+                }
+              >
+                {`${"\u00a0\u00a0".repeat(entry.depth)}${place?.active === entry ? "✓ " : ""}${entry.label}`}
               </option>
             ))}
           </select>

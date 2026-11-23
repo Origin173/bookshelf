@@ -57,7 +57,10 @@ to pan across the page and use the arrow buttons to turn.
 
 ## Your place in an EPUB
 
-Above the toolbar, the reader shows the current chapter title or the section
+Choose a heading in **Contents** to jump to it, including nested headings in
+the same file. A check mark follows the current heading as you read.
+
+Above the toolbar, the reader shows the current heading or the section
 number in the EPUB spine when no matching title is available. In paginated
 text it also shows the first visible page and the page count for that section.
 These numbers follow the current screen and type size. The saved location is
