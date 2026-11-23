@@ -11,7 +11,7 @@ import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
 import { placeholder, tint } from "@/lib/media";
-import { bySubject, named } from "@/lib/opds/browse";
+import { bySeries, bySubject, named } from "@/lib/opds/browse";
 import { OPDS_ALTERNATE } from "@/lib/opds/feed";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile, isAdmin } from "@/services/auth";
@@ -92,8 +92,9 @@ function Cover({ book }: { book: Book }) {
 
 export default async function Home(props: PageProps<"/">) {
   const account = await requirePageAccount();
-  const { q, subject, status, favorite, view, shelfNotice } =
+  const { q, subject, series, status, favorite, view, shelfNotice } =
     await props.searchParams;
+  const seriesName = typeof series === "string" ? series.trim() : "";
   const recent = !!account && view === "recent";
   const selectedStatus = account && isReadingStatus(status) ? status : "";
   const favoritesOnly = !!account && favorite === "1";
@@ -103,6 +104,7 @@ export default async function Home(props: PageProps<"/">) {
 
   const params = new URLSearchParams();
   if (selected) params.set("subject", selected);
+  if (seriesName) params.set("series", seriesName);
   if (selectedStatus) params.set("status", selectedStatus);
   if (favoritesOnly) params.set("favorite", "1");
   if (recent) params.set("view", "recent");
@@ -113,6 +115,8 @@ export default async function Home(props: PageProps<"/">) {
   if (recent) otherView.delete("view");
   else otherView.set("view", "recent");
   const switchView = otherView.size ? `/?${otherView}` : "/";
+  const withoutSeries = new URLSearchParams(params);
+  withoutSeries.delete("series");
   const { catalog, profiles, progress, storage } = await getServices();
 
   /*
@@ -137,9 +141,12 @@ export default async function Home(props: PageProps<"/">) {
     const { books } = await catalog.browse();
     const groups = bySubject(books);
     const filtered = selected ? (named(groups, selected)?.books ?? []) : books;
+    const inSeries = seriesName
+      ? (named(bySeries(filtered), seriesName)?.books ?? [])
+      : filtered;
     return {
       matching: searchBooks(
-        recent ? recentBooks(filtered, positions ?? {}) : filtered,
+        recent ? recentBooks(inSeries, positions ?? {}) : inSeries,
         query,
       ).filter((book) => {
         const entry = personal?.books.get(book.id);
@@ -237,6 +244,20 @@ export default async function Home(props: PageProps<"/">) {
               </Link>
             </nav>
           )}
+          {seriesName && (
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <h2 className="min-w-0 break-words text-xl font-semibold">
+                {seriesName}
+              </h2>
+              <Link
+                className={BUTTON_QUIET}
+                prefetch={false}
+                href={withoutSeries.size ? `/?${withoutSeries}` : "/"}
+              >
+                {t.clearSeries}
+              </Link>
+            </div>
+          )}
           <SearchInput
             key={filters}
             query={query}
@@ -247,6 +268,9 @@ export default async function Home(props: PageProps<"/">) {
           {(personal || shelf.groups.length > 0 || selected) && (
             <form action="/" className="mt-3 flex flex-wrap items-center gap-2">
               {recent && <input type="hidden" name="view" value="recent" />}
+              {seriesName && (
+                <input type="hidden" name="series" value={seriesName} />
+              )}
               {query && <input type="hidden" name="q" value={query} />}
               {(shelf.groups.length > 0 || selected) && (
                 <>
@@ -333,6 +357,7 @@ export default async function Home(props: PageProps<"/">) {
                 : recent &&
                     !query &&
                     !selected &&
+                    !seriesName &&
                     !selectedStatus &&
                     !favoritesOnly
                   ? t.noRecent
@@ -343,6 +368,8 @@ export default async function Home(props: PageProps<"/">) {
               {shelf.matching.map((book) => {
                 const resume = resumeFormat(book, positions?.[book.id]);
                 const readable = resume ?? readableFormat(book);
+                const series = book.series?.trim();
+                const volume = book.seriesIndex;
 
                 return (
                   <li
@@ -356,6 +383,25 @@ export default async function Home(props: PageProps<"/">) {
                         <p className="mt-1 truncate text-sm text-secondary">
                           {book.authors.join(", ")}
                         </p>
+                        {series && (
+                          <p className="mt-1 break-words text-sm text-secondary">
+                            {series === seriesName ? (
+                              series
+                            ) : (
+                              <Link
+                                href={`/?${new URLSearchParams({ series })}`}
+                                prefetch={false}
+                                aria-label={`${t.browseSeries} · ${series}`}
+                                className="text-accent hover:underline"
+                              >
+                                {series}
+                              </Link>
+                            )}
+                            {typeof volume === "number" &&
+                              Number.isFinite(volume) &&
+                              ` · ${t.volume(volume)}`}
+                          </p>
+                        )}
                         <p className="mt-0.5 truncate text-xs text-tertiary">
                           {[
                             book.published?.slice(0, 4),
