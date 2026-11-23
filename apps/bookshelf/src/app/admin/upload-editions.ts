@@ -1,7 +1,7 @@
 import { type Book, isUploadId } from "@bookshelf/core";
 import { editionKey } from "@/lib/isbn";
 
-export function missingUploadFormat(book: Book) {
+export function missingUploadFormat(book: Book): "epub" | "pdf" | undefined {
   if (isUploadId(book.id) && book.formats.length === 1)
     return book.formats[0].format === "pdf" ? "epub" : "pdf";
 }
