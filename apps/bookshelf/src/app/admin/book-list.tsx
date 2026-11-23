@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { BookSearchInput } from "@/app/admin/book-search-input";
 import { adminHref, type CatalogView } from "@/app/admin/catalog-link";
@@ -28,9 +29,10 @@ export function AdminBookList({
     editBook: string;
   };
 }) {
-  const [query, setQuery] = useState(view.q ?? "");
+  const savedQuery = useSearchParams().get("q") ?? "";
+  const [query, setQuery] = useState(savedQuery);
   function rememberSearch() {
-    if (query !== (view.q ?? ""))
+    if (query !== savedQuery)
       window.history.replaceState(
         null,
         "",
