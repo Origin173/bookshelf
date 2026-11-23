@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { BookSearchInput } from "@/app/admin/book-search-input";
 import { adminHref, type CatalogView } from "@/app/admin/catalog-link";
+import { FilterInput } from "@/app/filter-input";
 import { BUTTON, BUTTON_PRIMARY } from "@/app/ui";
 import { searchBooks } from "@/lib/book-search";
 
@@ -63,7 +63,7 @@ export function AdminBookList({
           {t.bulkSubject}
         </Link>
       </nav>
-      <BookSearchInput
+      <FilterInput
         value={query}
         onChange={setQuery}
         label={t.searchCatalog}

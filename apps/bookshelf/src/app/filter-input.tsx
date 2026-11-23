@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { useRef } from "react";
 import { INPUT } from "@/app/ui";
 
-export function BookSearchInput({
+export function FilterInput({
   value,
   onChange,
   label,

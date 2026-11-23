@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BookSearchInput } from "@/app/admin/book-search-input";
+import { FilterInput } from "@/app/filter-input";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
 import { searchBooks } from "@/lib/book-search";
 import { subjectAddition } from "@/lib/catalog-names";
@@ -138,7 +138,7 @@ export function BulkSubjectForm({
         </label>
       )}
       {!preview && (
-        <BookSearchInput
+        <FilterInput
           value={query}
           onChange={setQuery}
           label={t.searchCatalog}
