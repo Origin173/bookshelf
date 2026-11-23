@@ -68,6 +68,15 @@ export async function editList(
       selected = "";
     } else if (intent === "add" && (await catalog.find(book))) {
       if (!list.books.includes(book)) list.books.push(book);
+    } else if (intent === "move") {
+      const targetId = form.get("destination");
+      const target = lists.find((item) => item.id === targetId);
+      if (!target || target === list || !list.books.includes(book))
+        return { id: listId, notice: "changed" };
+      if (!(await catalog.find(book))) return { id: listId, notice: "missing" };
+      if (!target.books.includes(book)) target.books.push(book);
+      list.books = list.books.filter((id) => id !== book);
+      selected = target.id;
     } else if (intent === "remove" && book) {
       list.books = list.books.filter((id) => id !== book);
     } else if (typeof neighbor === "string" && neighbor) {
@@ -83,11 +92,12 @@ export async function editList(
         return { id: listId, notice: "changed" };
     } else return { id: listId, notice: "missing" };
     return (await saveLists(storage, profileId, lists, etag))
-      ? { id: selected, notice: "saved" }
+      ? { id: selected, notice: intent === "move" ? "moved" : "saved" }
       : { id: listId, notice: "changed" };
   });
   if (!result) return back(listId, "unavailable");
-  if (result.notice === "saved") revalidatePath("/lists");
+  if (result.notice === "saved" || result.notice === "moved")
+    revalidatePath("/lists");
   back(result.id, result.notice);
 }
 

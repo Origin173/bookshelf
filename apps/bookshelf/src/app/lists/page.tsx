@@ -25,7 +25,7 @@ export default async function Lists(props: PageProps<"/lists">) {
   const account = await requirePageAccount();
   if (!account) notFound();
   const t = await messages();
-  const { list, book, notice } = await props.searchParams;
+  const { list, book, move, notice } = await props.searchParams;
   const { storage, catalog, progress } = await getServices();
   const profileId = accountProfile(account).id;
   const data = await ifAvailable(async () => {
@@ -47,6 +47,17 @@ export default async function Lists(props: PageProps<"/lists">) {
   const memberIds = new Set(selected?.books);
   const available = data?.books.filter((b) => !memberIds.has(b.id)) ?? [];
   const members = selected && data ? listMembers(selected, data.books) : [];
+  const destinations =
+    writable && selected
+      ? (data?.lists.filter((l) => l.id !== selected.id) ?? [])
+      : [];
+  const moving = destinations.length
+    ? members.find((b) => b.id === move)
+    : undefined;
+  const listParams = new URLSearchParams();
+  if (selected) listParams.set("list", selected.id);
+  if (chosen) listParams.set("book", chosen.id);
+  const listHref = `/lists?${listParams}`;
   const positions = members.length ? await progress.all(profileId) : undefined;
   const feedback =
     !data || notice === "unavailable"
@@ -57,9 +68,11 @@ export default async function Lists(props: PageProps<"/lists">) {
           ? t.listNameError
           : notice === "missing"
             ? t.missing
-            : notice === "saved"
-              ? t.listSaved
-              : "";
+            : notice === "moved"
+              ? t.bookMoved
+              : notice === "saved"
+                ? t.listSaved
+                : "";
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
       <div className="flex items-center justify-between gap-4">
@@ -152,6 +165,54 @@ export default async function Lists(props: PageProps<"/lists">) {
                 failed={t.exportListFailed}
                 changed={t.exportListAccountChanged}
               />
+              {moving && (
+                <form
+                  id="move-book"
+                  tabIndex={-1}
+                  action={action}
+                  className="mt-4 grid gap-2 rounded-lg border border-separator p-3"
+                >
+                  <p className="break-words font-medium">
+                    {t.moveToList} · {moving.title}
+                  </p>
+                  <input type="hidden" name="book" value={moving.id} />
+                  <label className="grid min-w-0 gap-1 text-sm">
+                    {t.destinationList}
+                    <select
+                      key={moving.id}
+                      name="destination"
+                      required
+                      defaultValue=""
+                      className={`${SELECT} min-w-0 max-w-full`}
+                    >
+                      <option value="">{t.chooseList}</option>
+                      {destinations.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                          {l.books.includes(moving.id) &&
+                            ` · ${t.alreadyInList}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="submit"
+                      name="intent"
+                      value="move"
+                      className={BUTTON_PRIMARY}
+                    >
+                      {t.confirmMove}
+                    </button>
+                    <Link
+                      href={`${listHref}#list-book-${encodeURIComponent(moving.id)}`}
+                      className={BUTTON_QUIET}
+                    >
+                      {t.cancel}
+                    </Link>
+                  </div>
+                </form>
+              )}
               {writable && available.length > 0 && (
                 <form
                   action={action}
@@ -255,6 +316,16 @@ export default async function Lists(props: PageProps<"/lists">) {
                               {t.removeFromList}
                             </button>
                           </form>
+                        )}
+                        {destinations.length > 0 && (
+                          <Link
+                            href={`${listHref}&move=${encodeURIComponent(b.id)}#move-book`}
+                            prefetch={false}
+                            aria-label={`${t.moveToList} · ${b.title}`}
+                            className={BUTTON_QUIET}
+                          >
+                            {t.moveToList}
+                          </Link>
                         )}
                       </div>
                     </li>
