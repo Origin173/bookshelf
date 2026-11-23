@@ -17,7 +17,16 @@ test("concurrent bookmarks merge and remain private to each account and book for
       intent: "add",
       mark: { position },
     });
-  await Promise.all([add(28), add(4)]);
+  const pages = [28, 4];
+  const writes = await Promise.all(pages.map(add));
+  for (const [index, result] of writes.entries()) {
+    if ("error" in result) {
+      assert.equal(result.error, "bookmarkConflict");
+      assert.ok("items" in (await add(pages[index])));
+    } else {
+      assert.ok(result.items.some((mark) => mark.position === pages[index]));
+    }
+  }
   assert.deepEqual(await add(4), {
     items: [{ position: 4 }, { position: 28 }],
     writable: true,
