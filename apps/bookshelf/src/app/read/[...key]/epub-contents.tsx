@@ -8,11 +8,13 @@ import type { ReaderText } from "@/lib/reader-text";
 export function EpubContents({
   entries,
   active,
+  aliases,
   t,
   onGo,
 }: {
   entries: TocEntry[];
   active?: TocEntry;
+  aliases: ReadonlyMap<string, string>;
   t: ReaderText;
   onGo: (entry: TocEntry) => void;
 }) {
@@ -28,12 +30,13 @@ export function EpubContents({
   const sections = useMemo(() => {
     const seen = new Set<string>();
     return entries.filter(({ href }) => {
-      if (seen.has(href)) return false;
+      if (aliases.has(href) || seen.has(href)) return false;
       seen.add(href);
       return true;
     });
-  }, [entries]);
-  const index = sections.findIndex((entry) => entry.href === active?.href);
+  }, [entries, aliases]);
+  const activeHref = active && (aliases.get(active.href) ?? active.href);
+  const index = sections.findIndex((entry) => entry.href === activeHref);
   const previous = sections[index - 1];
   const next = index >= 0 ? sections[index + 1] : undefined;
 

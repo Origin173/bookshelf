@@ -165,6 +165,9 @@ export function EpubReader({
     mark: Bookmark & { position: string };
   } | null>(null);
   const [toc, setToc] = useState<TocEntry[]>([]);
+  const [aliases, setAliases] = useState<ReadonlyMap<string, string>>(
+    () => new Map(),
+  );
   const [mode, setMode] = useState<Mode>("double");
 
   const appearanceKey = `bookshelf:epub:appearance:${profileId}`;
@@ -296,10 +299,19 @@ export function EpubReader({
             targetsBySection.delete(removed.section.index),
         );
         view.hooks.content.register((contents: Contents) => {
-          targetsBySection.set(
-            contents.sectionIndex,
-            sectionTargets(contents, entries),
-          );
+          const targets = sectionTargets(contents, entries);
+          targetsBySection.set(contents.sectionIndex, targets);
+          // Nested IDs can point at the same first character. Keep the first
+          // outline entry for stepping, while all names stay searchable.
+          let first: (typeof targets)[number] | undefined;
+          const shared = new Map<string, string>();
+          for (const target of targets) {
+            if (first?.cfi !== target.cfi) first = target;
+            else if (first.entry.href !== target.entry.href)
+              shared.set(target.entry.href, first.entry.href);
+          }
+          if (shared.size)
+            setAliases((known) => new Map([...known, ...shared]));
           if (view.settings.layout !== "pre-paginated") {
             applyAppearance(contents, appearance);
           }
@@ -542,6 +554,7 @@ export function EpubReader({
           <EpubContents
             entries={toc}
             active={place?.active}
+            aliases={aliases}
             t={t}
             onGo={(entry) => {
               returningCfi.current = undefined;
