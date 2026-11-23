@@ -152,8 +152,10 @@ existing bookmarks.
 
 Use **Search in this book** to look for text in the open EPUB. Results appear
 as chapters are read on your device. Each result shows a short excerpt and
-its chapter. Select one to open the passage, and choose **Back to passage**
-to return. The query and excerpts stay in the open search dialog.
+its chapter. Select a result to open the passage. In browsers with CSS
+Custom Highlights, the matched text stays highlighted while it is in view,
+including when you change the text size. Choose **Back to passage** to
+return. The query and excerpts stay in the open search dialog.
 
 ## PDFs
 

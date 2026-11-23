@@ -14,6 +14,11 @@ import {
 import { EpubContents } from "@/app/read/[...key]/epub-contents";
 import { EpubSearch } from "@/app/read/[...key]/epub-search";
 import {
+  paintSearchHighlight,
+  rangeInView,
+} from "@/app/read/[...key]/epub-search-highlight";
+import type { Passage } from "@/app/read/[...key]/epub-search-text";
+import {
   bookContents,
   sectionTargets,
   type TocEntry,
@@ -26,6 +31,7 @@ import { readStored, writeStored } from "@/lib/local";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
 
 type Mode = "single" | "double" | "scroll";
+type SearchMatch = Pick<Passage, "cfi" | "rangeCfi">;
 
 const MODES = [
   { value: "double", label: "twoPages" },
@@ -68,21 +74,11 @@ function firstReadableHref(book: Book): string | undefined {
 function visibleCharacter(view: Rendition, cfi: string, viewport: HTMLElement) {
   const range = view.getRange(cfi);
   const node = range?.startContainer;
-  const frame = node?.ownerDocument?.defaultView?.frameElement;
-  if (!frame || node?.nodeType !== Node.TEXT_NODE) return false;
+  if (node?.nodeType !== Node.TEXT_NODE) return false;
 
   const offset = range.startOffset;
   range.setEnd(node, Math.min(offset + 1, (node as Text).length));
-  const char = range.getBoundingClientRect();
-  const origin = frame.getBoundingClientRect();
-  const bounds = viewport.getBoundingClientRect();
-  return (
-    char.height > 0 &&
-    origin.top + char.bottom > bounds.top &&
-    origin.top + char.top < bounds.bottom &&
-    origin.left + char.right > bounds.left &&
-    origin.left + char.left < bounds.right
-  );
+  return rangeInView(range, viewport);
 }
 
 /** Chapters live in their own documents. A swipe there never reaches the toolbar. */
@@ -161,6 +157,18 @@ export function EpubReader({
   const requestedPassage = useRef<{ from: string; to: string }>(undefined);
   const [returnCfi, setReturnCfi] = useState<string>();
   const returningCfi = useRef<string>(undefined);
+  const selectedSearch = useRef<SearchMatch>(undefined);
+  const paintedSearch = useRef<{ doc: Document; remove?: () => void }>(
+    undefined,
+  );
+  const removeSearchPaint = useCallback(() => {
+    paintedSearch.current?.remove?.();
+    paintedSearch.current = undefined;
+  }, []);
+  const clearSearchHighlight = useCallback(() => {
+    selectedSearch.current = undefined;
+    removeSearchPaint();
+  }, [removeSearchPaint]);
   const [place, setPlace] = useState<{
     chapter: string;
     active?: TocEntry;
@@ -380,6 +388,22 @@ export function EpubReader({
             }
           }
           const position = targetVisible ? target : start.cfi;
+          const match = selectedSearch.current;
+          if (match) {
+            const range = view.getRange(match.rangeCfi);
+            const doc = range?.startContainer.ownerDocument;
+            if (doc && !range.collapsed && rangeInView(range, element)) {
+              if (paintedSearch.current?.doc !== doc) {
+                removeSearchPaint();
+                paintedSearch.current = {
+                  doc,
+                  remove: paintSearchHighlight(range),
+                };
+              }
+            } else {
+              clearSearchHighlight();
+            }
+          }
           if (
             requestedPassage.current?.to === target &&
             requestedPassage.current
@@ -463,17 +487,31 @@ export function EpubReader({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
       rendition.current = null;
+      removeSearchPaint();
       book?.destroy();
     };
     // A fresh rendition lays out the saved passage with the selected settings.
-  }, [opfUrl, mode, appearance, restored, current, record, t]);
+  }, [
+    opfUrl,
+    mode,
+    appearance,
+    restored,
+    current,
+    record,
+    t,
+    removeSearchPaint,
+    clearSearchHighlight,
+  ]);
 
   function goToPassage(
     position: number | string,
     returning = false,
-    from?: string,
+    match?: SearchMatch,
   ) {
     if (typeof position !== "string") return;
+    clearSearchHighlight();
+    selectedSearch.current = match;
+    const from = match && place?.mark.position;
     requestedEntry.current = undefined;
     requestedPassage.current =
       from && from !== position ? { from, to: position } : undefined;
@@ -572,8 +610,11 @@ export function EpubReader({
           bookKey={bookKey}
           entries={toc}
           t={t}
-          onGo={(cfi) => {
-            void goToPassage(cfi, false, place?.mark.position)?.catch(() => {
+          onGo={({ cfi, rangeCfi }) => {
+            const match = { cfi, rangeCfi };
+            void goToPassage(cfi, false, match)?.catch(() => {
+              if (selectedSearch.current !== match) return;
+              clearSearchHighlight();
               requestedPassage.current = undefined;
               restoringCfi.current = undefined;
               targetCfi.current = undefined;
@@ -587,6 +628,7 @@ export function EpubReader({
             aliases={aliases}
             t={t}
             onGo={(entry) => {
+              clearSearchHighlight();
               returningCfi.current = undefined;
               requestedPassage.current = undefined;
               requestedEntry.current = { entry, from: place?.mark.position };
