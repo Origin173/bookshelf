@@ -80,6 +80,11 @@ the page number. The EPUB reader saves the exact text location (CFI) and shows
 the chapter and page as they appeared when you marked it. Opening the list,
 adding, and removing leave your current reading position in place.
 
+Use the pencil beside a bookmark to give it a private name. Its original page
+or chapter stays visible underneath. Clear the name and save to return to the
+automatic label. Renaming keeps both the bookmark target and your reading
+position.
+
 Each signed-in account has its own bookmarks for each book file. They are
 included in the library's `.bookshelf/` backup. A read-only library can show
 existing bookmarks.

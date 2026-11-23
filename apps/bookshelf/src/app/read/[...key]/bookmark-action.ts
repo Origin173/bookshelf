@@ -1,13 +1,10 @@
 "use server";
 
 import { parseBookKey } from "@bookshelf/core";
+import type { BookmarkChange, BookmarkResult } from "@/lib/bookmarks";
 import { requirePageAccount } from "@/services/account-page";
 import { accountProfile } from "@/services/auth";
-import {
-  type BookmarkChange,
-  type BookmarkResult,
-  bookBookmarks,
-} from "@/services/bookmarks";
+import { bookBookmarks } from "@/services/bookmarks";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
 

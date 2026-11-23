@@ -31,13 +31,13 @@ import { type Panel, PdfSidebar } from "@/app/read/[...key]/pdf-sidebar";
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
+import type { BookmarkAction } from "@/lib/bookmarks";
 import { readStored, writeStored } from "@/lib/local";
 import {
   type ReaderLocale,
   type ReaderText,
   readerText,
 } from "@/lib/reader-text";
-import type { BookmarkAction } from "@/services/bookmarks";
 
 type Layout = "spread" | "page" | "scroll";
 

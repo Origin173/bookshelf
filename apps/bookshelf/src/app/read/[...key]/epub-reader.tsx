@@ -14,9 +14,9 @@ import {
 import { useReadingPosition } from "@/app/read/[...key]/position";
 import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
+import type { Bookmark, BookmarkAction } from "@/lib/bookmarks";
 import { readStored, writeStored } from "@/lib/local";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
-import type { Bookmark, BookmarkAction } from "@/services/bookmarks";
 
 type Mode = "single" | "double" | "scroll";
 
@@ -194,7 +194,14 @@ export function EpubReader({
     let book: Book | null = null;
     let cancelled = false;
 
-    function onKeyDown(event: { key?: string }) {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as Element | null;
+      if (
+        target?.closest?.(
+          "dialog, select, input, textarea, [contenteditable=true]",
+        )
+      )
+        return;
       if (event.key === "ArrowLeft") rendition.current?.prev();
       if (event.key === "ArrowRight") rendition.current?.next();
     }
