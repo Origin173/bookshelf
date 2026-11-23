@@ -177,3 +177,37 @@ The Docker image ships both tools, so there's nothing to install on that route.
 
 Book files are hard-linked into `library/` rather than copied, so publishing
 763 MB of books costs about a megabyte of disk.
+
+## Upload from a browser
+
+On a private shelf, a signed-in administrator can open **Manage books → Upload a
+book** and select an EPUB or PDF. The browser reads the file locally. For EPUB
+it suggests the package title, creators, a valid ISBN when present, and a
+declared cover if the browser can decode the image. For PDF it reads the
+document properties and renders the first page as a cover candidate. You can
+edit or clear any suggestion and uncheck **Use this cover**. Enter a title
+if none was found. Books without a cover use the usual placeholder.
+
+The form accepts one file up to **8 MiB**, an optional PNG thumbnail up to
+**240 × 240 pixels and 256 KiB**, and 16 KiB for the remaining multipart data.
+The Worker checks the request size as it arrives. Use the CLI for larger
+files. Thumbnail generation stays on the device. Only submitting the form
+sends the file and reviewed details to your shelf.
+
+Cloudflare also applies a request body limit for the domain (100 MB on Free
+and Pro). Workers Free allows 10 ms of CPU per HTTP request, and each isolate
+has 128 MB of memory. Local preview does not measure those production quotas.
+See [Workers limits](https://developers.cloudflare.com/workers/platform/limits/).
+
+A PDF needs its version header and end marker. An EPUB needs a ZIP with the
+stored EPUB mimetype, a container and a package document. The existing
+readers determine which contents they can display. Uploading does not convert
+books or remove DRM.
+
+Web books live under `.bookshelf/uploads/`, including their separate catalog.
+Back up this directory with the other app state. The book bytes are written
+with the optional thumbnail before the catalog entry. The SHA-256 of the
+original book identifies it. Retrying the same
+file completes an interrupted import or finds the existing book with its saved metadata and cover. A conflicting
+catalog update asks you to retry. Both normal and forced CLI publishing leave
+this directory in place.

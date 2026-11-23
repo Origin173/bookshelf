@@ -53,22 +53,25 @@ Everything else regenerates. If you lose the library but still have your
 original files, `npm run sync` rebuilds all of it. If you lose `.bookshelf/`,
 reading positions and web edits are gone.
 
-## Editing subjects on the web
+## Editing titles and subjects on the web
 
 Set `BOOKSHELF_ADMINS` to a comma-separated list of existing account names
 (for example, `librarian`). On a private, writable shelf, sign in and open
-**Manage books**. Choose a book and enter one subject per line. Saving an
+**Manage books**. Choose a book to correct its display title or enter one subject per line.
+**Use original title** restores the title from the CLI publication or web upload.
+Renaming a book keeps its ID, file links and reading positions. Saving an
 empty list clears the subjects. **Use published subjects** follows the
 metadata from sync again.
 
-The shelf filter and both OPDS formats use these subjects. Edited subjects are read from
+The shelf, reading page and both OPDS feeds use the display title. The shelf filter
+and both feeds use the edited subjects. The app reads both fields from
 one small object. A warm reader checks its ETag before downloading it again.
 Concurrent changes ask the editor to review the latest version before retrying.
 
 Back up `.bookshelf/subjects.json` with the rest of the app state. Sync leaves
 this file in place, including on a forced publish. An edit follows the book's
 ID, title, authors and identifier across publishes. If any of those change,
-the published subjects apply. For filesystem libraries, keep the published
+the new publication uses its own metadata. For filesystem libraries, keep the published
 directory separate from the disposable build output. If a stopped Node
 process leaves `.bookshelf/subjects.json.lock`, stop all writers, remove
 that empty directory, then restart.

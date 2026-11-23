@@ -1,4 +1,4 @@
-import { DEFAULT_PROFILE_ID } from "@bookshelf/core";
+import { DEFAULT_PROFILE_ID, parseBookKey } from "@bookshelf/core";
 import { ArrowDownToLine, ChevronLeft, CloudOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { PdfReader } from "@/app/read/[...key]/pdf-reader";
 import { State, StatePage } from "@/app/state";
 import { BUTTON_PRIMARY } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
-import { language } from "@/lib/i18n";
+import { language, messages } from "@/lib/i18n";
 import { extension } from "@/lib/media";
 import { type ReaderLocale, readerText } from "@/lib/reader-text";
 import { OG_BASE } from "@/lib/site";
@@ -35,12 +35,17 @@ export async function generateMetadata(
   const { key } = await props.params;
   const fileKey = key.join("/");
   await requirePageAccount(fileKey);
-  const [id] = fileKey.split("/");
+  const target = parseBookKey(fileKey);
 
   // The catalog is memoised per request, so the page's own lookup is free.
   const { catalog } = await getServices();
-  const book = await catalog.find(id);
-  if (!book) return { robots: { index: false, follow: false } };
+  const book = target ? await catalog.display(target.id) : null;
+  if (!book?.formats.some((f) => f.file === target?.file)) {
+    return {
+      title: (await messages()).notFound,
+      robots: { index: false, follow: false },
+    };
+  }
 
   const authors = book.authors.join(", ");
   const cover = book.cover
@@ -76,17 +81,19 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   const { key } = await props.params;
   const fileKey = key.join("/");
   await requirePageAccount(fileKey);
-  const [id] = fileKey.split("/");
+  const target = parseBookKey(fileKey);
+  if (!target) notFound();
+  const { id, file } = target;
 
   const { catalog } = await getServices();
 
   // Undefined is a library that could not be read, which is not the same as a
   // book that is not in it — one is worth coming back for and the other is not.
-  const book = await ifAvailable(() => catalog.find(id));
+  const book = await ifAvailable(() => catalog.display(id));
   const locale = await language();
   const t = readerText[locale];
   if (book === undefined) return <Unreachable />;
-  if (!book?.formats.some((f) => fileKey.endsWith(`/${f.file}`))) {
+  if (!book?.formats.some((f) => f.file === file)) {
     notFound();
   }
 
@@ -172,6 +179,7 @@ async function EpubBody({
 
   return (
     <EpubReader
+      key={JSON.stringify([profile?.id, bookId])}
       opfUrl={`/book/${encodeKey(fileKey)}/${encodeKey(opfPath)}`}
       bookKey={fileKey}
       locale={locale}
@@ -210,6 +218,7 @@ async function PdfBody({
 
   return (
     <PdfReader
+      key={JSON.stringify([profile?.id, bookId])}
       url={`/download/${encodeKey(fileKey)}`}
       locale={locale}
       bookId={bookId}
