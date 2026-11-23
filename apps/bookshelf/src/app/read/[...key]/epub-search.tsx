@@ -74,7 +74,7 @@ export function EpubSearch({
   selected?: string;
   jump: "idle" | "moving" | "failed";
   onGo: (passage: Passage, keepReturn: boolean) => void;
-  onReset: () => void;
+  onReset: (leaving: boolean) => void;
 }) {
   const title = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -95,13 +95,13 @@ export function EpubSearch({
   }, []);
 
   const changeQuery = useCallback(
-    (value: string) => {
+    (value: string, leaving = false) => {
       active.current?.abort();
       checkpoint.current = undefined;
       scrollTop.current = 0;
       setResult(undefined);
       setQuery(value);
-      onReset();
+      onReset(leaving);
     },
     [onReset],
   );
@@ -114,7 +114,7 @@ export function EpubSearch({
   useEffect(() => {
     function reset() {
       close();
-      changeQuery("");
+      changeQuery("", true);
     }
     function onRestore(event: PageTransitionEvent) {
       if (event.persisted) reset();

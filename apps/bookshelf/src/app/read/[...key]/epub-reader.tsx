@@ -187,12 +187,23 @@ export function EpubReader({
     targetCfi.current = undefined;
     setSearchJump("failed");
   }, [clearSearchHighlight]);
-  const resetSearchNavigation = useCallback(() => {
-    requestedPassage.current = undefined;
-    clearSearchHighlight();
-    setSearchSelection(undefined);
-    setSearchJump("idle");
-  }, [clearSearchHighlight]);
+  const resetSearchNavigation = useCallback(
+    (leaving: boolean) => {
+      if (requestedPassage.current) {
+        restoringCfi.current = undefined;
+        targetCfi.current = undefined;
+      }
+      requestedPassage.current = undefined;
+      clearSearchHighlight();
+      setSearchSelection(undefined);
+      setSearchJump("idle");
+      if (leaving) {
+        returningCfi.current = undefined;
+        setReturnCfi(undefined);
+      }
+    },
+    [clearSearchHighlight],
+  );
   const [place, setPlace] = useState<{
     chapter: string;
     active?: TocEntry;
