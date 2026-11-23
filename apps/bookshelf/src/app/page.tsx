@@ -149,9 +149,14 @@ export default async function Home(props: PageProps<"/">) {
         <div className="flex flex-wrap items-center gap-1">
           <LanguageSwitch />
           {account && (
-            <Link href="/lists" className={BUTTON}>
-              {t.readingLists}
-            </Link>
+            <>
+              <Link href="/lists" className={BUTTON}>
+                {t.readingLists}
+              </Link>
+              <Link href="/notes" prefetch={false} className={BUTTON}>
+                {t.myNotes}
+              </Link>
+            </>
           )}
           {isAdmin(account) && storage.writeIfMatch && (
             <Link href="/admin" className={BUTTON}>

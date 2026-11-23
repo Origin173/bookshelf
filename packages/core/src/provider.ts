@@ -6,7 +6,7 @@
  * things:
  *
  *   Storage       what the app reads at request time, in whatever runtime it
- *                 is deployed to — ranged, streaming, no enumeration. It can
+ *                 is deployed to — ranged, streaming, and scoped to known keys or personal bookmark files. It can
  *                 also write, where the provider supports it, which is what
  *                 lets the app keep profiles and reading positions.
  *   StorageAdmin  what the sync CLI manages the library with, in Node —
@@ -56,9 +56,16 @@ export type StoredContent = {
  *
  * Note there is no `list`: the catalog is what enumerates the library, so
  * discovering books by walking the bucket is not something a request may do.
- * Enumeration lives on {@link StorageAdmin}, which never runs in the app.
+ * Only a profile’s bookmark directory can be paged at request time.
  */
 export interface Storage {
+  /** One page of filenames relative to a single profile's bookmark directory. */
+  listBookmarkFiles?(
+    profileId: string,
+    limit: number,
+    cursor?: string,
+  ): Promise<{ files: string[]; cursor?: string }>;
+
   /** Metadata only. Null if the object does not exist. */
   head(key: string): Promise<StoredObject | null>;
 
@@ -214,6 +221,7 @@ export function capabilitiesOf(admin: StorageAdmin): ProviderCapabilities {
  */
 export function readOnlyStorage(storage: Storage): Storage {
   return {
+    listBookmarkFiles: storage.listBookmarkFiles?.bind(storage),
     head: (key) => storage.head(key),
     read: (key, options) => storage.read(key, options),
     readBytes: (key) => storage.readBytes(key),

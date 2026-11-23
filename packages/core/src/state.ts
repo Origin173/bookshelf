@@ -23,6 +23,12 @@ export const STATE_VERSION = 1;
  */
 export const STATE_PREFIX = ".bookshelf/";
 
+/** Private per-format bookmark records, including those saved before the notes view. */
+export function bookmarkPrefix(profileId: string): string {
+  if (!isProfileId(profileId)) throw new Error("Invalid bookmark profile");
+  return `${STATE_PREFIX}bookmarks/${profileId}/`;
+}
+
 /** The profile list, one per library. */
 export const PROFILES_FILE = `${STATE_PREFIX}profiles.json`;
 

@@ -48,6 +48,7 @@ export type {
   Progress,
 } from "./state.js";
 export {
+  bookmarkPrefix,
   DEFAULT_PROFILE_ID,
   DEFAULT_PROFILE_NAME,
   defaultProfile,

@@ -147,6 +147,7 @@ export function PdfReader({
   url,
   bookId,
   profileId,
+  start,
   saved,
   canSync,
   bookmarks,
@@ -159,6 +160,7 @@ export function PdfReader({
   profileId: string;
   /** This profile's position as the library has it, from any device. */
   saved: BookProgress | null;
+  start?: number;
   /** False against a library the app cannot write to. */
   canSync: boolean;
   bookmarks?: BookmarkAction;
@@ -269,7 +271,7 @@ export function PdfReader({
         setSizes(new Map([[1, { width: first.width, height: first.height }]]));
         setPages(book.numPages);
         setDoc(book);
-        setPage(clamp(current()?.page ?? 1, book.numPages));
+        setPage(clamp(start ?? current()?.page ?? 1, book.numPages));
         setStatus("ready");
 
         // Bookmarks are not needed to read, so a slow outline holds nothing up.
@@ -286,7 +288,7 @@ export function PdfReader({
       setDoc(null);
       opened?.close();
     };
-  }, [url, settled, ready, current]);
+  }, [url, settled, ready, current, start]);
 
   const reference = sizes.get(1) ?? LETTER;
 
@@ -381,13 +383,13 @@ export function PdfReader({
   const started = useRef(false);
   useEffect(() => {
     if (status !== "ready") return;
-    // The position a book was opened at is the position it already had.
+    // An explicit bookmark jump can open somewhere other than the saved page.
     if (!started.current) {
       started.current = true;
-      return;
+      if (start === undefined || current()?.page === page) return;
     }
     record({ page });
-  }, [page, status, record]);
+  }, [page, status, record, start, current]);
 
   /**
    * The page, for the effects that need to know it without watching it.

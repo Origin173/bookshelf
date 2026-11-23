@@ -1,4 +1,4 @@
-import { STATE_PREFIX, type Storage } from "@bookshelf/core";
+import { bookmarkPrefix, type Storage } from "@bookshelf/core";
 import {
   BOOKMARK_NAME_LIMIT,
   BOOKMARK_NOTE_LIMIT,
@@ -47,7 +47,7 @@ export async function bookBookmarks(
   format: string,
   change?: BookmarkChange,
 ): Promise<BookmarkResult> {
-  const key = `${STATE_PREFIX}bookmarks/${profileId}/${bookKey}.json`;
+  const key = `${bookmarkPrefix(profileId)}${bookKey}.json`;
   const write = storage.writeIfMatch?.bind(storage);
   if (
     change !== undefined &&
