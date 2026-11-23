@@ -308,14 +308,11 @@ export function EpubReader({
             view.epubcfi.compare(start.cfi, cfi) <= 0 &&
             view.epubcfi.compare(cfi, end.cfi) <= 0;
           if (requested?.section === start.index) {
-            const anchor = targets.find(
+            targetCfi.current = targets.find(
               ({ entry }) => entry === requested,
             )?.cfi;
-            // A previous jump can still report its viewport after the next selection.
-            if (!anchor || onScreen(anchor)) {
-              requestedEntry.current = undefined;
-              targetCfi.current = anchor;
-            }
+            restoringCfi.current = targetCfi.current;
+            requestedEntry.current = undefined;
           }
           const target = targetCfi.current;
           if (target && restoringCfi.current === target) {
