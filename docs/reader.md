@@ -129,7 +129,9 @@ the document — after that it's instant. Matching ignores case and accents, so
 `Bronte` finds `Brontë`, and it matches across line breaks.
 
 **Contents** comes from the document's own outline, in a drawer rather than a
-dropdown, because technical books run to hundreds of bookmarks.
+dropdown, because technical books run to hundreds of bookmarks. Use **Find a
+chapter** to filter by title. Selecting a match opens its page. Clear the
+field to see the full outline at the current section.
 
 **Page tint on a PDF is a filter over the page**, not a restyling. A PDF page is
 a picture, background and all, so tinting can't work the way it does for an

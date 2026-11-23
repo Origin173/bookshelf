@@ -1,7 +1,7 @@
 "use client";
 
 import { Search as SearchIcon, X } from "lucide-react";
-import { useId, useMemo } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { OutlineEntry } from "@/app/read/[...key]/pdf-document";
 import type { Search } from "@/app/read/[...key]/pdf-search";
 import { INPUT } from "@/app/ui";
@@ -36,6 +36,14 @@ export function PdfSidebar({
   onClose: () => void;
 }) {
   const field = useId();
+  const [chapterQuery, setChapterQuery] = useState("");
+  const needle = chapterQuery.trim().toLowerCase();
+  const entries = needle
+    ? outline.filter((entry) => entry.title.toLowerCase().includes(needle))
+    : outline;
+  const activeRow = useRef<HTMLButtonElement>(null);
+  const searchingText = panel === "search";
+  const label = searchingText ? t.search : t.findChapter;
 
   /**
    * The last entry at or before the current page — the section being read.
@@ -53,15 +61,20 @@ export function PdfSidebar({
     return found;
   }, [outline, page]);
 
+  useEffect(() => {
+    if (here !== null && !needle && !searchingText)
+      activeRow.current?.scrollIntoView({ block: "nearest" });
+  }, [needle, searchingText, here]);
+
   return (
     <aside
       aria-label={panel === "contents" ? t.contents : t.search}
       className="flex max-h-[45dvh] w-full shrink-0 flex-col border-b border-separator bg-background sm:max-h-none sm:w-72 sm:border-r sm:border-b-0"
     >
-      {panel === "search" ? (
+      {searchingText || outline.length > 0 ? (
         <div className="border-b border-separator p-3">
           <label htmlFor={field} className="sr-only">
-            {t.search}
+            {label}
           </label>
           <div className="relative">
             <SearchIcon
@@ -71,18 +84,24 @@ export function PdfSidebar({
             <input
               id={field}
               type="search"
-              value={search.query}
-              onChange={(event) => search.setQuery(event.target.value)}
-              placeholder={t.search}
+              value={searchingText ? search.query : chapterQuery}
+              onChange={(event) =>
+                (searchingText ? search.setQuery : setChapterQuery)(
+                  event.target.value,
+                )
+              }
+              placeholder={label}
               // The reader's own shortcuts would otherwise turn the page from
               // inside the search box.
               onKeyDown={(event) => event.stopPropagation()}
               className={`${INPUT} w-full pl-8`}
             />
           </div>
-          <p className="mt-2 min-h-4 px-0.5 text-xs text-tertiary">
-            <SearchStatus t={t} search={search} />
-          </p>
+          {searchingText && (
+            <p className="mt-2 min-h-4 px-0.5 text-xs text-tertiary">
+              <SearchStatus t={t} search={search} />
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -90,12 +109,15 @@ export function PdfSidebar({
         {panel === "contents" ? (
           outline.length === 0 ? (
             <Empty>{t.noContents}</Empty>
+          ) : entries.length === 0 ? (
+            <Empty>{t.noChapterMatches}</Empty>
           ) : (
             <ul>
-              {outline.map((entry) => (
+              {entries.map((entry) => (
                 <li key={entry.id}>
                   <button
                     type="button"
+                    ref={entry.id === here ? activeRow : undefined}
                     disabled={entry.page === null}
                     onClick={() => entry.page !== null && onGo(entry.page)}
                     aria-current={entry.id === here ? "true" : undefined}
