@@ -77,6 +77,22 @@ test("private routes challenge anonymous readers before accessing storage", asyn
   assert.equal((await progress(request)).status, 401);
 });
 
+test("OPDS links retain the HTTPS address of a local Worker preview", async () => {
+  const request = new Request("https://localhost:8787/opds?format=json", {
+    headers: {
+      host: "localhost:8787",
+      "x-forwarded-proto": "http",
+      cookie: `bookshelf_session=${issueSession("reader")}`,
+    },
+  });
+  const response = await opds(request, {
+    params: Promise.resolve({ path: [] }),
+  });
+  assert.equal(response.status, 200);
+  const feed = await response.json();
+  assert.equal(new URL(feed.links[0].href).origin, "https://localhost:8787");
+});
+
 test("OPDS acquisitions accept HTTP Basic on the file itself and forbid public caching", async () => {
   const request = (value: string) =>
     new Request(origin, {
