@@ -7,14 +7,18 @@ import { adminHref, type CatalogView } from "@/app/admin/catalog-link";
 import { FilterInput } from "@/app/filter-input";
 import { BUTTON, BUTTON_PRIMARY } from "@/app/ui";
 import { searchBookText } from "@/lib/book-search";
+import { type CatalogCsvBook, catalogCsv } from "@/lib/catalog-csv";
+import { downloadBlob } from "@/lib/download";
 
 export function AdminBookList({
   books,
   view,
+  emptyMessage,
   t,
 }: {
-  books: { id: string; title: string; authors: string[] }[];
+  books: (CatalogCsvBook & { id: string })[];
   view: CatalogView;
+  emptyMessage?: string;
   t: {
     manage: string;
     allBooks: string;
@@ -27,6 +31,7 @@ export function AdminBookList({
     bulkSubject: string;
     searchCatalog: string;
     clearSearch: string;
+    exportCatalogCsv: string;
     noMatches: string;
     editBook: string;
   };
@@ -42,6 +47,12 @@ export function AdminBookList({
       );
   }
   const rows = searchBookText(books, query);
+  function exportCsv() {
+    downloadBlob(
+      new Blob([catalogCsv(rows)], { type: "text/csv;charset=utf-8" }),
+      "bookshelf-catalog.csv",
+    );
+  }
   const filters = [
     [undefined, t.allBooks],
     ["cover", t.missingCovers],
@@ -78,6 +89,9 @@ export function AdminBookList({
         label={t.searchCatalog}
         clear={t.clearSearch}
       />
+      <button type="button" className={`${BUTTON} mt-3`} onClick={exportCsv}>
+        {t.exportCatalogCsv}
+      </button>
       {rows.length ? (
         <ul className="mt-8 divide-y divide-separator">
           {rows.map((book) => (
@@ -109,7 +123,8 @@ export function AdminBookList({
         </ul>
       ) : (
         <p className="mt-8 text-secondary">
-          {!books.length && view.missing ? empty[view.missing] : t.noMatches}
+          {emptyMessage ??
+            (!books.length && view.missing ? empty[view.missing] : t.noMatches)}
         </p>
       )}
     </>

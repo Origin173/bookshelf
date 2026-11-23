@@ -460,19 +460,26 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             </div>
           </form>
         </>
-      ) : id || !data.books.length ? (
-        <p className="mt-8 text-secondary">{id ? t.missing : t.empty}</p>
+      ) : id ? (
+        <p className="mt-8 text-secondary">{t.missing}</p>
       ) : (
         <AdminBookList
           key={JSON.stringify([view.missing, view.q])}
           view={view}
+          emptyMessage={data.books.length ? undefined : t.empty}
           books={data.books
             .filter((book) => {
               if (view.missing === "isbn") return !book.isbn;
               if (view.missing === "date") return !book.published?.trim();
               return view.missing !== "cover" || !book.cover;
             })
-            .map(({ id, title, authors }) => ({ id, title, authors }))}
+            .map(({ id, title, authors, isbn, formats }) => ({
+              id,
+              title,
+              authors,
+              isbn,
+              formats: formats.map(({ format }) => format.toUpperCase()),
+            }))}
           t={{
             manage: t.manage,
             allBooks: t.allBooks,
@@ -485,6 +492,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             bulkSubject: t.bulkSubject,
             searchCatalog: t.searchCatalog,
             clearSearch: t.clearSearch,
+            exportCatalogCsv: t.exportCatalogCsv,
             noMatches: t.noMatches,
             editBook: t.editBook,
           }}

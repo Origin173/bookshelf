@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BUTTON } from "@/app/ui";
+import { downloadBlob } from "@/lib/download";
 
 export function MarkdownDownload({
   filename,
@@ -35,14 +36,10 @@ export function MarkdownDownload({
         setMessage(result.message);
         return;
       }
-      const url = URL.createObjectURL(
+      downloadBlob(
         new Blob(result.parts, { type: "text/markdown;charset=utf-8" }),
+        filename,
       );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
       if (mounted.current) setMessage(failed);
     } finally {
