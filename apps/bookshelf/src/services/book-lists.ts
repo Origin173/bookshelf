@@ -1,4 +1,4 @@
-import { STATE_PREFIX, type Storage } from "@bookshelf/core";
+import { type Book, STATE_PREFIX, type Storage } from "@bookshelf/core";
 import { reading, writing } from "@/services/errors";
 
 export type BookList = { id: string; name: string; books: string[] };
@@ -30,6 +30,11 @@ export async function bookLists(storage: Storage, profileId: string) {
       throw new Error("Invalid reading lists");
     return { lists: data.lists, etag: object.object.etag };
   });
+}
+
+export function listMembers(list: BookList, books: Book[]): Book[] {
+  const byId = new Map(books.map((book) => [book.id, book]));
+  return list.books.flatMap((id) => byId.get(id) ?? []);
 }
 
 // Only swap the two visible neighbors. An unpublished member keeps its slot

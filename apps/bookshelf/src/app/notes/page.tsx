@@ -52,7 +52,7 @@ export default async function Notes(props: PageProps<"/notes">) {
           account={account}
           title={t.myNotes}
           label={t.exportNotes}
-          working={t.exportingNotes}
+          working={t.preparingDownload}
           failed={t.exportNotesFailed}
           changed={t.exportAccountChanged}
           empty={t.noNotes}
