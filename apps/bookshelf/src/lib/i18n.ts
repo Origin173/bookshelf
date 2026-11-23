@@ -97,6 +97,8 @@ const en = {
   personalUnavailable: "Your personal shelf is unavailable. Try again shortly.",
 
   manage: "Manage books",
+  missingCovers: "Missing covers",
+  noMissingCovers: "Every book has a cover listed.",
   subjects: "Subjects",
   allSubjects: "All subjects",
   bookFormat: "Format",
@@ -225,6 +227,8 @@ const zh: typeof en = {
   personalUnavailable: "暂时无法读取你的个人书架，请稍后重试。",
 
   manage: "管理书目",
+  missingCovers: "缺少封面",
+  noMissingCovers: "所有书目都已登记封面。",
   subjects: "主题",
   allSubjects: "全部主题",
   bookFormat: "格式",

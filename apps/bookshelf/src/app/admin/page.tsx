@@ -27,7 +27,11 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   if (!isAdmin(await requirePageAccount())) notFound();
   const { storage, catalog } = await getServices();
   if (!storage.writeIfMatch) notFound();
-  const { book: id, result } = await props.searchParams;
+  const { book: id, result, cover } = await props.searchParams;
+  const missingCovers = cover === "missing";
+  const listHref = missingCovers ? "/admin?cover=missing" : "/admin";
+  const editHref = (book: string) =>
+    `/admin?${new URLSearchParams(missingCovers ? { book, cover: "missing" } : { book })}`;
   const t = await messages();
   const data = await ifAvailable(async () => {
     const [published, snapshot] = await Promise.all([
@@ -39,6 +43,10 @@ export default async function AdminPage(props: PageProps<"/admin">) {
       source: published.books.find((b) => b.id === id),
     };
   });
+  const listed =
+    !id && missingCovers
+      ? data?.books.filter((book) => !book.cover)
+      : data?.books;
   const book = data?.books.find((b) => b.id === id);
   const append =
     book && isUploadId(book.id) && book.formats.length === 1
@@ -82,7 +90,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
       <div className="flex items-center justify-between gap-4">
         <Link
-          href={id ? "/admin" : "/"}
+          href={id ? listHref : "/"}
           className="inline-flex items-center gap-1 text-sm font-medium text-secondary hover:text-foreground"
         >
           <ChevronLeft aria-hidden="true" className="size-4" />
@@ -156,14 +164,32 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           />
         </details>
       )}
+      {!id && data && data.books.length > 0 && (
+        <nav aria-label={t.manage} className="mt-6 flex flex-wrap gap-2">
+          <Link
+            href="/admin"
+            prefetch={false}
+            aria-current={!missingCovers ? "page" : undefined}
+            className={missingCovers ? BUTTON : BUTTON_PRIMARY}
+          >
+            {t.allBooks}
+          </Link>
+          <Link
+            href="/admin?cover=missing"
+            prefetch={false}
+            aria-current={missingCovers ? "page" : undefined}
+            className={missingCovers ? BUTTON_PRIMARY : BUTTON}
+          >
+            {t.missingCovers}
+          </Link>
+        </nav>
+      )}
       {!data ? (
         <p className="mt-8 text-secondary">
           {t.unavailable}{" "}
           <a
             className={BUTTON_QUIET}
-            href={
-              id ? `/admin?book=${encodeURIComponent(String(id))}` : "/admin"
-            }
+            href={id ? editHref(String(id)) : listHref}
           >
             {t.retry}
           </a>
@@ -238,11 +264,17 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             </div>
           </form>
         </>
-      ) : id || data.books.length === 0 ? (
-        <p className="mt-8 text-secondary">{id ? t.missing : t.empty}</p>
+      ) : id || !listed?.length ? (
+        <p className="mt-8 text-secondary">
+          {id
+            ? t.missing
+            : data.books.length === 0
+              ? t.empty
+              : t.noMissingCovers}
+        </p>
       ) : (
         <ul className="mt-8 divide-y divide-separator">
-          {data.books.map((b) => (
+          {listed.map((b) => (
             <li
               key={b.id}
               className="flex items-center justify-between gap-4 py-4"
@@ -252,7 +284,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
                 <p className="text-sm text-secondary">{b.authors.join(", ")}</p>
               </div>
               <Link
-                href={`/admin?book=${encodeURIComponent(b.id)}`}
+                href={editHref(b.id)}
+                prefetch={false}
                 className={`${BUTTON} shrink-0`}
               >
                 {t.editBook}
