@@ -1,6 +1,6 @@
 "use client";
 
-import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
+import type { PageViewport, PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
 /**
  * Opening a PDF, and the two things the chrome needs out of one: its outline,
@@ -364,9 +364,6 @@ export function findOnPage(
   return hits;
 }
 
-/** A rendered text layer, and the way to take it back down. */
-export type Layer = { cancel: () => void };
-
 /**
  * Draws the invisible, selectable text over a rendered page.
  *
@@ -378,20 +375,22 @@ export type Layer = { cancel: () => void };
  */
 export async function renderTextLayer({
   page,
-  scale,
+  viewport,
   container,
+  signal,
 }: {
   /** The page as the caller already has it, rather than its number. */
   page: PDFPageProxy;
-  scale: number;
+  viewport: PageViewport;
   container: HTMLDivElement;
-}): Promise<Layer> {
+  signal: AbortSignal;
+}) {
   const { TextLayer, setLayerDimensions } = await pdfjs();
 
-  const viewport = page.getViewport({ scale });
+  signal.throwIfAborted();
 
   container.replaceChildren();
-  container.style.setProperty("--total-scale-factor", String(scale));
+  container.style.setProperty("--total-scale-factor", String(viewport.scale));
   setLayerDimensions(container, viewport);
 
   const layer = new TextLayer({
@@ -400,8 +399,13 @@ export async function renderTextLayer({
     viewport,
   });
 
-  await layer.render();
-  return { cancel: () => layer.cancel() };
+  const cancel = () => layer.cancel();
+  signal.addEventListener("abort", cancel, { once: true });
+  try {
+    await layer.render();
+  } finally {
+    signal.removeEventListener("abort", cancel);
+  }
 }
 
 /**

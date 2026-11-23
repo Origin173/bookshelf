@@ -4,7 +4,6 @@ import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
 import {
   highlightInLayer,
-  type Layer,
   markPage,
   renderTextLayer,
 } from "@/app/read/[...key]/pdf-document";
@@ -35,6 +34,7 @@ export function PdfPage({
   doc,
   number,
   scale,
+  rotation,
   size,
   draw,
   query,
@@ -44,6 +44,7 @@ export function PdfPage({
   /** Counting from one, as a page is numbered. */
   number: number;
   scale: number;
+  rotation: number;
   /** The size to reserve: this page's own if it is known, an estimate if not. */
   size: PageSize;
   /** False for a page that is only holding its place. */
@@ -62,23 +63,26 @@ export function PdfPage({
   useEffect(() => {
     if (!draw) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
+    const { signal } = controller;
     let task: RenderTask | null = null;
-    let layer: Layer | null = null;
 
     (async () => {
       const page = await doc.getPage(number);
-      if (cancelled) return;
+      if (signal.aborted) return;
 
-      const viewport = page.getViewport({ scale });
+      const viewport = page.getViewport({
+        scale,
+        rotation: (page.rotate + rotation) % 360,
+      });
 
       // The page's real proportions, which may not be the ones its box was
       // reserved with. Reported before drawing, so a document whose pages are
       // not all one size settles as it is read rather than only once it is done.
-      onMeasured(number, {
-        width: viewport.width / scale,
-        height: viewport.height / scale,
-      });
+      // Keep measurements in the file's original orientation so every reserved
+      // box can rotate immediately, including pages outside the render window.
+      const { width, height } = page.getViewport({ scale: 1 });
+      onMeasured(number, { width, height });
 
       const target = canvas.current;
       if (!target) return;
@@ -109,7 +113,7 @@ export function PdfPage({
         // and the reader keeps going.
         return;
       }
-      if (cancelled) return;
+      if (signal.aborted) return;
 
       // Resized and blitted without yielding in between, so the clear and the
       // redraw land in the same frame and nothing flashes.
@@ -122,23 +126,22 @@ export function PdfPage({
       if (!over) return;
 
       try {
-        layer = await renderTextLayer({ page, scale, container: over });
+        await renderTextLayer({ page, viewport, container: over, signal });
       } catch {
         // A page whose text will not lay out is still a page to look at.
         return;
       }
-      if (cancelled) return;
+      if (signal.aborted) return;
       setLaid((n) => n + 1);
     })().catch(() => {
       // Nothing in here is worth taking the reader down for.
     });
 
     return () => {
-      cancelled = true;
+      controller.abort();
       task?.cancel();
-      layer?.cancel();
     };
-  }, [doc, number, scale, draw, onMeasured]);
+  }, [doc, number, scale, rotation, draw, onMeasured]);
 
   // Marking is separate from drawing so that typing in the search box does not
   // redraw every page on screen — the text is already laid out, and only the
@@ -165,13 +168,14 @@ export function PdfPage({
     text.current?.replaceChildren();
   }, [draw]);
 
+  const sideways = rotation % 180 !== 0;
   return (
     <div
       data-page={number}
       className="pdf-page relative shrink-0 overflow-hidden rounded-[3px] shadow-page"
       style={{
-        width: Math.round(size.width * scale),
-        height: Math.round(size.height * scale),
+        width: Math.round((sideways ? size.height : size.width) * scale),
+        height: Math.round((sideways ? size.width : size.height) * scale),
       }}
     >
       {/* The drawing. Left unlabelled on purpose: what a screen reader should
