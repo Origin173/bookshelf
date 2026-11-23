@@ -35,6 +35,8 @@ export type CoverImage = {
  */
 export type ReadBook = {
   metadata: BookMetadata;
+  /** Title used for the folder and existing edits by earlier sync versions. */
+  legacyTitle?: string;
   /** Null where the format has no cover, or carries none. */
   cover: CoverImage | null;
   /** True where the document was readable but its metadata was not. */
@@ -226,14 +228,6 @@ const EMPTY_TITLES = new Set([
   "book",
 ]);
 
-/** Comparable form of a name: case, punctuation and spacing all flattened. */
-function flatten(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "");
-}
-
 /**
  * Whether a recorded title is worth having.
  *
@@ -255,6 +249,7 @@ export function isJunkTitle(
     fileName,
     tools = [],
   }: { fileName?: string; tools?: (string | undefined)[] } = {},
+  nonAlphanumeric = /[^\p{L}\p{N}]+/gu,
 ): boolean {
   const trimmed = (title ?? "").trim();
   if (!trimmed) return true;
@@ -266,6 +261,8 @@ export function isJunkTitle(
     return true;
   }
 
+  const flatten = (value: string) =>
+    value.toLowerCase().normalize("NFKD").replace(nonAlphanumeric, "");
   const flat = flatten(trimmed);
   if (!flat) return true;
   if (fileName && flat === flatten(fileName)) return true;

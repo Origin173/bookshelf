@@ -6,7 +6,7 @@ import {
   readableFormat,
   resetCatalogMemo,
 } from "../src/services/catalog.ts";
-import { bookIdentity } from "../src/services/catalog-edits.ts";
+import { bookIdentity, editedBook } from "../src/services/catalog-edits.ts";
 import { LibraryUnavailableError } from "../src/services/errors.ts";
 import {
   brokenCache,
@@ -21,6 +21,28 @@ import {
  * from the first one's library.
  */
 beforeEach(resetCatalogMemo);
+
+test("PDF title corrections retain edits made against the earlier publication", () => {
+  const original = book("atlas", { authors: ["J. Lin"] });
+  const corrected = {
+    ...original,
+    title: "潮汐图册",
+    legacyTitle: original.title,
+  };
+  const identity = bookIdentity(original);
+  const snapshot = {
+    edits: { atlas: { identity, subjects: ["Ocean"] } },
+    titles: { atlas: { identity, title: "Field notes" } },
+    etag: "v1",
+  };
+  assert.deepEqual(editedBook(corrected, snapshot), {
+    ...corrected,
+    subjects: ["Ocean"],
+    title: "Field notes",
+  });
+  const replacement = { ...corrected, authors: ["Another author"] };
+  assert.deepEqual(editedBook(replacement, snapshot), replacement);
+});
 
 function book(title: string, extra: Partial<Book> = {}): Book {
   return {

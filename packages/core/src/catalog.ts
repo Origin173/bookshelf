@@ -31,6 +31,8 @@ export type Book = {
   /** Folder name in the bucket, and the book's identity in URLs. */
   id: string;
   title: string;
+  /** Title used by earlier sync versions to identify this PDF and its edits. */
+  legacyTitle?: string;
   authors: string[];
   publisher?: string;
   /** Publication date as recorded by the publisher, often just a year. */
