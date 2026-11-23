@@ -22,8 +22,8 @@ const en = {
   invalidIsbn: "Check the ISBN or leave it empty.",
   invalidCover: "Select the book again or leave the cover unchecked.",
   file: "Book file",
-  uploadHelp:
-    "One EPUB or PDF, up to 8 MiB. Use the publishing tool for larger files.",
+  uploadHelp: "One EPUB or PDF, up to 8 MiB.",
+  publishLarger: "Publish larger files with the CLI",
   uploaded: "Book added to the shelf.",
   duplicate: "This file is already on the shelf.",
   invalidFile: "Select a supported EPUB or PDF file.",
@@ -98,8 +98,8 @@ const zh: typeof en = {
   invalidIsbn: "请检查 ISBN，或将其留空。",
   invalidCover: "请重新选择图书，或取消使用候选封面。",
   file: "图书文件",
-  uploadHelp:
-    "每次可上传一个 EPUB 或 PDF，最大 8 MiB。较大的文件请通过发布工具导入。",
+  uploadHelp: "每次可上传一个 EPUB 或 PDF，最大 8 MiB。",
+  publishLarger: "用命令行发布大文件（英文指南）",
   uploaded: "图书已加入书架。",
   duplicate: "书架中已有这个文件。",
   invalidFile: "请选择支持的 EPUB 或 PDF 文件。",
