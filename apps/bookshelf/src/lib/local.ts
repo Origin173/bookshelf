@@ -27,3 +27,11 @@ export function writeStored(key: string, value: string): void {
     // Nothing is remembered, and nothing else is affected.
   }
 }
+
+export function removeStored(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Storage can be unavailable in private browsing.
+  }
+}

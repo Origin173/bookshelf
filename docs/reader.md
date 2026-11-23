@@ -8,6 +8,29 @@ built for them; anything else opens in your browser's own viewer.
 Books open where you left off, and the **Continue** button on the shelf takes
 you straight back to the one you're part-way through.
 
+## Open from your Home Screen
+
+Visit your shelf over HTTPS. In Safari on iPhone, choose **Share → Add to Home
+Screen**, enable **Open as Web App** if offered, then tap **Add**. Browsers
+that support installation also offer it in their menus.
+
+Open the Bookshelf icon and sign in with your usual shelf account if prompted.
+Choose **Continue** beside a book to return to your saved place. Both readers
+have a **Shelf** link at the top. Opening books and syncing progress require a
+connection. A disconnected launch shows a link to reopen the shelf after you
+reconnect. The service worker stores no pages, book files or account data.
+
+If a page already on screen can turn while disconnected, leave the reader
+open. When the connection returns it sends the last position, even without
+another turn. If another session has since changed that book, its newer
+server position is kept. A private window or cleared browser storage can lose
+a position before it syncs.
+
+On iOS and iPadOS 17.2 or later, adding the shelf to the Home Screen can
+carry over the login cookie. Safari’s local reading positions are not copied.
+Sync your place before installing if you want to resume it in the app.
+[WebKit’s installation notes](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/#login-cookies).
+
 ## Controls
 
 Both readers share the same controls.

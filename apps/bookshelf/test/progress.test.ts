@@ -280,3 +280,28 @@ test("positions of either kind live in one file, so the shelf reads it once", as
   assert.equal(all["a-pdf"].page, 7);
   assert.equal(all["an-epub"].cfi, "epubcfi(/6/4!/4/2)");
 });
+
+test("a reconnect retry is idempotent and cannot replace later progress", async () => {
+  const { storage } = memoryStorage();
+  const write = must(storage.write);
+  storage.writeIfMatch = async (key, bytes, type, etag) => {
+    if (((await storage.head(key))?.etag ?? null) !== etag) return false;
+    await write(key, bytes, type);
+    return true;
+  };
+  const progress = new ProgressService(storage);
+  const save = (page: number, base: string | null) =>
+    progress.saveIfCurrent("reader", "atlas", { page }, base);
+  const first = await save(2, null);
+  assert.ok(first.saved);
+  assert.deepEqual(await save(2, null), first);
+  assert.deepEqual(await save(2, first.current.updatedAt), first);
+  const later = await save(6, first.current.updatedAt);
+  assert.ok(later.saved);
+  assert.notEqual(later.current.updatedAt, first.current.updatedAt);
+  assert.deepEqual(await save(3, first.current.updatedAt), {
+    saved: false,
+    current: later.current,
+  });
+  assert.equal((await progress.get("reader", "atlas"))?.page, 6);
+});

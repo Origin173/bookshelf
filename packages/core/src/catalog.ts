@@ -71,6 +71,17 @@ export function bookKey(id: string, file: string): string {
   return `${id}/${file}`;
 }
 
+/** Upload IDs cannot be produced by the publisher's slugifier. */
+export function isUploadId(id: string): boolean {
+  return /^u_[a-f0-9]{64}$/.test(id);
+}
+
+/** Resolve a validated public book key to its object inside the library. */
+export function storageBookKey(key: string): string {
+  const id = key.split("/", 1)[0];
+  return isUploadId(id) ? `.bookshelf/uploads/${key}` : key;
+}
+
 /**
  * A key that addresses a file inside a book's folder, split into its two
  * halves — or null for anything else.
@@ -97,6 +108,12 @@ export function parseBookKey(key: string): { id: string; file: string } | null {
   // name. A file sits directly in the folder, so it holds no slash — which is
   // what keeps `progress/<profile>.json` from being reachable as a file — and
   // cannot lead with a dot, which is what rules out `.` and `..`.
+  if (isUploadId(id))
+    return file === "book.epub" ||
+      file === "book.pdf" ||
+      /^cover-[a-f0-9]{64}\.png$/.test(file)
+      ? { id, file }
+      : null;
   if (!/^[a-z0-9][a-z0-9-]{0,95}$/.test(id)) return null;
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(file)) return null;
 

@@ -113,6 +113,7 @@ function etag(shelf: Shelf, request: OpdsRequest, format: OpdsFormat): string {
     shelf.generatedAt ?? "",
     shelf.books.length,
     shelf.revision ?? "",
+    shelf.uploadRevision ?? "",
     request.path.join("/"),
     request.query.toString(),
     format,
