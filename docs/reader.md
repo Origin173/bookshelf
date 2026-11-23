@@ -147,6 +147,11 @@ dropdown, because technical books run to hundreds of bookmarks. Use **Find a
 chapter** to filter by title. Selecting a match opens its page. Clear the
 field to see the full outline at the current section.
 
+After jumping to a different page from Contents or Search, choose **Back to
+page …** in the toolbar to return once. Each new jump remembers the page you
+just left. Turning pages or rotating the screen keeps that return point. It
+clears when you use it, reload, or open another book.
+
 **Page tint on a PDF is a filter over the page**, not a restyling. A PDF page is
 a picture, background and all, so tinting can't work the way it does for an
 EPUB. It looks right for text and diagrams and wrong for photographs, which is
