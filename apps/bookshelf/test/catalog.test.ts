@@ -35,12 +35,14 @@ test("PDF title corrections retain edits made against the earlier publication", 
   const file = `_cover-${"1".repeat(64)}.png`;
   const snapshot = {
     edits: { atlas: { identity, subjects: ["Ocean"] } },
+    authors: { atlas: { identity, authors: ["林 青", "Lin, J."] } },
     titles: { atlas: { identity, title: "Field notes" } },
     covers: { atlas: { identity, file } },
     etag: "v1",
   };
   assert.deepEqual(editedBook(corrected, snapshot), {
     ...corrected,
+    authors: ["林 青", "Lin, J."],
     cover: file,
     subjects: ["Ocean"],
     title: "Field notes",

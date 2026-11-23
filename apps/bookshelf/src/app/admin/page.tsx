@@ -69,6 +69,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     result === "coverSaved" ||
     result === "invalidTitle" ||
     result === "titleSaved" ||
+    result === "authorsSaved" ||
+    result === "invalidAuthors" ||
     result === "uploaded" ||
     result === "duplicate" ||
     result === "invalidFile" ||
@@ -245,6 +247,43 @@ export default async function AdminPage(props: PageProps<"/admin">) {
                 className={BUTTON}
               >
                 {t.resetTitle}
+              </button>
+            </div>
+          </form>
+          <form
+            action="/admin/authors"
+            method="post"
+            className="mt-6 grid max-w-lg gap-3"
+          >
+            {revisionFields}
+            {missingCovers && (
+              <input type="hidden" name="from" value="missing" />
+            )}
+            <label htmlFor="book-authors" className="font-medium">
+              {t.authors}
+            </label>
+            <textarea
+              id="book-authors"
+              name="authors"
+              aria-describedby="author-help"
+              rows={3}
+              defaultValue={book.authors.join("\n")}
+              className={INPUT}
+            />
+            <p id="author-help" className="text-sm text-secondary">
+              {t.authorHelp}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className={BUTTON_PRIMARY}>
+                {t.saveAuthors}
+              </button>
+              <button
+                type="submit"
+                name="intent"
+                value="reset"
+                className={BUTTON}
+              >
+                {t.resetAuthors}
               </button>
             </div>
           </form>
