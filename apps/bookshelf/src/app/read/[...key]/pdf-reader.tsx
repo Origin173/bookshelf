@@ -29,6 +29,7 @@ import { type PageSize, PdfPage } from "@/app/read/[...key]/pdf-page";
 import { usePdfSearch } from "@/app/read/[...key]/pdf-search";
 import { type Panel, PdfSidebar } from "@/app/read/[...key]/pdf-sidebar";
 import { useReadingPosition } from "@/app/read/[...key]/position";
+import { ReaderBookmarks } from "@/app/read/[...key]/reader-bookmarks";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
 import { readStored, writeStored } from "@/lib/local";
 import {
@@ -36,6 +37,7 @@ import {
   type ReaderText,
   readerText,
 } from "@/lib/reader-text";
+import type { BookmarkAction } from "@/services/bookmarks";
 
 type Layout = "spread" | "page" | "scroll";
 
@@ -147,6 +149,7 @@ export function PdfReader({
   profileId,
   saved,
   canSync,
+  bookmarks,
   locale,
 }: {
   locale: ReaderLocale;
@@ -158,6 +161,7 @@ export function PdfReader({
   saved: BookProgress | null;
   /** False against a library the app cannot write to. */
   canSync: boolean;
+  bookmarks?: BookmarkAction;
 }) {
   const t = readerText[locale];
   const scroller = useRef<HTMLElement>(null);
@@ -676,6 +680,18 @@ export function PdfReader({
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-separator px-4 py-2.5">
           <div className="flex items-center gap-1">
+            {bookmarks && (
+              <ReaderBookmarks
+                action={bookmarks}
+                current={
+                  status === "ready" && pages ? { position: page } : null
+                }
+                onGo={(position) => {
+                  if (typeof position === "number") goTo(position);
+                }}
+                t={t}
+              />
+            )}
             <Toggle
               on={panel === "contents"}
               onClick={() => setPanel(panel === "contents" ? null : "contents")}

@@ -44,7 +44,7 @@ Where reading and browsing are thin rather than absent.
   pages with two small buttons, and there's no way to reach the chrome without
   hitting a 32-pixel target. Tap zones and an immersive mode are missing from
   both.
-- **Bookmarks and highlights.** Neither exists.
+- **Highlights.** Personal bookmarks are available in the PDF and EPUB readers.
 - **Search inside an EPUB.** PDFs are searchable; EPUBs aren't.
 
 ## Later
