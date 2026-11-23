@@ -5,6 +5,7 @@ import { HomeScreenHelp } from "@/app/home-screen-help";
 import { LanguageSwitch } from "@/app/language-switch";
 import { PersonalEntry } from "@/app/personal-shelf/entry";
 import { ProfileMenu } from "@/app/profile-menu";
+import { ReadingFormats } from "@/app/reading-formats";
 import { SearchInput } from "@/app/search-input";
 import { State } from "@/app/state";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
@@ -432,13 +433,12 @@ export default async function Home(props: PageProps<"/">) {
                         />
                       )}
                       {readable && (
-                        <Link
-                          prefetch={false}
-                          href={`/read/${encodeKey(bookKey(book.id, readable.file))}`}
-                          className={BUTTON_PRIMARY}
-                        >
-                          {resume ? t.resume : t.read}
-                        </Link>
+                        <ReadingFormats
+                          book={book}
+                          current={readable}
+                          action={resume ? t.resume : t.read}
+                          read={t.read}
+                        />
                       )}
                       {book.formats.map((format) => (
                         <a

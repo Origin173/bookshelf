@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { readerBookmarks } from "@/app/read/[...key]/bookmark-action";
 import { EpubReader } from "@/app/read/[...key]/epub-reader";
 import { PdfReader } from "@/app/read/[...key]/pdf-reader";
+import { ReadingFormats } from "@/app/reading-formats";
 import { State, StatePage } from "@/app/state";
 import { BUTTON_PRIMARY } from "@/app/ui";
 import { encodeKey } from "@/lib/http";
@@ -96,9 +97,8 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
   const locale = await language();
   const t = readerText[locale];
   if (book === undefined) return <Unreachable />;
-  if (!book?.formats.some((f) => f.file === file)) {
-    notFound();
-  }
+  const format = book?.formats.find((f) => f.file === file);
+  if (!book || !format) notFound();
 
   const { mark } = await props.searchParams;
   let start: number | string | undefined;
@@ -120,7 +120,7 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
     // rather than `vh` so that a phone's collapsing address bar is accounted
     // for instead of hiding the bottom of the toolbar behind it.
     <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-separator px-6 py-3">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-separator px-3 py-3 sm:gap-4 sm:px-6">
         <Link
           href="/"
           className="inline-flex shrink-0 items-center gap-0.5 text-sm font-medium text-secondary transition-colors hover:text-foreground"
@@ -129,6 +129,7 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
           {t.shelf}
         </Link>
         <h1 className="min-w-0 truncate text-sm font-medium">{book.title}</h1>
+        <ReadingFormats book={book} current={format} read={t.readFormat} />
         <a
           href={`/download/${encodeKey(fileKey)}`}
           download
