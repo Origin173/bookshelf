@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   type Book,
+  findIsbn,
   isAddedCover,
   STATE_PREFIX,
   type Storage,
@@ -47,7 +48,9 @@ type TitleEdit = { identity: string; title: string };
 type Titles = Record<string, TitleEdit>;
 type Authors = Record<string, { identity: string; authors: string[] }>;
 type Covers = Record<string, { identity: string; file: string }>;
+type Isbns = Record<string, { identity: string; isbn: string }>;
 export type EditSnapshot = {
+  isbns: Isbns;
   authors: Authors;
   covers: Covers;
   edits: Edits;
@@ -65,13 +68,21 @@ export async function catalogEdits(
       previous?.etag ? { ifNoneMatch: previous.etag } : undefined,
     );
     if (!object)
-      return { edits: {}, titles: {}, covers: {}, authors: {}, etag: null };
+      return {
+        edits: {},
+        titles: {},
+        covers: {},
+        authors: {},
+        isbns: {},
+        etag: null,
+      };
     if (!object.body && previous?.etag === object.object.etag) return previous;
     const data = (await new Response(object.body).json()) as {
       version?: number;
       books?: Edits;
       titles?: Titles;
       authors?: Authors;
+      isbns?: Isbns;
       covers?: Covers;
     } | null;
     if (
@@ -128,7 +139,21 @@ export async function catalogEdits(
       )
     )
       throw new Error("Invalid author edits");
+    const isbns = data.isbns ?? {};
+    if (
+      typeof isbns !== "object" ||
+      Array.isArray(isbns) ||
+      !Object.values(isbns).every(
+        (entry) =>
+          entry &&
+          typeof entry.identity === "string" &&
+          typeof entry.isbn === "string" &&
+          findIsbn([entry.isbn]) === entry.isbn,
+      )
+    )
+      throw new Error("Invalid ISBN edits");
     return {
+      isbns,
       edits: data.books,
       titles,
       covers,
@@ -140,19 +165,21 @@ export async function catalogEdits(
 
 export function editedBook(
   book: Book,
-  { edits, titles, covers, authors }: EditSnapshot,
+  { edits, titles, covers, authors, isbns }: EditSnapshot,
 ): Book {
   const subject = Object.hasOwn(edits, book.id) && edits[book.id];
   const title = Object.hasOwn(titles, book.id) && titles[book.id];
   const cover =
     !book.cover && Object.hasOwn(covers, book.id) && covers[book.id];
   const credit = Object.hasOwn(authors, book.id) && authors[book.id];
-  if (!subject && !title && !cover && !credit) return book;
+  const isbn = !book.isbn && Object.hasOwn(isbns, book.id) && isbns[book.id];
+  if (!subject && !title && !cover && !credit && !isbn) return book;
   const identity = bookIdentity(book);
   const legacy = book.legacyTitle && bookIdentity(book, book.legacyTitle);
   const matches = (saved: string) => saved === identity || saved === legacy;
   return {
     ...book,
+    ...(isbn && matches(isbn.identity) && { isbn: isbn.isbn }),
     ...(credit && matches(credit.identity) && { authors: credit.authors }),
     ...(cover && matches(cover.identity) && { cover: cover.file }),
     ...(subject && matches(subject.identity) && { subjects: subject.subjects }),
@@ -168,34 +195,50 @@ export function applyEdits(shelf: Shelf, snapshot: EditSnapshot): Shelf {
   return { ...shelf, revision: snapshot.etag, books };
 }
 
+export type BookEdit = {
+  title?: string | null;
+  authors?: string[] | null;
+  subjects?: string[] | null;
+  cover?: string;
+  isbn?: string;
+};
+
 export async function saveBookEdit(
   storage: Storage,
   snapshot: EditSnapshot,
   book: Book,
-  change:
-    | { title: string | null }
-    | { subjects: string[] | null }
-    | { authors: string[] | null }
-    | { cover: string },
+  change: BookEdit,
 ) {
   if (!storage.writeIfMatch) return false;
   const edits: Edits = Object.assign(Object.create(null), snapshot.edits);
   const titles: Titles = Object.assign(Object.create(null), snapshot.titles);
   const authors: Authors = Object.assign(Object.create(null), snapshot.authors);
   const covers: Covers = Object.assign(Object.create(null), snapshot.covers);
+  const isbns: Isbns = Object.assign(Object.create(null), snapshot.isbns);
   const identity = bookIdentity(book);
-  if ("cover" in change) covers[book.id] = { identity, file: change.cover };
-  else if ("title" in change) {
+  if (change.isbn) isbns[book.id] = { identity, isbn: change.isbn };
+  if (change.cover) covers[book.id] = { identity, file: change.cover };
+  if (change.title !== undefined) {
     if (change.title === null || change.title === book.title)
       delete titles[book.id];
     else titles[book.id] = { identity, title: change.title };
-  } else if ("authors" in change) {
+  }
+  if (change.authors !== undefined) {
     if (change.authors === null) delete authors[book.id];
     else authors[book.id] = { identity, authors: change.authors };
-  } else if (change.subjects === null) delete edits[book.id];
-  else edits[book.id] = { identity, subjects: change.subjects };
+  }
+  if (change.subjects === null) delete edits[book.id];
+  else if (change.subjects !== undefined)
+    edits[book.id] = { identity, subjects: change.subjects };
   const bytes = new TextEncoder().encode(
-    JSON.stringify({ version: 1, books: edits, titles, covers, authors }),
+    JSON.stringify({
+      version: 1,
+      books: edits,
+      titles,
+      covers,
+      authors,
+      isbns,
+    }),
   );
   const write = storage.writeIfMatch.bind(storage);
   return writing("the catalog edits", () =>

@@ -190,6 +190,16 @@ if none was found. You can enter one subject per line to make the uploaded
 book available under those subjects on the shelf and in OPDS. Books without
 a cover use the usual placeholder.
 
+In **Manage books → Edit book → Details from the book**, choose an available
+EPUB or PDF and select **Read file details**. The browser reads the stored
+file on demand. EPUB uses its package metadata and declared cover. PDF uses
+its document properties and, when possible, a thumbnail of the first page.
+Compare the suggested title and authors with the current credits. A valid
+ISBN or cover can fill an empty field. Check the fields to adopt and select
+**Apply selected details** to save them together. Unchecked fields keep their
+current values. This uses only your shelf and works without a book lookup
+service.
+
 To correct the credits on an existing book, open **Manage books → Edit book**
 and enter one author per line, in the order shown on the book. Save an empty
 field for an uncredited work, or select **Use original authors** to restore

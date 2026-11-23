@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CoverForm } from "@/app/admin/cover-form";
+import { SourceDetails } from "@/app/admin/source-details";
 import { UploadForm } from "@/app/admin/upload-form";
 import { LanguageSwitch } from "@/app/language-switch";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, INPUT } from "@/app/ui";
@@ -71,6 +72,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     result === "titleSaved" ||
     result === "authorsSaved" ||
     result === "invalidAuthors" ||
+    result === "selectDetails" ||
+    result === "detailsSaved" ||
     result === "uploaded" ||
     result === "duplicate" ||
     result === "invalidFile" ||
@@ -201,6 +204,38 @@ export default async function AdminPage(props: PageProps<"/admin">) {
         </p>
       ) : book ? (
         <>
+          <SourceDetails
+            key={JSON.stringify([book.id, data.revision, data.generatedAt])}
+            book={{
+              id: book.id,
+              formats: book.formats,
+              title: book.title,
+              authors: book.authors,
+              isbn: book.isbn,
+              cover: book.cover,
+            }}
+            t={{
+              sourceDetails: t.sourceDetails,
+              readSource: t.readSource,
+              bookFormat: t.bookFormat,
+              analyzing: t.analyzing,
+              sourceUnavailable: t.sourceUnavailable,
+              noNewDetails: t.noNewDetails,
+              reviewSource: t.reviewSource,
+              currentValue: t.currentValue,
+              notListed: t.notListed,
+              title: t.title,
+              authors: t.authors,
+              coverImage: t.coverImage,
+              coverPreview: t.coverPreview,
+              applyDetails: t.applyDetails,
+            }}
+          >
+            {revisionFields}
+            {missingCovers && (
+              <input type="hidden" name="from" value="missing" />
+            )}
+          </SourceDetails>
           {!book.cover && (
             <CoverForm
               t={{

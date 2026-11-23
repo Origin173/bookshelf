@@ -39,7 +39,7 @@ function group(books: Book[], namesOf: (book: Book) => string[]): Group[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function authorNames(book: Book): string[] {
+export function authorNames(book: Pick<Book, "authors">): string[] {
   return [...new Set(book.authors.map((name) => name.trim()).filter(Boolean))];
 }
 

@@ -8,11 +8,17 @@ import {
   resetCatalogMemo,
   resumeFormat,
 } from "../src/services/catalog.ts";
-import { bookIdentity, editedBook } from "../src/services/catalog-edits.ts";
+import {
+  bookIdentity,
+  catalogEdits,
+  editedBook,
+  saveBookEdit,
+} from "../src/services/catalog-edits.ts";
 import { LibraryUnavailableError } from "../src/services/errors.ts";
 import {
   brokenCache,
   memoryStorage,
+  must,
   nullCache,
   recordingCache,
 } from "./lib/storage.ts";
@@ -35,6 +41,7 @@ test("PDF title corrections retain edits made against the earlier publication", 
   const file = `_cover-${"1".repeat(64)}.png`;
   const snapshot = {
     edits: { atlas: { identity, subjects: ["Ocean"] } },
+    isbns: { atlas: { identity, isbn: "9780306406157" } },
     authors: { atlas: { identity, authors: ["林 青", "Lin, J."] } },
     titles: { atlas: { identity, title: "Field notes" } },
     covers: { atlas: { identity, file } },
@@ -42,6 +49,7 @@ test("PDF title corrections retain edits made against the earlier publication", 
   };
   assert.deepEqual(editedBook(corrected, snapshot), {
     ...corrected,
+    isbn: "9780306406157",
     authors: ["林 青", "Lin, J."],
     cover: file,
     subjects: ["Ocean"],
@@ -53,6 +61,38 @@ test("PDF title corrections retain edits made against the earlier publication", 
   );
   const replacement = { ...corrected, authors: ["Another author"] };
   assert.deepEqual(editedBook(replacement, snapshot), replacement);
+});
+
+test("source selections commit together against the displayed revision", async () => {
+  const { storage, writes } = memoryStorage();
+  const write = must(storage.write);
+  storage.writeIfMatch = async (key, bytes, type, expected) => {
+    if (((await storage.head(key))?.etag ?? null) !== expected) return false;
+    await write(key, bytes, type);
+    return true;
+  };
+  const source = book("atlas", { authors: ["Original credit"] });
+  const snapshot = await catalogEdits(storage);
+  assert.equal(
+    await saveBookEdit(storage, snapshot, source, {
+      title: "Atlas",
+      isbn: "9780306406157",
+    }),
+    true,
+  );
+  assert.equal(
+    await saveBookEdit(storage, snapshot, source, {
+      title: "Stale",
+      authors: ["Late credit"],
+    }),
+    false,
+  );
+  assert.equal(writes.length, 1);
+  assert.deepEqual(editedBook(source, await catalogEdits(storage)), {
+    ...source,
+    title: "Atlas",
+    isbn: "9780306406157",
+  });
 });
 
 function book(title: string, extra: Partial<Book> = {}): Book {

@@ -1,7 +1,9 @@
+import { findIsbn } from "@bookshelf/core";
 import { readBody, readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
 import {
+  type BookEdit,
   bookIdentity,
   catalogEdits,
   editedBook,
@@ -15,7 +17,7 @@ import { storeThumbnail, validThumbnail } from "@/services/thumbnails";
 
 export async function updateBook(
   request: Request,
-  field: "subjects" | "title" | "cover" | "authors",
+  field: "subjects" | "title" | "cover" | "authors" | "details",
 ) {
   const reject = (status: number) =>
     new Response(null, {
@@ -31,7 +33,7 @@ export async function updateBook(
   if (!storage.writeIfMatch) return reject(403);
   const type = request.headers.get("content-type") ?? "";
   let form: FormData | URLSearchParams;
-  if (field === "cover") {
+  if (field === "cover" || field === "details") {
     if (type.split(";")[0] !== "multipart/form-data") return reject(415);
     const bytes = await readBodyBytes(request, MAX_COVER_BYTES + 16 * 1024);
     if (!bytes) return reject(413);
@@ -75,54 +77,61 @@ export async function updateBook(
       (shelf.generatedAt ?? "") !== form.get("generation")
     )
       return back("conflict");
-    const raw = form.get(field);
-    const reset = form.get("intent") === "reset";
-    if (field === "cover") {
+    const change: BookEdit = {};
+    const reset = field !== "details" && form.get("intent") === "reset";
+    const selected = (name: keyof BookEdit) =>
+      field === name || (field === "details" && form.has(name));
+    if (selected("title")) {
+      const raw = form.get("title");
+      const title = typeof raw === "string" ? raw.trim() : "";
+      if (!reset && (!title || title.length > 200)) return back("invalidTitle");
+      change.title = reset ? null : title;
+    }
+    if (selected("authors")) {
+      const raw = form.get("authors");
+      const authors = typeof raw === "string" ? parseAuthors(raw) : null;
+      if (!reset && (!authors || (field === "details" && !authors.length)))
+        return back("invalidAuthors");
+      change.authors = reset ? null : authors;
+    }
+    if (field === "subjects") {
+      const raw = form.get("subjects");
+      const subjects = typeof raw === "string" ? parseSubjects(raw) : null;
+      if (!reset && !subjects) return back("invalid");
+      change.subjects = reset ? null : subjects;
+    }
+    if (selected("isbn")) {
+      if (editedBook(book, snapshot).isbn) return back("conflict");
+      const isbn = form.get("isbn");
+      if (
+        typeof isbn !== "string" ||
+        isbn.length > 13 ||
+        findIsbn([isbn]) !== isbn
+      )
+        return back("invalidIsbn");
+      change.isbn = isbn;
+    }
+    if (selected("cover")) {
       if (editedBook(book, snapshot).cover) return back("conflict");
+      const raw = form.get("cover");
       if (!raw || typeof raw === "string" || raw.size > MAX_COVER_BYTES)
         return back("invalidLocalCover");
       const png = new Uint8Array(await raw.arrayBuffer());
       if (!validThumbnail(png)) return back("invalidLocalCover");
       const file = await storeThumbnail(storage, id, png, "edit");
       if (!file) return back("conflict");
-      return back(
-        (await saveBookEdit(storage, snapshot, book, { cover: file }))
-          ? "coverSaved"
-          : "conflict",
-      );
+      change.cover = file;
     }
-    const value = typeof raw === "string" ? raw : "";
-    if (field === "title") {
-      const title = value.trim();
-      if (!reset && (!title || title.length > 200)) return back("invalidTitle");
-      return back(
-        (await saveBookEdit(storage, snapshot, book, {
-          title: reset ? null : title,
-        }))
-          ? "titleSaved"
-          : "conflict",
-      );
-    }
-    if (field === "authors") {
-      const authors = typeof raw === "string" ? parseAuthors(value) : null;
-      if (!reset && !authors) return back("invalidAuthors");
-      return back(
-        (await saveBookEdit(storage, snapshot, book, {
-          authors: reset ? null : authors,
-        }))
-          ? "authorsSaved"
-          : "conflict",
-      );
-    }
-    const subjects = typeof raw === "string" ? parseSubjects(value) : null;
-    if (!reset && !subjects) return back("invalid");
-    return back(
-      (await saveBookEdit(storage, snapshot, book, {
-        subjects: reset ? null : subjects,
-      }))
-        ? "saved"
-        : "conflict",
-    );
+    if (!Object.keys(change).length) return back("selectDetails");
+    const saved = await saveBookEdit(storage, snapshot, book, change);
+    const notice = {
+      title: "titleSaved",
+      authors: "authorsSaved",
+      subjects: "saved",
+      cover: "coverSaved",
+      details: "detailsSaved",
+    };
+    return back(saved ? notice[field] : "conflict");
   } catch (error) {
     if (!isUnavailable(error)) throw error;
     return back("unavailable");
