@@ -60,7 +60,10 @@ export function sectionTargets(contents: Contents, entries: TocEntry[]) {
     const text = contents.document
       .createTreeWalker(element, NodeFilter.SHOW_TEXT)
       .nextNode();
-    const cfi = contents.cfiFromNode(text ?? element);
+    const range = contents.document.createRange();
+    range.selectNodeContents(text ?? element);
+    range.collapse(true);
+    const cfi = contents.cfiFromRange(range);
     targets.push({ entry, cfi });
   }
   return targets.sort((a, b) => contents.epubcfi.compare(a.cfi, b.cfi));

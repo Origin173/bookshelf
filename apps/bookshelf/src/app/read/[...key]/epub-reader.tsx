@@ -301,20 +301,22 @@ export function EpubReader({
           // passage is still on screen. Keep that exact CFI until we leave it.
           const targets = targetsBySection.get(start.index) ?? [];
           const requested = requestedEntry.current;
+          const onScreen = (cfi: string) =>
+            end?.cfi &&
+            view.epubcfi.compare(start.cfi, cfi) <= 0 &&
+            view.epubcfi.compare(cfi, end.cfi) <= 0;
           if (requested?.section === start.index) {
-            targetCfi.current = targets.find(
+            const anchor = targets.find(
               ({ entry }) => entry === requested,
             )?.cfi;
-            requestedEntry.current = undefined;
+            // A previous jump can still report its viewport after the next selection.
+            if (!anchor || onScreen(anchor)) {
+              requestedEntry.current = undefined;
+              targetCfi.current = anchor;
+            }
           }
           const target = targetCfi.current;
-          const position =
-            target &&
-            end?.cfi &&
-            view.epubcfi.compare(start.cfi, target) <= 0 &&
-            view.epubcfi.compare(target, end.cfi) <= 0
-              ? target
-              : start.cfi;
+          const position = target && onScreen(target) ? target : start.cfi;
           if (position !== target) targetCfi.current = undefined;
           const active =
             targets.findLast(
