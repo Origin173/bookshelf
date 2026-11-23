@@ -301,14 +301,10 @@ export function EpubReader({
         view.hooks.content.register((contents: Contents) => {
           const targets = sectionTargets(contents, entries);
           targetsBySection.set(contents.sectionIndex, targets);
-          // Nested IDs can point at the same first character. Keep the first
-          // outline entry for stepping, while all names stay searchable.
-          let first: (typeof targets)[number] | undefined;
           const shared = new Map<string, string>();
-          for (const target of targets) {
-            if (first?.cfi !== target.cfi) first = target;
-            else if (first.entry.href !== target.entry.href)
-              shared.set(target.entry.href, first.entry.href);
+          for (const { entry, heading } of targets) {
+            if (entry.href !== heading.href)
+              shared.set(entry.href, heading.href);
           }
           if (shared.size)
             setAliases((known) => new Map([...known, ...shared]));
@@ -388,7 +384,7 @@ export function EpubReader({
           const active =
             targets.findLast(
               ({ cfi }) => view.epubcfi.compare(cfi, position) <= 0,
-            )?.entry ??
+            )?.heading ??
             entries.find(
               (entry) => entry.section === start.index && !entry.fragment,
             );

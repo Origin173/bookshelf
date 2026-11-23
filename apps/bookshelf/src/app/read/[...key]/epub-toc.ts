@@ -56,7 +56,8 @@ export function bookContents(
 
 /** Only the section already on screen supplies anchor positions. */
 export function sectionTargets(contents: Contents, entries: TocEntry[]) {
-  const targets: { entry: TocEntry; cfi: string }[] = [];
+  const targets: { entry: TocEntry; heading: TocEntry; cfi: string }[] = [];
+  const headings = new Map<string, TocEntry>();
   for (const entry of entries) {
     if (entry.section !== contents.sectionIndex || !entry.fragment) continue;
     const element = contents.document.getElementById(entry.fragment);
@@ -68,7 +69,10 @@ export function sectionTargets(contents: Contents, entries: TocEntry[]) {
     range.selectNodeContents(text ?? element);
     range.collapse(true);
     const cfi = contents.cfiFromRange(range);
-    targets.push({ entry, cfi });
+    // Multiple outline entries can lead to the same character.
+    const heading = headings.get(cfi) ?? entry;
+    headings.set(cfi, heading);
+    targets.push({ entry, heading, cfi });
   }
   return targets.sort((a, b) => contents.epubcfi.compare(a.cfi, b.cfi));
 }
