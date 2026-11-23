@@ -34,6 +34,13 @@ Only the title is required. A book that doesn't record a publisher or a date is
 normal, not broken. For how each format stores this and how far it's trusted,
 see [publishing](publishing.md#what-ends-up-on-your-shelf).
 
+On the shelf, choose **Sort by** and apply a catalog date order. Dates keep
+their recorded precision. A year or month sorts from the start of that period;
+ties keep their existing order. Missing or unrecognized dates come last in
+either direction. For a PDF, the recorded date can be the file creation or
+scan date. Older catalog entries do not distinguish the source. **Recently
+read** always follows reading activity.
+
 When an older sync would have skipped a PDF's embedded title, `legacyTitle`
 records the title it would have used. Republish normally to show the embedded
 title while keeping the same folder, reader links and existing web edits.

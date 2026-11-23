@@ -35,7 +35,7 @@ export type Book = {
   legacyTitle?: string;
   authors: string[];
   publisher?: string;
-  /** Publication date as recorded by the publisher, often just a year. */
+  /** Catalog date, sometimes just a year. PDFs may use the file creation date. */
   published?: string;
   language?: string;
   identifier?: string;
