@@ -9,10 +9,12 @@ import {
   resumeFormat,
 } from "../src/services/catalog.ts";
 import {
+  addSubjectToBooks,
   bookIdentity,
   catalogEdits,
   editedBook,
   saveBookEdit,
+  subjectRevision,
 } from "../src/services/catalog-edits.ts";
 import { LibraryUnavailableError } from "../src/services/errors.ts";
 import {
@@ -93,6 +95,78 @@ test("source selections commit together against the displayed revision", async (
     title: "Atlas",
     isbn: "9780306406157",
   });
+});
+
+test("a bulk subject edit keeps the entire selection on the displayed revision", async () => {
+  const { storage, writes } = memoryStorage();
+  const write = must(storage.write);
+  storage.writeIfMatch = async (key, bytes, type, expected) => {
+    if (((await storage.head(key))?.etag ?? null) !== expected) return false;
+    await write(key, bytes, type);
+    return true;
+  };
+  const books = [
+    book("seed", { subjects: ["Coast"] }),
+    book("one", { subjects: ["A"] }),
+    book("two"),
+  ];
+  const shelf = { books };
+  const snapshot = await catalogEdits(storage);
+  const revision = subjectRevision(shelf, snapshot.etag);
+  const ids = new Set(["one", "two"]);
+  const apply = (current: typeof shelf, subject: string) =>
+    addSubjectToBooks(storage, current, snapshot, revision, subject, ids);
+
+  assert.equal(await apply(shelf, "New"), "invalid");
+  assert.equal(
+    await apply(
+      { books: [books[0], books[1], { ...books[2], title: "Replacement" }] },
+      "Coast",
+    ),
+    "conflict",
+  );
+  const full = {
+    books: [
+      books[0],
+      books[1],
+      {
+        ...books[2],
+        subjects: Array.from({ length: 20 }, (_, i) => String(i)),
+      },
+    ],
+  };
+  assert.equal(
+    await addSubjectToBooks(
+      storage,
+      full,
+      snapshot,
+      subjectRevision(full, snapshot.etag),
+      "Coast",
+      ids,
+    ),
+    "invalid",
+  );
+  assert.equal(writes.length, 0);
+  assert.equal(await apply(shelf, "Coast"), "saved");
+  assert.equal(await apply(shelf, "Coast"), "conflict");
+  const after = await catalogEdits(storage);
+  assert.equal(
+    await addSubjectToBooks(
+      storage,
+      shelf,
+      after,
+      subjectRevision(shelf, after.etag),
+      "Coast",
+      ids,
+    ),
+    "saved",
+  );
+  assert.equal(writes.length, 1);
+  assert.deepEqual(
+    books.map((b) => editedBook(b, after).subjects),
+    [["Coast"], ["A", "Coast"], ["Coast"]],
+  );
+  assert.deepEqual(Object.keys(after.edits).sort(), ["one", "two"]);
 });
 
 function book(title: string, extra: Partial<Book> = {}): Book {

@@ -1,8 +1,8 @@
 import { findIsbn, isUploadId, type Storage } from "@bookshelf/core";
+import { parseSubjects } from "@/lib/catalog-names";
 import { readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES, MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
-import { parseSubjects } from "@/services/catalog-edits";
 import { getServices } from "@/services/container";
 import { isUnavailable } from "@/services/errors";
 import { appendFormat, importBook } from "@/services/uploads";
