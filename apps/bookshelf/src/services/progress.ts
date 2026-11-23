@@ -19,6 +19,28 @@ export type { BookProgress } from "@bookshelf/core";
  */
 export type ReadingPosition = Omit<BookProgress, "updatedAt">;
 
+export type SaveResult =
+  | { saved: true; current: BookProgress }
+  | { saved: false; current: BookProgress | null }
+  | { saved: false };
+
+function entry(
+  position: ReadingPosition,
+  previous?: BookProgress,
+): BookProgress {
+  // Even two turns in a millisecond need distinct revisions.
+  const time = Math.max(
+    Date.now(),
+    (Date.parse(previous?.updatedAt ?? "") || 0) + 1,
+  );
+  return {
+    ...(position.cfi && { cfi: position.cfi }),
+    ...(position.href && { href: position.href }),
+    ...(position.page && { page: position.page }),
+    updatedAt: new Date(time).toISOString(),
+  };
+}
+
 /**
  * How far each profile got in each book.
  *
@@ -26,10 +48,8 @@ export type ReadingPosition = Omit<BookProgress, "updatedAt">;
  * and a write either way, and this way the shelf can show every position it
  * knows about in a single request.
  *
- * Two devices reading as the same profile is last-write-wins. The client only
- * sends a position it believes is newer than the one it was given, which makes
- * that lossless in every case except genuinely simultaneous reading — and the
- * reader that loses gets the other's position on its next load.
+ * The reader sends the last server revision it saw. Both supported storage
+ * providers condition the replacement on the whole profile file's ETag.
  */
 export class ProgressService {
   private readonly storage: Storage;
@@ -95,6 +115,8 @@ export class ProgressService {
     bookId: string,
     position: ReadingPosition,
   ): Promise<boolean> {
+    if (this.storage.writeIfMatch)
+      return (await this.saveIfCurrent(profileId, bookId, position)).saved;
     const target = writableStorage(this.storage);
     if (!target) return false;
 
@@ -105,16 +127,55 @@ export class ProgressService {
       return false;
     }
 
-    // Only the fields that were given, so a format's position is stored in the
-    // shape that format has rather than padded out with empty ones.
-    books[bookId] = {
-      ...(position.cfi ? { cfi: position.cfi } : {}),
-      ...(position.href ? { href: position.href } : {}),
-      ...(position.page ? { page: position.page } : {}),
-      updatedAt: new Date().toISOString(),
-    };
-
+    books[bookId] = entry(position, books[bookId]);
     return this.write(target, profileId, books);
+  }
+
+  async saveIfCurrent(
+    profileId: string,
+    bookId: string,
+    position: ReadingPosition,
+    basedOn?: string | null,
+  ): Promise<SaveResult> {
+    const key = progressFile(profileId);
+    if (!this.storage.writeIfMatch) return { saved: false };
+    try {
+      // A different book may have changed the same profile file. Read its new
+      // version and check this book again before retrying the conditional put.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const found = await this.storage.read(key);
+        const books: Record<string, BookProgress> = found
+          ? ((await new Response(found.body).json()) as Progress).books
+          : {};
+        const current = books[bookId] ?? null;
+        if (
+          current &&
+          current.page === position.page &&
+          current.cfi === position.cfi &&
+          current.href === position.href
+        )
+          return { saved: true, current };
+        if (basedOn !== undefined && basedOn !== (current?.updatedAt ?? null))
+          return { saved: false, current };
+        const next = entry(position, current ?? undefined);
+        books[bookId] = next;
+        const bytes = new TextEncoder().encode(
+          JSON.stringify({ version: STATE_VERSION, books } satisfies Progress),
+        );
+        if (
+          await this.storage.writeIfMatch(
+            key,
+            bytes,
+            "application/json",
+            found?.object.etag ?? null,
+          )
+        )
+          return { saved: true, current: next };
+      }
+    } catch {
+      // Leave the browser's pending position available for another attempt.
+    }
+    return { saved: false };
   }
 
   /** Forgets one book, or every book when no id is given. */

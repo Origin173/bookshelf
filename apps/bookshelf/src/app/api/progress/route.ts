@@ -118,6 +118,17 @@ async function savePosition(request: Request) {
     return Response.json({ error: "bookId is required" }, { status: 400 });
   }
 
+  const basedOn = body.basedOn;
+  if (
+    basedOn !== undefined &&
+    basedOn !== null &&
+    (typeof basedOn !== "string" ||
+      basedOn.length !== 24 ||
+      !Number.isFinite(Date.parse(basedOn)))
+  ) {
+    return Response.json({ error: "invalid revision" }, { status: 400 });
+  }
+
   const { catalog, progress, limits } = await getServices();
 
   // After the body has been read and found to name a book, so a flood of
@@ -145,12 +156,23 @@ async function savePosition(request: Request) {
       return Response.json({ saved: false }, { status: 409 });
     }
 
-    const saved = await progress.save(profile.id, bookId, {
+    const position = {
       cfi: field(body.cfi),
       href: field(body.href),
       page: pageNumber(body.page),
-    });
-
+    };
+    if (basedOn !== undefined) {
+      const result = await progress.saveIfCurrent(
+        profile.id,
+        bookId,
+        position,
+        basedOn,
+      );
+      return Response.json(result, {
+        status: result.saved ? 200 : "current" in result ? 409 : 503,
+      });
+    }
+    const saved = await progress.save(profile.id, bookId, position);
     return Response.json({ saved }, { status: saved ? 200 : 202 });
   } catch (error) {
     if (!isUnavailable(error)) throw error;

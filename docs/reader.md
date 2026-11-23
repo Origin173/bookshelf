@@ -20,6 +20,17 @@ have a **Shelf** link at the top. Opening books and syncing progress require a
 connection. A disconnected launch shows a link to reopen the shelf after you
 reconnect. The service worker stores no pages, book files or account data.
 
+If a page already on screen can turn while disconnected, leave the reader
+open. When the connection returns it sends the last position, even without
+another turn. If another session has since changed that book, its newer
+server position is kept. A private window or cleared browser storage can lose
+a position before it syncs.
+
+On iOS and iPadOS 17.2 or later, adding the shelf to the Home Screen can
+carry over the login cookie. Safari’s local reading positions are not copied.
+Sync your place before installing if you want to resume it in the app.
+[WebKit’s installation notes](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/#login-cookies).
+
 ## Controls
 
 Both readers share the same controls.
