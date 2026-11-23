@@ -182,6 +182,11 @@ works in a read-only library. It pages through the signed-in account’s existin
 bookmark files and shows formats still in the catalog. The links contain a
 bookmark identifier and keep the note text and the EPUB location out of the URL.
 
+From **My notes**, choose **Export all notes as Markdown** to download
+`bookshelf-notes.md`. The file groups your notes by book and includes each
+bookmark’s name and location. It includes all pages of your notes, including
+on a read-only shelf.
+
 In a book with several bookmarks, use **Find a bookmark** in the bookmark
 panel to filter by name, note text, page or chapter. The search runs on the
 open list and clears when the panel closes.

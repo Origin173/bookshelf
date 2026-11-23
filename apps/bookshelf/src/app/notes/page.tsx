@@ -2,6 +2,7 @@ import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LanguageSwitch } from "@/app/language-switch";
+import { ExportNotes } from "@/app/notes/export-button";
 import { BUTTON, BUTTON_QUIET } from "@/app/ui";
 import { bookmarkLabel } from "@/lib/bookmarks";
 import { encodeKey } from "@/lib/http";
@@ -45,6 +46,18 @@ export default async function Notes(props: PageProps<"/notes">) {
       <h1 className="mt-6 text-3xl font-semibold tracking-tight">
         {t.myNotes}
       </h1>
+      {page && (page.groups.length > 0 || page.cursor || cursor) && (
+        <ExportNotes
+          key={account}
+          account={account}
+          title={t.myNotes}
+          label={t.exportNotes}
+          working={t.exportingNotes}
+          failed={t.exportNotesFailed}
+          changed={t.exportAccountChanged}
+          empty={t.noNotes}
+        />
+      )}
       {!page?.groups.length ? (
         <p role="status" className="mt-6 text-secondary">
           {!page
