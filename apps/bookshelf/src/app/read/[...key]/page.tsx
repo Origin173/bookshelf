@@ -174,6 +174,7 @@ async function EpubBody({
 
   return (
     <EpubReader
+      key={JSON.stringify([profile?.id, bookId])}
       opfUrl={`/book/${encodeKey(fileKey)}/${encodeKey(opfPath)}`}
       bookKey={fileKey}
       locale={locale}
@@ -212,6 +213,7 @@ async function PdfBody({
 
   return (
     <PdfReader
+      key={JSON.stringify([profile?.id, bookId])}
       url={`/download/${encodeKey(fileKey)}`}
       locale={locale}
       bookId={bookId}
