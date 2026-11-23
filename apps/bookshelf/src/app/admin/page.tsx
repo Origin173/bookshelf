@@ -2,18 +2,22 @@ import { isUploadId } from "@bookshelf/core";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BulkSubjectForm } from "@/app/admin/bulk-subject-form";
 import { CoverForm } from "@/app/admin/cover-form";
 import { SourceDetails } from "@/app/admin/source-details";
 import { UploadForm } from "@/app/admin/upload-form";
 import { LanguageSwitch } from "@/app/language-switch";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, INPUT } from "@/app/ui";
+import { parseSubjects } from "@/lib/catalog-names";
 import { messages } from "@/lib/i18n";
+import { bySubject } from "@/lib/opds/browse";
 import { requirePageAccount } from "@/services/account-page";
 import { isAdmin } from "@/services/auth";
 import {
   applyEdits,
   bookIdentity,
   catalogEdits,
+  subjectRevision,
 } from "@/services/catalog-edits";
 import { getServices } from "@/services/container";
 import { ifAvailable } from "@/services/errors";
@@ -29,7 +33,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   if (!isAdmin(await requirePageAccount())) notFound();
   const { storage, catalog } = await getServices();
   if (!storage.writeIfMatch) notFound();
-  const { book: id, result, cover } = await props.searchParams;
+  const { book: id, result, cover, bulk } = await props.searchParams;
+  const bulkSubjects = !id && bulk === "subjects";
   const missingCovers = cover === "missing";
   const listHref = missingCovers ? "/admin?cover=missing" : "/admin";
   const editHref = (book: string) =>
@@ -42,6 +47,9 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     ]);
     return {
       ...applyEdits(published, snapshot),
+      batchRevision: bulkSubjects
+        ? subjectRevision(published, snapshot.etag)
+        : undefined,
       source: published.books.find((b) => b.id === id),
     };
   });
@@ -61,6 +69,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
         }
       : undefined;
   const notice =
+    result === "bulkSaved" ||
     result === "formatAdded" ||
     result === "formatExists" ||
     result === "missing" ||
@@ -98,23 +107,23 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
       <div className="flex items-center justify-between gap-4">
         <Link
-          href={id ? listHref : "/"}
+          href={id || bulkSubjects ? listHref : "/"}
           className="inline-flex items-center gap-1 text-sm font-medium text-secondary hover:text-foreground"
         >
           <ChevronLeft aria-hidden="true" className="size-4" />
-          {id ? t.manage : t.shelf}
+          {id || bulkSubjects ? t.manage : t.shelf}
         </Link>
         <LanguageSwitch />
       </div>
       <h1 className="mt-6 break-words text-3xl font-semibold tracking-tight">
-        {book ? book.title : t.manage}
+        {bulkSubjects ? t.bulkSubject : book ? book.title : t.manage}
       </h1>
       {notice && (
         <p role="status" className="mt-4 rounded-xl bg-fill px-4 py-3 text-sm">
           {notice}
         </p>
       )}
-      {(!id || append) && (
+      {!bulkSubjects && (!id || append) && (
         <details
           open={
             result === "tooLarge" ||
@@ -172,7 +181,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           />
         </details>
       )}
-      {!id && data && data.books.length > 0 && (
+      {!bulkSubjects && !id && data && data.books.length > 0 && (
         <nav aria-label={t.manage} className="mt-6 flex flex-wrap gap-2">
           <Link
             href="/admin"
@@ -190,6 +199,9 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           >
             {t.missingCovers}
           </Link>
+          <Link href="/admin?bulk=subjects" prefetch={false} className={BUTTON}>
+            {t.bulkSubject}
+          </Link>
         </nav>
       )}
       {!data ? (
@@ -197,11 +209,47 @@ export default async function AdminPage(props: PageProps<"/admin">) {
           {t.unavailable}{" "}
           <a
             className={BUTTON_QUIET}
-            href={id ? editHref(String(id)) : listHref}
+            href={
+              bulkSubjects
+                ? "/admin?bulk=subjects"
+                : id
+                  ? editHref(String(id))
+                  : listHref
+            }
           >
             {t.retry}
           </a>
         </p>
+      ) : data.batchRevision ? (
+        <BulkSubjectForm
+          key={data.batchRevision}
+          revision={data.batchRevision}
+          books={data.books.map(({ id, title, authors, subjects }) => ({
+            id,
+            title,
+            authors,
+            subjects: subjects ?? [],
+          }))}
+          subjects={bySubject(data.books)
+            .map((group) => group.name)
+            .filter((name) => parseSubjects(name)?.[0] === name)}
+          t={{
+            chooseSubject: t.chooseSubject,
+            noBulkSubjects: t.noBulkSubjects,
+            previewSubject: t.previewSubject,
+            subjectToAdd: t.subjectToAdd,
+            subjectPresent: t.subjectPresent,
+            subjectLimit: t.subjectLimit,
+            changeSelection: t.changeSelection,
+            applySubject: t.applySubject,
+            cancel: t.cancel,
+            bulkConflict: t.bulkConflict,
+            bulkInvalid: t.bulkInvalid,
+            bulkTooLarge: t.bulkTooLarge,
+            bulkRetry: t.bulkRetry,
+            uploadDenied: t.uploadDenied,
+          }}
+        />
       ) : book ? (
         <>
           <SourceDetails

@@ -1,4 +1,5 @@
 import { findIsbn } from "@bookshelf/core";
+import { parseAuthors, parseSubjects } from "@/lib/catalog-names";
 import { readBody, readBodyBytes } from "@/lib/request-body";
 import { MAX_COVER_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
@@ -7,8 +8,6 @@ import {
   bookIdentity,
   catalogEdits,
   editedBook,
-  parseAuthors,
-  parseSubjects,
   saveBookEdit,
 } from "@/services/catalog-edits";
 import { getServices } from "@/services/container";

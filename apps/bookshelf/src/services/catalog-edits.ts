@@ -6,32 +6,12 @@ import {
   STATE_PREFIX,
   type Storage,
 } from "@bookshelf/core";
+import { parseSubjects, subjectAddition } from "@/lib/catalog-names";
+import { bySubject } from "@/lib/opds/browse";
 import type { Shelf } from "@/services/catalog";
 import { reading, writing } from "@/services/errors";
 
 const FILE = `${STATE_PREFIX}subjects.json`;
-function parseNames(text: string, maxLength: number): string[] | null {
-  const names = [
-    ...new Set(
-      text
-        .split(/\r?\n/)
-        .map((name) => name.trim())
-        .filter(Boolean),
-    ),
-  ];
-  return names.length <= 20 && names.every((name) => name.length <= maxLength)
-    ? names
-    : null;
-}
-
-export function parseSubjects(text: string) {
-  return parseNames(text, 80);
-}
-
-export function parseAuthors(text: string) {
-  return parseNames(text, 200);
-}
-
 // A later publish can reuse a title slug. Apply an edit only to the book it was made for.
 export function bookIdentity(book: Book, title = book.title): string {
   return createHash("sha256")
@@ -230,6 +210,78 @@ export async function saveBookEdit(
   if (change.subjects === null) delete edits[book.id];
   else if (change.subjects !== undefined)
     edits[book.id] = { identity, subjects: change.subjects };
+  return writeEdits(storage, {
+    ...snapshot,
+    edits,
+    titles,
+    covers,
+    authors,
+    isbns,
+  });
+}
+
+// Older published catalogs may lack a generation timestamp. Include the original
+// credits and subjects so a preview cannot be applied to a different edition.
+export function subjectRevision(shelf: Shelf, revision: string | null) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify([
+        shelf.generatedAt,
+        shelf.uploadRevision,
+        revision,
+        shelf.books.map((b) => [
+          b.id,
+          b.title,
+          b.authors,
+          b.identifier,
+          b.subjects,
+        ]),
+      ]),
+    )
+    .digest("hex");
+}
+
+export async function addSubjectToBooks(
+  storage: Storage,
+  shelf: Shelf,
+  snapshot: EditSnapshot,
+  revision: string | null,
+  subject: string,
+  ids: Set<string>,
+) {
+  if (subjectRevision(shelf, snapshot.etag) !== revision) return "conflict";
+  const selected = shelf.books.filter((book) => ids.has(book.id));
+  if (
+    !selected.length ||
+    selected.length !== ids.size ||
+    parseSubjects(subject)?.[0] !== subject ||
+    !bySubject(applyEdits(shelf, snapshot).books).some(
+      (group) => group.name === subject,
+    )
+  )
+    return "invalid";
+  const edits: Edits = Object.assign(Object.create(null), snapshot.edits);
+  let changed = false;
+  for (const book of selected) {
+    const subjects = editedBook(book, snapshot).subjects ?? [];
+    const addition = subjectAddition(subjects, subject);
+    if (addition === "subjectLimit") return "invalid";
+    if (addition === "subjectPresent") continue;
+    edits[book.id] = {
+      identity: bookIdentity(book),
+      subjects: [...subjects, subject],
+    };
+    changed = true;
+  }
+  if (!changed) return "saved";
+  return (await writeEdits(storage, { ...snapshot, edits }))
+    ? "saved"
+    : "conflict";
+}
+
+function writeEdits(storage: Storage, snapshot: EditSnapshot) {
+  if (!storage.writeIfMatch) return false;
+  const { edits, titles, covers, authors, isbns } = snapshot;
   const bytes = new TextEncoder().encode(
     JSON.stringify({
       version: 1,
