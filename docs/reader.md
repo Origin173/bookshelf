@@ -185,8 +185,11 @@ why paper is the default.
 **You can select and copy text**, and screen readers can read the page, because
 the text sits over the page as a transparent layer.
 
-Not there yet: page thumbnails, tap zones for turning on a touchscreen, and
-rotating a page that was scanned sideways.
+Use **Rotate pages clockwise** to turn the open PDF by 90° at a time.
+**Reset page rotation** restores the orientation in the file. This applies
+to the open reader. Bookmarks and progress still use physical page numbers.
+
+Not there yet: page thumbnails and tap zones for turning on a touchscreen.
 
 ## Opening a big book is cheap
 

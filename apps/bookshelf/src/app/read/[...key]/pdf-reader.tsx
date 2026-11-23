@@ -7,7 +7,9 @@ import {
   List,
   Minus,
   Plus,
+  RotateCw,
   Search as SearchIcon,
+  Undo2,
 } from "lucide-react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
@@ -168,6 +170,8 @@ export function PdfReader({
 }) {
   const t = readerText[locale];
   const scroller = useRef<HTMLElement>(null);
+  const alignedTop = useRef<number | null>(null);
+  const [rotation, setRotation] = useState(0);
 
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [pages, setPages] = useState(0);
@@ -305,7 +309,10 @@ export function PdfReader({
     };
   }, [url, settled, ready, current, start]);
 
+  const sideways = rotation % 180 !== 0;
   const reference = sizes.get(1) ?? LETTER;
+  const pageWidth = sideways ? reference.height : reference.width;
+  const pageHeight = sideways ? reference.width : reference.height;
 
   /**
    * The scale every page is drawn at.
@@ -320,15 +327,15 @@ export function PdfReader({
 
     const across = layout === "spread" ? 2 : 1;
     const room = box.width - MARGIN * 2 - GUTTER * (across - 1);
-    const byWidth = room / (reference.width * across);
+    const byWidth = room / (pageWidth * across);
     if (zoom === "width") return Math.max(byWidth, 0.1);
     if (zoom === "auto") {
       return Math.max(Math.min(byWidth, AUTO_MAX * CSS_UNITS), 0.1);
     }
 
-    const byHeight = (box.height - MARGIN * 2) / reference.height;
+    const byHeight = (box.height - MARGIN * 2) / pageHeight;
     return Math.max(Math.min(byWidth, byHeight), 0.1);
-  }, [zoom, box, layout, reference]);
+  }, [zoom, box, layout, pageWidth, pageHeight]);
 
   const onMeasured = useCallback((number: number, size: PageSize) => {
     setSizes((previous) => {
@@ -358,23 +365,23 @@ export function PdfReader({
     return [page];
   }, [layout, page, pages]);
 
+  const alignPage = useCallback((number: number) => {
+    const region = scroller.current;
+    const element = region?.querySelector<HTMLElement>(
+      `[data-page="${number}"]`,
+    );
+    if (!region || !element) return;
+    region.scrollTo({ top: element.offsetTop - MARGIN, behavior: "instant" });
+    alignedTop.current = region.scrollTop;
+  }, []);
+
   const goTo = useCallback(
     (target: number) => {
       const next = clamp(target, pages);
       setPage(next);
-
-      if (layout !== "scroll") return;
-      // In a scroll the page is where the reader is, not what is rendered, so
-      // moving means moving the scroll position.
-      const element = scroller.current?.querySelector(`[data-page="${next}"]`);
-      if (element instanceof HTMLElement && scroller.current) {
-        scroller.current.scrollTo({
-          top: element.offsetTop - MARGIN,
-          behavior: "instant",
-        });
-      }
+      if (layout === "scroll") alignPage(next);
     },
-    [layout, pages],
+    [layout, pages, alignPage],
   );
 
   const turn = useCallback(
@@ -419,38 +426,12 @@ export function PdfReader({
     at.current = page;
   }, [page]);
 
-  /**
-   * Puts the scroll back onto the page the reader was on.
-   *
-   * Three times over, and for one reason every time: a scroll position is a
-   * number of pixels, and every one of these changes what a pixel means. Opening
-   * a book, because the page came out of a saved position rather than out of the
-   * scrollbar. Returning from one of the page-at-a-time layouts, which had one
-   * box where this has all of them. And a change of scale — a zoom, or a window
-   * resized under a fit — which leaves the same offset pointing at a different
-   * page, thirty pages out at 150% two hundred pages in.
-   *
-   * Restore the offset before paint so the visibility observer sees the page
-   * at its new scale.
-   *
-   * Reading the page out of a ref is what keeps this from running on every
-   * scroll and fighting the reader for the scrollbar.
-   *
-   * Every box exists by now — a page that has not been measured is still a box,
-   * at the first page's proportions — so an offset is available immediately, and
-   * is approximate for a document whose pages are not all one size.
-   */
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `scale` is a trigger rather than an input — a change of scale is what makes the offset the reader is sitting at point at a different page.
+  // A rotation can change the page boxes even when the scale stays fixed.
+  // Realign before paint so the visible page still agrees with the saved one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scale and rotation are layout triggers.
   useLayoutEffect(() => {
-    if (status !== "ready" || layout !== "scroll") return;
-
-    const element = scroller.current?.querySelector(
-      `[data-page="${at.current}"]`,
-    );
-    if (element instanceof HTMLElement && scroller.current) {
-      scroller.current.scrollTop = element.offsetTop - MARGIN;
-    }
-  }, [status, layout, scale]);
+    if (status === "ready" && layout === "scroll") alignPage(at.current);
+  }, [status, layout, scale, rotation, alignPage]);
 
   /**
    * Gives the book the keyboard as soon as there is a book.
@@ -489,6 +470,11 @@ export function PdfReader({
           );
           if (number) seen.current.set(number, entry.intersectionRatio);
         }
+
+        // At the end of a short or rotated book several pages may be fully
+        // visible. Keep an explicit page until the reader moves the scrollbar.
+        if (alignedTop.current === element.scrollTop) return;
+        alignedTop.current = null;
 
         // Ascending, and strictly better to win, so a tie goes to the lower
         // page — the one in front.
@@ -669,6 +655,7 @@ export function PdfReader({
                     doc={doc}
                     number={number}
                     scale={scale}
+                    rotation={rotation}
                     size={sizes.get(number) ?? reference}
                     draw={
                       layout !== "scroll" || Math.abs(number - page) <= WINDOW
@@ -797,6 +784,23 @@ export function PdfReader({
             </Round>
           </div>
 
+          <div className="flex items-center gap-1">
+            <Round
+              label={t.rotatePages}
+              disabled={status !== "ready"}
+              onClick={() => setRotation((angle) => (angle + 90) % 360)}
+            >
+              <RotateCw aria-hidden="true" className="size-4" />
+            </Round>
+            <Round
+              label={t.resetRotation}
+              disabled={status !== "ready" || rotation === 0}
+              onClick={() => setRotation(0)}
+            >
+              <Undo2 aria-hidden="true" className="size-4" />
+            </Round>
+          </div>
+
           <select
             aria-label={t.layout}
             value={layout}
@@ -845,6 +849,7 @@ function Round({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      title={label}
       className={BUTTON_ROUND}
     >
       {children}
