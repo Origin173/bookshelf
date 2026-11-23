@@ -192,7 +192,9 @@ The form accepts one file up to **8 MiB**, an optional PNG thumbnail up to
 **240 × 240 pixels and 256 KiB**, and 16 KiB for the remaining multipart data.
 The Worker checks the request size as it arrives. Use the CLI for larger
 files. Thumbnail generation stays on the device. Only submitting the form
-sends the file and reviewed details to your shelf.
+sends the file and reviewed details to your shelf. Keep the form open after an
+error to correct the details or retry the same file. A retry sends the file
+again. If the first upload was saved, the form links to the existing book.
 
 Cloudflare also applies a request body limit for the domain (100 MB on Free
 and Pro). Workers Free allows 10 ms of CPU per HTTP request, and each isolate

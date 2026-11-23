@@ -20,6 +20,8 @@ export async function POST(request: Request) {
   if (type.split(";")[0] !== "multipart/form-data")
     return new Response(null, { status: 415, headers });
   const back = (result: string, id?: string) => {
+    if (request.headers.get("accept") === "application/json")
+      return Response.json({ result, book: id }, { headers });
     const query = new URLSearchParams({ result });
     if (id) query.set("book", id);
     return new Response(null, {
