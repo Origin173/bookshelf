@@ -12,6 +12,8 @@ const en = {
   next: "Next page",
   jump: "Jump to chapter",
   contents: "Contents",
+  findChapter: "Find a chapter",
+  noChapterMatches: "No chapter titles match.",
   chapterPosition: "Chapter position",
   sectionNumber: (n: number) => `Section ${n}`,
   sectionPage: (page: number, total: number) =>
@@ -85,6 +87,8 @@ const zh: ReaderText = {
   next: "下一页",
   jump: "跳至章节",
   contents: "目录",
+  findChapter: "查找章节",
+  noChapterMatches: "没有匹配的章节标题。",
   chapterPosition: "章内位置",
   sectionNumber: (n) => `第 ${n} 节`,
   sectionPage: (page, total) => `本节第 ${page} / ${total} 页`,

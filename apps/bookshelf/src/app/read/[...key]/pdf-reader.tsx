@@ -600,6 +600,7 @@ export function PdfReader({
     <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
       {panel && doc && (
         <PdfSidebar
+          key={panel}
           t={t}
           panel={panel}
           outline={outline}
