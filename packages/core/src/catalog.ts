@@ -109,7 +109,11 @@ export function parseBookKey(key: string): { id: string; file: string } | null {
   // what keeps `progress/<profile>.json` from being reachable as a file — and
   // cannot lead with a dot, which is what rules out `.` and `..`.
   if (isUploadId(id))
-    return file === "book.epub" || file === "book.pdf" ? { id, file } : null;
+    return file === "book.epub" ||
+      file === "book.pdf" ||
+      /^cover-[a-f0-9]{64}\.png$/.test(file)
+      ? { id, file }
+      : null;
   if (!/^[a-z0-9][a-z0-9-]{0,95}$/.test(id)) return null;
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(file)) return null;
 

@@ -1,8 +1,10 @@
+import { findIsbn } from "@bookshelf/core";
 import { readBodyBytes } from "@/lib/request-body";
+import { MAX_COVER_BYTES, MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isAdmin, requestUser } from "@/services/auth";
 import { getServices } from "@/services/container";
 import { isUnavailable } from "@/services/errors";
-import { importBook, MAX_UPLOAD_BYTES } from "@/services/uploads";
+import { importBook } from "@/services/uploads";
 
 export async function POST(request: Request) {
   const headers = { "cache-control": "private, no-store" };
@@ -25,7 +27,10 @@ export async function POST(request: Request) {
       headers: { ...headers, location: `/admin?${query}` },
     });
   };
-  const bytes = await readBodyBytes(request, MAX_UPLOAD_BYTES + 16 * 1024);
+  const bytes = await readBodyBytes(
+    request,
+    MAX_UPLOAD_BYTES + MAX_COVER_BYTES + 16 * 1024,
+  );
   if (bytes === null) return back("tooLarge");
   let form: FormData;
   try {
@@ -48,8 +53,27 @@ export async function POST(request: Request) {
     return back("invalidDetails");
   if (!file || typeof file === "string" || !file.size)
     return back("invalidFile");
+  const rawIsbn = form.get("isbn") ?? "";
+  if (typeof rawIsbn !== "string" || rawIsbn.length > 24)
+    return back("invalidIsbn");
+  const candidate = rawIsbn.trim().replace(/[ -]/g, "").toUpperCase();
+  const isbn = candidate ? findIsbn([candidate]) : undefined;
+  if (candidate && candidate !== isbn) return back("invalidIsbn");
+  const image = form.get("cover");
+  if (image && (typeof image === "string" || image.size > MAX_COVER_BYTES))
+    return back("invalidCover");
+  const cover =
+    image && typeof image !== "string" && image.size
+      ? new Uint8Array(await image.arrayBuffer())
+      : undefined;
   try {
-    const outcome = await importBook(storage, file, name.trim(), author.trim());
+    const outcome = await importBook(
+      storage,
+      file,
+      name.trim(),
+      author.trim(),
+      { isbn, cover },
+    );
     return back(
       outcome.result === "conflict" ? "uploadConflict" : outcome.result,
       "id" in outcome ? outcome.id : undefined,
