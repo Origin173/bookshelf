@@ -28,6 +28,10 @@ const en = {
   tooLarge: "This file exceeds the 8 MiB web upload limit.",
   uploadConflict:
     "Another upload is being saved. Select the file and try again.",
+  homeScreen: "Add Bookshelf to your Home Screen",
+  installHelp:
+    "On iPhone, open this shelf in Safari, choose Share, then Add to Home Screen. Turn on Open as Web App if shown and tap Add. In other browsers, look for Install in the browser menu. Reading requires a connection.",
+  offline: "You’re offline. Reconnect to open books and sync your place.",
   loginTitle: "Sign in to Bookshelf",
   signIn: "Sign in",
   signOut: "Sign out",
@@ -91,6 +95,10 @@ const zh: typeof en = {
   invalidDetails: "请填写书名。书名和作者各限 200 个字符。",
   tooLarge: "文件超过网页上传的 8 MiB 上限。",
   uploadConflict: "另一份上传正在保存。请重新选择文件并重试。",
+  homeScreen: "将书架添加到主屏幕",
+  installHelp:
+    "在 iPhone 的 Safari 中打开书架，点“分享”，再选“添加到主屏幕”。如有“作为网页 App 打开”，请启用后点“添加”。其他浏览器可在菜单中查找安装选项。阅读需要联网。",
+  offline: "当前已断网。请联网后打开图书并同步阅读位置。",
   loginTitle: "登录书架",
   signIn: "登录",
   signOut: "退出登录",

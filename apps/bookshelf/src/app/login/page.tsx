@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { HomeScreenHelp } from "@/app/home-screen-help";
 import { LanguageSwitch } from "@/app/language-switch";
 import { BUTTON_PRIMARY, INPUT } from "@/app/ui";
 import { messages } from "@/lib/i18n";
@@ -63,6 +64,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
         </button>
       </form>
       <p className="text-sm text-secondary">{t.loginHelp}</p>
+      <HomeScreenHelp />
     </main>
   );
 }

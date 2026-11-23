@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
-import { language } from "@/lib/i18n";
+import type { Metadata, Viewport } from "next";
+import { ConnectionStatus } from "@/app/connection-status";
+import { language, messages } from "@/lib/i18n";
 import { OPDS_ALTERNATE } from "@/lib/opds/feed";
 import { siteOrigin } from "@/lib/origin";
 import { OG_BASE, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
     description: SITE_DESCRIPTION,
     applicationName: SITE_NAME,
+    appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "default" },
     // `metadataBase` above makes it absolute.
     alternates: { types: OPDS_ALTERNATE },
     openGraph: {
@@ -37,10 +39,20 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#161617" },
+  ],
+};
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={await language()} className="h-full antialiased">
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        <ConnectionStatus message={(await messages()).offline} />
+        {children}
+      </body>
     </html>
   );
 }
