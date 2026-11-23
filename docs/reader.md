@@ -88,6 +88,10 @@ or chapter stays visible underneath. Clear the name and save to return to the
 automatic label. Renaming keeps both the bookmark target and your reading
 position.
 
+Choose **Add note** beside a bookmark to save up to 2,000 characters of private
+plain text. Expand **Note** to read it. Choose **Edit note** to revise it or
+clear the text to remove the note while keeping the bookmark.
+
 Each signed-in account has its own bookmarks for each book file. They are
 included in the library's `.bookshelf/` backup. A read-only library can show
 existing bookmarks.

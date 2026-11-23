@@ -45,6 +45,29 @@ test("concurrent bookmarks merge and remain private to each account and book for
   assert.deepEqual(await rename("x".repeat(81), "Harbor map"), {
     error: "unavailable",
   });
+  const note = (text: string, previous?: string) =>
+    bookBookmarks(storage, "reader", "atlas/atlas.pdf", "pdf", {
+      intent: "note",
+      mark: { position: 4, note: previous },
+      note: text,
+    });
+  const annotated = {
+    position: 4,
+    name: "Harbor map",
+    note: "First line\n第二行",
+  };
+  assert.deepEqual(await note(annotated.note), {
+    items: [annotated, { position: 28 }],
+    writable: true,
+  });
+  assert.deepEqual(await note("stale draft"), { error: "bookmarkConflict" });
+  assert.deepEqual(await note("x".repeat(2001), annotated.note), {
+    error: "unavailable",
+  });
+  assert.deepEqual(await note("", annotated.note), {
+    items: [{ position: 4, name: "Harbor map" }, { position: 28 }],
+    writable: true,
+  });
   assert.deepEqual(await rename("", "Harbor map"), {
     items: [{ position: 4 }, { position: 28 }],
     writable: true,

@@ -1,10 +1,11 @@
 "use client";
 
-import { Bookmark as BookmarkIcon, Pencil, X } from "lucide-react";
+import { Bookmark as BookmarkIcon, NotebookPen, Pencil, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { BUTTON, BUTTON_QUIET, BUTTON_ROUND, INPUT } from "@/app/ui";
 import {
   BOOKMARK_NAME_LIMIT,
+  BOOKMARK_NOTE_LIMIT,
   type Bookmark,
   type BookmarkAction,
   type BookmarkChange,
@@ -25,17 +26,19 @@ export function ReaderBookmarks({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const title = useId();
+  const editorId = useId();
   const sequence = useRef(0);
   const [result, setResult] = useState<BookmarkResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<{
-    position: Bookmark["position"];
+    mark: Bookmark;
+    field: "name" | "note";
     value: string;
   } | null>(null);
-  const field = useRef<HTMLInputElement>(null);
-  const editingPosition = editing?.position;
+  const field = useRef<HTMLLabelElement>(null);
+  const editingPosition = editing?.mark.position;
   useEffect(() => {
-    if (editingPosition !== undefined) field.current?.focus();
+    if (editingPosition !== undefined) field.current?.control?.focus();
   }, [editingPosition]);
 
   async function load(change?: BookmarkChange) {
@@ -46,7 +49,7 @@ export function ReaderBookmarks({
       if (version === sequence.current) {
         setResult(value);
         if (
-          change?.intent === "rename" &&
+          (change?.intent === "rename" || change?.intent === "note") &&
           !("error" in value && value.error === "unavailable")
         )
           setEditing(null);
@@ -156,40 +159,70 @@ export function ReaderBookmarks({
             {result.items.length ? (
               <ul className="mt-3 divide-y divide-separator">
                 {result.items.map((mark) => (
-                  <li
-                    key={mark.position}
-                    className="flex items-center justify-between gap-2 py-1"
-                  >
-                    {result.writable && editing?.position === mark.position ? (
+                  <li key={mark.position} className="py-1">
+                    {result.writable &&
+                    editing?.mark.position === mark.position ? (
                       <form
                         className="w-full py-1"
                         onSubmit={(event) => {
                           event.preventDefault();
-                          void load({
-                            intent: "rename",
-                            mark,
-                            name: editing.value,
-                          });
+                          void load(
+                            editing.field === "note"
+                              ? {
+                                  intent: "note",
+                                  mark: editing.mark,
+                                  note: editing.value,
+                                }
+                              : {
+                                  intent: "rename",
+                                  mark: editing.mark,
+                                  name: editing.value,
+                                },
+                          );
                         }}
                       >
-                        <label className="block text-sm">
-                          {t.bookmarkName}
-                          <input
-                            ref={field}
-                            className={`${INPUT} mt-1 w-full`}
-                            type="text"
-                            placeholder={label(mark)}
-                            maxLength={BOOKMARK_NAME_LIMIT}
-                            value={editing.value}
+                        <label
+                          ref={field}
+                          htmlFor={editorId}
+                          className="block text-sm"
+                        >
+                          {editing.field === "note"
+                            ? t.bookmarkNote
+                            : t.bookmarkName}
+                        </label>
+                        {editing.field === "note" ? (
+                          <textarea
+                            id={editorId}
+                            className={`${INPUT} mt-1 w-full resize-y`}
+                            rows={4}
+                            maxLength={BOOKMARK_NOTE_LIMIT}
                             disabled={busy}
+                            value={editing.value}
                             onChange={(event) =>
                               setEditing({
-                                position: mark.position,
+                                ...editing,
                                 value: event.target.value,
                               })
                             }
                           />
-                        </label>
+                        ) : (
+                          <input
+                            id={editorId}
+                            className={`${INPUT} mt-1 w-full`}
+                            type="text"
+                            placeholder={label(mark)}
+                            maxLength={BOOKMARK_NAME_LIMIT}
+                            disabled={busy}
+                            value={editing.value}
+                            onChange={(event) =>
+                              setEditing({
+                                ...editing,
+                                value: event.target.value,
+                              })
+                            }
+                          />
+                        )}
+
                         <div className="mt-2 flex gap-2">
                           <button
                             className={BUTTON}
@@ -210,48 +243,80 @@ export function ReaderBookmarks({
                       </form>
                     ) : (
                       <>
-                        <button
-                          type="button"
-                          className={`${BUTTON_QUIET} min-w-0 flex-1 break-words text-left`}
-                          disabled={busy}
-                          onClick={() => void jump(mark)}
-                        >
-                          {mark.name || label(mark)}
-                          {mark.name && (
-                            <span className="block text-xs text-secondary">
-                              {label(mark)}
-                            </span>
+                        <div className="flex items-center justify-between gap-1">
+                          <button
+                            type="button"
+                            className={`${BUTTON_QUIET} min-w-0 flex-1 break-words text-left`}
+                            disabled={busy}
+                            onClick={() => void jump(mark)}
+                          >
+                            {mark.name || label(mark)}
+                            {mark.name && (
+                              <span className="block text-xs text-secondary">
+                                {label(mark)}
+                              </span>
+                            )}
+                          </button>
+                          {result.writable && (
+                            <>
+                              <button
+                                type="button"
+                                className={BUTTON_ROUND}
+                                aria-label={`${t.renameBookmark} · ${mark.name || label(mark)}`}
+                                title={t.renameBookmark}
+                                disabled={busy}
+                                onClick={() =>
+                                  setEditing({
+                                    mark,
+                                    field: "name",
+                                    value: mark.name ?? "",
+                                  })
+                                }
+                              >
+                                <Pencil aria-hidden="true" className="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                className={BUTTON_ROUND}
+                                aria-label={`${mark.note ? t.editNote : t.addNote} · ${mark.name || label(mark)}`}
+                                title={mark.note ? t.editNote : t.addNote}
+                                disabled={busy}
+                                onClick={() =>
+                                  setEditing({
+                                    mark,
+                                    field: "note",
+                                    value: mark.note ?? "",
+                                  })
+                                }
+                              >
+                                <NotebookPen
+                                  aria-hidden="true"
+                                  className="size-4"
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                className={`${BUTTON_QUIET} shrink-0`}
+                                aria-label={`${t.removeBookmark} · ${mark.name || label(mark)}`}
+                                disabled={busy}
+                                onClick={() =>
+                                  void load({ intent: "remove", mark })
+                                }
+                              >
+                                {t.removeBookmark}
+                              </button>
+                            </>
                           )}
-                        </button>
-                        {result.writable && (
-                          <>
-                            <button
-                              type="button"
-                              className={BUTTON_ROUND}
-                              aria-label={`${t.renameBookmark} · ${mark.name || label(mark)}`}
-                              title={t.renameBookmark}
-                              disabled={busy}
-                              onClick={() =>
-                                setEditing({
-                                  position: mark.position,
-                                  value: mark.name ?? "",
-                                })
-                              }
-                            >
-                              <Pencil aria-hidden="true" className="size-4" />
-                            </button>
-                            <button
-                              type="button"
-                              className={`${BUTTON_QUIET} shrink-0`}
-                              aria-label={`${t.removeBookmark} · ${mark.name || label(mark)}`}
-                              disabled={busy}
-                              onClick={() =>
-                                void load({ intent: "remove", mark })
-                              }
-                            >
-                              {t.removeBookmark}
-                            </button>
-                          </>
+                        </div>
+                        {mark.note && (
+                          <details className="px-3 pb-1 text-sm">
+                            <summary className="cursor-pointer text-secondary">
+                              {t.bookmarkNote}
+                            </summary>
+                            <p className="mt-1 whitespace-pre-wrap break-words">
+                              {mark.note}
+                            </p>
+                          </details>
                         )}
                       </>
                     )}
