@@ -13,13 +13,10 @@ import {
   type Storage,
   storageBookKey,
 } from "@bookshelf/core";
-import {
-  COVER_EDGE,
-  MAX_COVER_BYTES,
-  MAX_UPLOAD_BYTES,
-} from "@/lib/upload-limits";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import type { Shelf } from "@/services/catalog";
 import { reading, writing } from "@/services/errors";
+import { storeThumbnail, validThumbnail } from "@/services/thumbnails";
 
 const INDEX = `${STATE_PREFIX}uploads/catalog.json`;
 
@@ -209,18 +206,9 @@ async function saveUpload(
   if (!stored && !(await reading("the uploaded book", () => storage.head(key))))
     return { result: "conflict" } as const;
   if (cover) {
-    const png = cover;
-    const digest = createHash("sha256").update(png).digest("hex");
-    book.cover = `cover-${digest}.png`;
-    const coverKey = storageBookKey(bookKey(id, book.cover));
-    const saved = await writing("the thumbnail", () =>
-      write(coverKey, png, "image/png", null),
-    );
-    if (
-      !saved &&
-      !(await reading("the thumbnail", () => storage.head(coverKey)))
-    )
-      return { result: "conflict" } as const;
+    const filename = await storeThumbnail(storage, id, cover, "import");
+    if (!filename) return { result: "conflict" } as const;
+    book.cover = filename;
   }
   const books =
     "bookId" in details
@@ -244,22 +232,4 @@ async function saveUpload(
         id,
       } as const)
     : ({ result: "conflict" } as const);
-}
-
-function validThumbnail(png: Uint8Array): boolean {
-  if (png.length < 45 || png.length > MAX_COVER_BYTES) return false;
-  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
-  const width = view.getUint32(16),
-    height = view.getUint32(20);
-  return (
-    view.getUint32(0) === 0x89504e47 &&
-    view.getUint32(4) === 0x0d0a1a0a &&
-    view.getUint32(8) === 13 &&
-    view.getUint32(12) === 0x49484452 &&
-    width > 0 &&
-    height > 0 &&
-    width <= COVER_EDGE &&
-    height <= COVER_EDGE &&
-    view.getUint32(png.length - 8) === 0x49454e44
-  );
 }

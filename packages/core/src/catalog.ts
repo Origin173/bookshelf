@@ -78,9 +78,14 @@ export function isUploadId(id: string): boolean {
   return /^u_[a-f0-9]{64}$/.test(id);
 }
 
+export function isAddedCover(file: string): boolean {
+  return /^_cover-[a-f0-9]{64}\.png$/.test(file);
+}
+
 /** Resolve a validated public book key to its object inside the library. */
 export function storageBookKey(key: string): string {
-  const id = key.split("/", 1)[0];
+  const [id, file] = key.split("/");
+  if (isAddedCover(file)) return `.bookshelf/covers/${key}`;
   return isUploadId(id) ? `.bookshelf/uploads/${key}` : key;
 }
 
@@ -110,14 +115,16 @@ export function parseBookKey(key: string): { id: string; file: string } | null {
   // name. A file sits directly in the folder, so it holds no slash — which is
   // what keeps `progress/<profile>.json` from being reachable as a file — and
   // cannot lead with a dot, which is what rules out `.` and `..`.
-  if (isUploadId(id))
+  const uploaded = isUploadId(id);
+  if (!uploaded && !/^[a-z0-9][a-z0-9-]{0,95}$/.test(id)) return null;
+  if (isAddedCover(file)) return { id, file };
+  if (uploaded)
     return file === "book.epub" ||
       file === "book.pdf" ||
       /^format-[a-f0-9]{64}\.(epub|pdf)$/.test(file) ||
       /^cover-[a-f0-9]{64}\.png$/.test(file)
       ? { id, file }
       : null;
-  if (!/^[a-z0-9][a-z0-9-]{0,95}$/.test(id)) return null;
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(file)) return null;
 
   return { id, file };

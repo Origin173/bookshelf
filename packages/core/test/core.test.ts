@@ -15,6 +15,7 @@ import {
   rangedSource,
   readOnlyStorage,
   STATE_PREFIX,
+  storageBookKey,
   stripJsonComments,
   writableStorage,
 } from "@bookshelf/core";
@@ -292,4 +293,15 @@ test("a ranged source can be told its size or asked for it", async () => {
 
   const known = rangedSource(42, async () => null);
   assert.equal(await known.size(), 42);
+});
+
+test("added covers use sync-protected storage for published and uploaded books", () => {
+  const digest = "a".repeat(64);
+  const file = `_cover-${digest}.png`;
+  for (const id of ["coast-atlas", `u_${digest}`]) {
+    const key = bookKey(id, file);
+    assert.deepEqual(parseBookKey(key), { id, file });
+    assert.equal(storageBookKey(key), `.bookshelf/covers/${key}`);
+    assert.equal(isStateKey(storageBookKey(key)), true);
+  }
 });

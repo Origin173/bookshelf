@@ -2,6 +2,7 @@ import { isUploadId } from "@bookshelf/core";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CoverForm } from "@/app/admin/cover-form";
 import { UploadForm } from "@/app/admin/upload-form";
 import { LanguageSwitch } from "@/app/language-switch";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, INPUT } from "@/app/ui";
@@ -64,6 +65,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
     result === "missing" ||
     result === "invalidIsbn" ||
     result === "invalidCover" ||
+    result === "invalidLocalCover" ||
+    result === "coverSaved" ||
     result === "invalidTitle" ||
     result === "titleSaved" ||
     result === "uploaded" ||
@@ -196,6 +199,22 @@ export default async function AdminPage(props: PageProps<"/admin">) {
         </p>
       ) : book ? (
         <>
+          {!book.cover && (
+            <CoverForm
+              t={{
+                addCover: t.addCover,
+                coverImage: t.coverImage,
+                coverHelp: t.coverHelp,
+                invalidLocalCover: t.invalidLocalCover,
+                coverPreview: t.coverPreview,
+              }}
+            >
+              {revisionFields}
+              {missingCovers && (
+                <input type="hidden" name="from" value="missing" />
+              )}
+            </CoverForm>
+          )}
           <form
             action="/admin/title"
             method="post"

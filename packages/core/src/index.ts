@@ -5,6 +5,7 @@ export {
   bookKey,
   CATALOG_FILE,
   CATALOG_VERSION,
+  isAddedCover,
   isUploadId,
   METADATA_FILE,
   parseBookKey,
