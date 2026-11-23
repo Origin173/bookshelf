@@ -19,14 +19,7 @@ export async function editList(
     const params = new URLSearchParams();
     if (id) params.set("list", id);
     if (notice) params.set("notice", notice);
-    const destination = params.size ? `/lists?${params}` : "/lists";
-    const moved =
-      notice === "saved" && form.has("swapWith") && form.get("book");
-    redirect(
-      typeof moved === "string"
-        ? `${destination}#list-book-${encodeURIComponent(moved)}`
-        : destination,
-    );
+    redirect(params.size ? `/lists?${params}` : "/lists");
   };
   if (!account || renderedFor !== account) return back("", "changed");
   const { storage, catalog } = await getServices();

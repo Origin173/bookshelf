@@ -186,8 +186,7 @@ export default async function Lists(props: PageProps<"/lists">) {
                     <li
                       key={b.id}
                       id={`list-book-${b.id}`}
-                      tabIndex={-1}
-                      className="flex scroll-mt-4 flex-wrap items-center justify-between gap-2 py-3"
+                      className="flex flex-wrap items-center justify-between gap-2 py-3"
                     >
                       <div className="min-w-0">
                         <p className="break-words font-medium">{b.title}</p>
