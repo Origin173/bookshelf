@@ -63,6 +63,27 @@ function firstReadableHref(book: Book): string | undefined {
   )?.href;
 }
 
+/** In scroll mode epub.js can report a start CFI partway through the first visible line. */
+function visibleCharacter(view: Rendition, cfi: string, viewport: HTMLElement) {
+  const range = view.getRange(cfi);
+  const node = range?.startContainer;
+  const frame = node?.ownerDocument?.defaultView?.frameElement;
+  if (!frame || node?.nodeType !== Node.TEXT_NODE) return false;
+
+  const offset = range.startOffset;
+  range.setEnd(node, Math.min(offset + 1, (node as Text).length));
+  const char = range.getBoundingClientRect();
+  const origin = frame.getBoundingClientRect();
+  const bounds = viewport.getBoundingClientRect();
+  return (
+    char.height > 0 &&
+    origin.top + char.bottom > bounds.top &&
+    origin.top + char.top < bounds.bottom &&
+    origin.left + char.right > bounds.left &&
+    origin.left + char.left < bounds.right
+  );
+}
+
 /** Chapters live in their own documents. A swipe there never reaches the toolbar. */
 function enableSwipe(view: Rendition, { document: doc }: Contents) {
   let start: PointerEvent | null = null;
@@ -136,6 +157,7 @@ export function EpubReader({
   const restoringCfi = useRef<string | undefined>(undefined);
   const requestedEntry = useRef<{ entry: TocEntry; from?: string }>(undefined);
   const [returnCfi, setReturnCfi] = useState<string>();
+  const returningCfi = useRef<string>(undefined);
   const [place, setPlace] = useState<{
     chapter: string;
     active?: TocEntry;
@@ -310,10 +332,6 @@ export function EpubReader({
           // passage is still on screen. Keep that exact CFI until we leave it.
           const targets = targetsBySection.get(start.index) ?? [];
           const requested = requestedEntry.current;
-          const onScreen = (cfi: string) =>
-            end?.cfi &&
-            view.epubcfi.compare(start.cfi, cfi) <= 0 &&
-            view.epubcfi.compare(cfi, end.cfi) <= 0;
           if (requested?.entry.section === start.index) {
             targetCfi.current = targets.find(
               ({ entry }) => entry === requested.entry,
@@ -329,9 +347,17 @@ export function EpubReader({
             requestedEntry.current = undefined;
           }
           const target = targetCfi.current;
+          const targetVisible =
+            target &&
+            ((end?.cfi &&
+              view.epubcfi.compare(start.cfi, target) <= 0 &&
+              view.epubcfi.compare(target, end.cfi) <= 0) ||
+              (mode === "scroll" &&
+                opened.spine.get(target)?.index === start.index &&
+                visibleCharacter(view, target, element)));
           if (target && restoringCfi.current === target) {
             restoringCfi.current = undefined;
-            if (!onScreen(target)) {
+            if (!targetVisible) {
               // A new font or viewport can finish paginating after the first
               // display. Reposition once against the actual rendered section.
               const heading = targets.find(({ cfi }) => cfi === target);
@@ -341,7 +367,11 @@ export function EpubReader({
               return;
             }
           }
-          const position = target && onScreen(target) ? target : start.cfi;
+          const position = targetVisible ? target : start.cfi;
+          if (returningCfi.current === position) {
+            returningCfi.current = undefined;
+            setReturnCfi(undefined);
+          }
           if (position !== target) targetCfi.current = undefined;
           const active =
             targets.findLast(
@@ -415,9 +445,10 @@ export function EpubReader({
     // A fresh rendition lays out the saved passage with the selected settings.
   }, [opfUrl, mode, appearance, restored, current, record, t]);
 
-  function goToPassage(position: number | string) {
+  function goToPassage(position: number | string, returning = false) {
     if (typeof position !== "string") return;
     requestedEntry.current = undefined;
+    returningCfi.current = returning ? position : undefined;
     restoringCfi.current = position;
     targetCfi.current = position;
     return rendition.current?.display(position);
@@ -473,11 +504,9 @@ export function EpubReader({
             className={`${BUTTON} shrink-0`}
             disabled={status !== "ready"}
             onClick={() => {
-              goToPassage(returnCfi)?.then(
-                () =>
-                  setReturnCfi((cfi) => (cfi === returnCfi ? undefined : cfi)),
-                () => setStatus("error"),
-              );
+              void goToPassage(returnCfi, true)?.catch(() => {
+                returningCfi.current = undefined;
+              });
             }}
           >
             {t.backToPassage}
@@ -515,6 +544,7 @@ export function EpubReader({
             active={place?.active}
             t={t}
             onGo={(entry) => {
+              returningCfi.current = undefined;
               requestedEntry.current = { entry, from: place?.mark.position };
               restoringCfi.current = undefined;
               targetCfi.current = undefined;
