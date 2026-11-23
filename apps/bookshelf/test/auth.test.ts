@@ -3,6 +3,7 @@ import { pbkdf2Sync, randomBytes } from "node:crypto";
 import { afterEach, beforeEach, test } from "node:test";
 import { progressFile } from "@bookshelf/core";
 import { POST as edit } from "../src/app/admin/subjects/route.ts";
+import { POST as upload } from "../src/app/admin/upload/route.ts";
 import { GET as book } from "../src/app/book/[...path]/route.ts";
 import { GET as cover } from "../src/app/cover/[...key]/route.ts";
 import { GET as download } from "../src/app/download/[...key]/route.ts";
@@ -156,29 +157,42 @@ test("web progress belongs to the account across devices and ignores the legacy 
   assert.deepEqual([saved("default"), saved(alice)], [2, 9]);
 });
 
-test("subject edits require a private admin account and writable storage", async () => {
+test("catalog writes require a private admin account and writable storage", async () => {
   process.env.BOOKSHELF_ADMINS = "alice";
-  const submit = (username?: string) =>
-    edit(
-      new Request(`${origin}/admin/subjects`, {
-        method: "POST",
-        headers: {
-          origin,
-          ...(username && {
-            cookie: `bookshelf_session=${issueSession(username)}`,
-          }),
-        },
-        body: new URLSearchParams({ id: "sample", subjects: "Fiction" }),
-      }),
+  const submit = async (username?: string) =>
+    Promise.all(
+      [edit, upload].map(
+        async (handler) =>
+          (
+            await handler(
+              new Request(
+                `${origin}/admin/${handler === edit ? "subjects" : "upload"}`,
+                {
+                  method: "POST",
+                  headers: {
+                    origin,
+                    ...(username && {
+                      cookie: `bookshelf_session=${issueSession(username)}`,
+                    }),
+                  },
+                  body: new URLSearchParams({
+                    id: "sample",
+                    subjects: "Fiction",
+                  }),
+                },
+              ),
+            )
+          ).status,
+      ),
     );
   try {
     library.storage.writeIfMatch = async () => {
       throw new Error("unexpected write");
     };
-    assert.equal((await submit()).status, 403);
-    assert.equal((await submit("reader")).status, 403);
+    assert.deepEqual(await submit(), [403, 403]);
+    assert.deepEqual(await submit("reader"), [403, 403]);
     process.env.BOOKSHELF_PUBLIC_DEMO = "1";
-    assert.equal((await submit("alice")).status, 403);
+    assert.deepEqual(await submit("alice"), [403, 403]);
     delete process.env.BOOKSHELF_PUBLIC_DEMO;
     setServices(
       createServices(
@@ -186,7 +200,7 @@ test("subject edits require a private admin account and writable storage", async
         nullCache(),
       ),
     );
-    assert.equal((await submit("alice")).status, 403);
+    assert.deepEqual(await submit("alice"), [403, 403]);
     assert.equal(library.reads.length, 0);
   } finally {
     delete process.env.BOOKSHELF_ADMINS;

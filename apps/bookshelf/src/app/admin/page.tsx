@@ -25,13 +25,19 @@ export default async function AdminPage(props: PageProps<"/admin">) {
   const t = await messages();
   const data = await ifAvailable(async () => {
     const [published, snapshot] = await Promise.all([
-      catalog.published(),
+      catalog.editable(),
       subjectEdits(storage),
     ]);
     return applySubjects(published, snapshot);
   });
   const book = data?.books.find((b) => b.id === id);
   const notice =
+    result === "uploaded" ||
+    result === "duplicate" ||
+    result === "invalidFile" ||
+    result === "invalidDetails" ||
+    result === "tooLarge" ||
+    result === "uploadConflict" ||
     result === "saved" ||
     result === "invalid" ||
     result === "conflict" ||
@@ -57,6 +63,53 @@ export default async function AdminPage(props: PageProps<"/admin">) {
         <p role="status" className="mt-4 rounded-xl bg-fill px-4 py-3 text-sm">
           {notice}
         </p>
+      )}
+      {!id && (
+        <details
+          open={
+            result === "tooLarge" ||
+            result === "invalidFile" ||
+            result === "invalidDetails" ||
+            result === "uploadConflict"
+          }
+          className="mt-6"
+        >
+          <summary className="w-fit cursor-pointer text-sm font-medium text-accent">
+            {t.upload}
+          </summary>
+          <form
+            action="/admin/upload"
+            encType="multipart/form-data"
+            method="post"
+            className="mt-4 grid max-w-lg gap-3"
+          >
+            <label className="grid gap-1 text-sm">
+              {t.title}
+              <input name="title" required maxLength={200} className={INPUT} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              {t.author}
+              <input name="author" maxLength={200} className={INPUT} />
+            </label>
+            <label className="grid gap-1 text-sm">
+              {t.file}
+              <input
+                type="file"
+                name="file"
+                accept=".epub,.pdf"
+                required
+                aria-describedby="upload-help"
+                className={`${INPUT} min-w-0 max-w-full`}
+              />
+            </label>
+            <p id="upload-help" className="text-sm text-secondary">
+              {t.uploadHelp}
+            </p>
+            <button className={`${BUTTON_PRIMARY} w-fit`} type="submit">
+              {t.import}
+            </button>
+          </form>
+        </details>
       )}
       {!data ? (
         <p className="mt-8 text-secondary">

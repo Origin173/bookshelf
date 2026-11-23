@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   if (!reset && !subjects) return back("invalid");
   try {
     const [shelf, snapshot] = await Promise.all([
-      catalog.published(),
+      catalog.editable(),
       subjectEdits(storage),
     ]);
     const book = shelf.books.find((b) => b.id === id);
