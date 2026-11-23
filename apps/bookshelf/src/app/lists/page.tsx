@@ -1,9 +1,16 @@
-import { ChevronLeft } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LanguageSwitch } from "@/app/language-switch";
 import { editList } from "@/app/lists/actions";
-import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, INPUT, SELECT } from "@/app/ui";
+import {
+  BUTTON,
+  BUTTON_PRIMARY,
+  BUTTON_QUIET,
+  BUTTON_ROUND,
+  INPUT,
+  SELECT,
+} from "@/app/ui";
 import { encodeKey } from "@/lib/http";
 import { messages } from "@/lib/i18n";
 import { requirePageAccount } from "@/services/account-page";
@@ -161,12 +168,14 @@ export default async function Lists(props: PageProps<"/lists">) {
                 <p className="mt-6 text-secondary">{t.emptyList}</p>
               )}
               <ul className="mt-4 divide-y divide-separator">
-                {members.map((b) => {
+                {members.map((b, index) => {
                   const fmt = readableFormat(b);
                   return (
                     <li
                       key={b.id}
-                      className="flex flex-wrap items-center justify-between gap-2 py-3"
+                      id={`list-book-${b.id}`}
+                      tabIndex={-1}
+                      className="flex scroll-mt-4 flex-wrap items-center justify-between gap-2 py-3"
                     >
                       <div className="min-w-0">
                         <p className="break-words font-medium">{b.title}</p>
@@ -184,8 +193,36 @@ export default async function Lists(props: PageProps<"/lists">) {
                           </Link>
                         )}
                         {writable && (
-                          <form action={action}>
+                          <form
+                            action={action}
+                            className="flex flex-wrap items-center gap-1"
+                          >
                             <input type="hidden" name="book" value={b.id} />
+                            {[
+                              {
+                                neighbor: members[index - 1],
+                                Icon: ArrowUp,
+                                label: t.moveUp,
+                              },
+                              {
+                                neighbor: members[index + 1],
+                                Icon: ArrowDown,
+                                label: t.moveDown,
+                              },
+                            ].map(({ neighbor, Icon, label }) => (
+                              <button
+                                key={label}
+                                name="swapWith"
+                                value={neighbor?.id ?? ""}
+                                type="submit"
+                                disabled={!neighbor}
+                                aria-label={`${label} · ${b.title}`}
+                                title={label}
+                                className={`${BUTTON_ROUND} inline-flex size-11 items-center justify-center`}
+                              >
+                                <Icon aria-hidden="true" className="size-4" />
+                              </button>
+                            ))}
                             <button
                               name="intent"
                               value="remove"

@@ -93,7 +93,9 @@ that directory in the same backup as reading positions. Normal and forced
 CLI publishing preserve it.
 
 Open **My lists** to create named reading lists, or choose **Add to a list**
-from a book's **My shelf** menu. A book can belong to several lists. Renaming
+from a book's **My shelf** menu. Use the up and down arrows beside a title
+to change its position in that list. Your reading order is saved with the
+list and follows you across sessions. A book can belong to several lists. Renaming
 a list keeps its link. Removing a book or deleting a list leaves the book,
 its reading status and its position on the shelf. Lists are private to each
 account and are stored in `.bookshelf/lists/<profile-id>.json`.
