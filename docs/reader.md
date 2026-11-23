@@ -150,6 +150,11 @@ Each signed-in account has its own bookmarks for each book file. They are
 included in the library's `.bookshelf/` backup. A read-only library can show
 existing bookmarks.
 
+Use **Search in this book** to look for text in the open EPUB. Results appear
+as chapters are read on your device. Each result shows a short excerpt and
+its chapter. Select one to open the passage, and choose **Back to passage**
+to return. The query and excerpts stay in the open search dialog.
+
 ## PDFs
 
 When a PDF declares a different numbering scheme, the toolbar shows its
