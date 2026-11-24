@@ -9,15 +9,31 @@ import type { ReaderText } from "@/lib/reader-text";
 
 const SIZES = [85, 100, 125, 150, 175, 200];
 const TINTS = ["publisher", "sepia", "night"] as const;
+const SPACINGS = [
+  { value: "publisher", label: "originalSpacing", height: undefined },
+  { value: "relaxed", label: "relaxedSpacing", height: 1.6 },
+  { value: "wide", label: "wideSpacing", height: 2 },
+] as const;
 
-export type Appearance = { size: number; tint: (typeof TINTS)[number] };
-export const original: Appearance = { size: 100, tint: "publisher" };
+export type Appearance = {
+  size: number;
+  tint: (typeof TINTS)[number];
+  spacing: (typeof SPACINGS)[number]["value"];
+};
+export const original: Appearance = {
+  size: 100,
+  tint: "publisher",
+  spacing: "publisher",
+};
 
 export function readAppearance(key: string): Appearance {
-  const [size, tint] = (readStored(key) ?? "").split("/");
+  const [size, tint, spacing] = (readStored(key) ?? "").split("/");
   return {
     size: SIZES.includes(Number(size)) ? Number(size) : original.size,
     tint: TINTS.find((option) => option === tint) ?? original.tint,
+    spacing:
+      SPACINGS.find((option) => option.value === spacing)?.value ??
+      original.spacing,
   };
 }
 
@@ -28,7 +44,7 @@ const palettes = {
 
 export function applyAppearance(
   contents: Contents,
-  { size, tint }: Appearance,
+  { size, tint, spacing }: Appearance,
 ) {
   const doc = contents.document;
   const win = doc.defaultView;
@@ -44,6 +60,15 @@ export function applyAppearance(
         "important",
       );
     });
+  }
+  const lineHeight = SPACINGS.find(
+    (option) => option.value === spacing,
+  )?.height;
+  if (lineHeight) {
+    contents.addStylesheetCss(
+      `body, body :is(p, li, blockquote, dt, dd) { line-height: ${lineHeight} !important; }`,
+      "bookshelf-line-spacing",
+    );
   }
   if (tint === "publisher") return;
   const { background, color, link } = palettes[tint];
@@ -112,6 +137,25 @@ export function EpubAppearance({
             {SIZES.map((size) => (
               <option key={size} value={size}>
                 {size}%
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="mt-3 flex items-center justify-between gap-2 text-sm">
+          {t.lineSpacing}
+          <select
+            className={SELECT}
+            value={value.spacing}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                spacing: event.target.value as Appearance["spacing"],
+              })
+            }
+          >
+            {SPACINGS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {t[label]}
               </option>
             ))}
           </select>

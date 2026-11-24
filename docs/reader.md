@@ -123,9 +123,10 @@ the passage itself. Continuous scroll and fixed layouts show the section alone.
 ## EPUB appearance
 
 In a reflowable EPUB, open **Reading appearance** to change text size from
-85% to 200% or choose sepia or night colors. Choose **100%** and **Publisher
-colors** for the original typography and palette. The reader reopens the
-current passage as the text reflows. Illustrations retain their colors.
+85% to 200%, set line spacing to **Relaxed** (1.6×) or **Wide** (2×), or
+choose sepia or night colors. Choose **100%**, **Publisher spacing** and
+**Publisher colors** to restore the book's appearance. The reader reopens
+the current passage as the text reflows. Illustrations retain their colors.
 This browser remembers the choices for the signed-in account across its books.
 Fixed-layout EPUBs keep their original presentation.
 
