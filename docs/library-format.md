@@ -74,6 +74,11 @@ Renaming a book keeps its ID, file links and reading positions. Saving an
 empty list clears the subjects. **Use published subjects** follows the
 metadata from sync again.
 
+In **Manage books**, select **Missing subjects** to find books with no
+subjects, including books whose subjects you cleared. Search by title or
+author to narrow the list. After adding or restoring a subject, return to
+the same filtered list. The corrected book leaves the results and their CSV.
+
 In **Manage books**, select **Missing ISBN** to find books without a recorded
 number. You can narrow the list by title or author. Open a book, enter its
 ISBN-10 or ISBN-13 and choose **Add ISBN**. When you return to the list,

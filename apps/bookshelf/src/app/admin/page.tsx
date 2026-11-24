@@ -104,7 +104,12 @@ export default async function AdminPage(props: PageProps<"/admin">) {
         <input
           type="hidden"
           name={
-            { cover: "from", date: "date", isbn: "missingIsbn" }[view.missing]
+            {
+              cover: "from",
+              date: "date",
+              isbn: "missingIsbn",
+              subject: "missingSubject",
+            }[view.missing]
           }
           value="missing"
         />
@@ -205,7 +210,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             className={BUTTON_QUIET}
             href={
               bulkSubjects
-                ? "/admin?bulk=subjects"
+                ? adminHref({ ...view, bulk: "subjects" })
                 : id
                   ? adminHref({ ...view, book: String(id) })
                   : listHref
@@ -218,6 +223,7 @@ export default async function AdminPage(props: PageProps<"/admin">) {
         <BulkSubjectForm
           key={data.batchRevision}
           revision={data.batchRevision}
+          view={view}
           books={data.books.map(({ id, title, authors, subjects }) => ({
             id,
             title,
@@ -471,6 +477,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             .filter((book) => {
               if (view.missing === "isbn") return !book.isbn;
               if (view.missing === "date") return !book.published?.trim();
+              if (view.missing === "subject")
+                return !book.subjects?.some((name) => name.trim());
               return view.missing !== "cover" || !book.cover;
             })
             .map(({ id, title, authors, isbn, formats }) => ({
@@ -489,6 +497,8 @@ export default async function AdminPage(props: PageProps<"/admin">) {
             noMissingDates: t.noMissingDates,
             missingIsbns: t.missingIsbns,
             noMissingIsbns: t.noMissingIsbns,
+            missingSubjects: t.missingSubjects,
+            noMissingSubjects: t.noMissingSubjects,
             bulkSubject: t.bulkSubject,
             searchCatalog: t.searchCatalog,
             clearSearch: t.clearSearch,

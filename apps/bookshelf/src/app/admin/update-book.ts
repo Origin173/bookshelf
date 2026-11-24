@@ -66,6 +66,7 @@ export async function updateBook(
       cover: form.get("from"),
       date: form.get("date"),
       isbn: form.get("missingIsbn"),
+      subject: form.get("missingSubject"),
       q: form.get("q"),
     });
     return new Response(null, {
