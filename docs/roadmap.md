@@ -26,8 +26,8 @@ the same book on two screens at once and one of them loses its place.
 
 Where reading and browsing are thin rather than absent.
 
-- **More EPUB typography controls.** Text size and page tint are available.
-  Font family, line height and margins are still open.
+- **More EPUB typography controls.** Text size, line spacing and page tint
+  are available. Font family and margins are still open.
 - **A page per book.** Your books' descriptions are read, published, and never
   shown, because there's no page where a book's own details live. The shelf row
   crowds the actions together and there's nowhere to see a large cover.

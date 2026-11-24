@@ -221,7 +221,7 @@ export function EpubReader({
   const [fixedLayout, setFixedLayout] = useState<boolean | null>(null);
 
   function changeAppearance(next: Appearance) {
-    writeStored(appearanceKey, `${next.size}/${next.tint}`);
+    writeStored(appearanceKey, `${next.size}/${next.tint}/${next.spacing}`);
     setAppearance(next);
   }
 
@@ -337,6 +337,14 @@ export function EpubReader({
           allowScriptedContent: false,
         });
         rendition.current = view;
+        function isFixedSection(index: number) {
+          return (
+            view.settings.layout === "pre-paginated" ||
+            opened.spine
+              .get(index)
+              ?.properties.includes("rendition:layout-pre-paginated") === true
+          );
+        }
         let entries: TocEntry[] = [];
         const targetsBySection = new Map<
           number,
@@ -356,7 +364,7 @@ export function EpubReader({
           }
           if (shared.size)
             setAliases((known) => new Map([...known, ...shared]));
-          if (view.settings.layout !== "pre-paginated") {
+          if (!isFixedSection(contents.sectionIndex)) {
             applyAppearance(contents, appearance);
           }
         });
@@ -372,12 +380,9 @@ export function EpubReader({
           if (cancelled || !start?.cfi) return;
 
           const { page, total } = start.displayed;
-          const paginated =
-            mode !== "scroll" &&
-            view.settings.layout !== "pre-paginated" &&
-            !opened.spine
-              .get(start.index)
-              ?.properties.includes("rendition:layout-pre-paginated");
+          const fixed = isFixedSection(start.index);
+          setFixedLayout(fixed);
+          const paginated = mode !== "scroll" && !fixed;
           const counted =
             paginated &&
             Number.isSafeInteger(page) &&
@@ -506,10 +511,7 @@ export function EpubReader({
           openingCfi.current = undefined;
           restoringCfi.current = targetCfi.current;
           await view.display(targetCfi.current ?? firstReadableHref(opened));
-          if (!cancelled) {
-            setFixedLayout(view.settings.layout === "pre-paginated");
-            setSearchBook(opened);
-          }
+          if (!cancelled) setSearchBook(opened);
         });
       })
       .then(() => {
