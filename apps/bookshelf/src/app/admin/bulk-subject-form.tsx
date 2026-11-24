@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { adminHref, type CatalogView } from "@/app/admin/catalog-link";
 import { FilterInput } from "@/app/filter-input";
 import { BUTTON, BUTTON_PRIMARY, BUTTON_QUIET, SELECT } from "@/app/ui";
 import { searchBookText } from "@/lib/book-search";
@@ -37,11 +38,13 @@ export function BulkSubjectForm({
   books,
   subjects,
   revision,
+  view,
   t,
 }: {
   books: Row[];
   subjects: string[];
   revision: string;
+  view: CatalogView;
   t: Labels;
 }) {
   const [subject, setSubject] = useState("");
@@ -84,7 +87,7 @@ export function BulkSubjectForm({
         redirect: "error",
       });
       if (r.status === 204) {
-        window.location.assign("/admin?result=bulkSaved");
+        window.location.assign(adminHref({ ...view, result: "bulkSaved" }));
         return;
       }
       const errors: Record<number, keyof Labels> = {
@@ -222,7 +225,10 @@ export function BulkSubjectForm({
         <p role="alert" className="mb-3 rounded-xl bg-fill px-4 py-3 text-sm">
           {t[issue]}{" "}
           {issue === "bulkConflict" && (
-            <a className="font-medium text-accent" href="/admin?bulk=subjects">
+            <a
+              className="font-medium text-accent"
+              href={adminHref({ ...view, bulk: "subjects" })}
+            >
               {t.changeSelection}
             </a>
           )}
@@ -258,7 +264,7 @@ export function BulkSubjectForm({
           </button>
         )}
         {!saving && (
-          <a href="/admin" className={BUTTON_QUIET}>
+          <a href={adminHref(view)} className={BUTTON_QUIET}>
             {t.cancel}
           </a>
         )}

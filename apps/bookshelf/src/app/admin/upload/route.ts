@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       cover: params.get("cover"),
       date: params.get("date"),
       isbn: params.get("isbn"),
+      subject: params.get("subject"),
       q: params.get("q"),
     });
     return new Response(null, {

@@ -28,6 +28,8 @@ export function AdminBookList({
     noMissingDates: string;
     missingIsbns: string;
     noMissingIsbns: string;
+    missingSubjects: string;
+    noMissingSubjects: string;
     bulkSubject: string;
     searchCatalog: string;
     clearSearch: string;
@@ -58,11 +60,13 @@ export function AdminBookList({
     ["cover", t.missingCovers],
     ["date", t.missingDates],
     ["isbn", t.missingIsbns],
+    ["subject", t.missingSubjects],
   ] as const;
   const empty = {
     cover: t.noMissingCovers,
     date: t.noMissingDates,
     isbn: t.noMissingIsbns,
+    subject: t.noMissingSubjects,
   };
   return (
     <>
@@ -79,7 +83,16 @@ export function AdminBookList({
             {label}
           </Link>
         ))}
-        <Link href="/admin?bulk=subjects" prefetch={false} className={BUTTON}>
+        <Link
+          href={adminHref({
+            missing: view.missing,
+            q: query,
+            bulk: "subjects",
+          })}
+          onNavigate={rememberSearch}
+          prefetch={false}
+          className={BUTTON}
+        >
           {t.bulkSubject}
         </Link>
       </nav>
